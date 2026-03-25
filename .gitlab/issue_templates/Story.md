@@ -31,5 +31,3 @@
 
 ---
 
-## Blocked Reason
-<!-- Falls blockiert -->
