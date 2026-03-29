@@ -14,9 +14,9 @@ Entwicklung einer Webanwendung zur automatisierten Zeitplansteuerung und Inventa
 
 ### Kernfunktionen
 
-- Zentrale Übersicht aller Server, gruppiert nach Kategorie (Produktion, Test, Entwicklung)
+- Zentrale Übersicht aller Server ausgewählter OpenStack Projekte, gruppiert nach Kategorie (Produktion, Test, Entwicklung)
 - Konfiguration individueller Zeitpläne pro Server (Starten/Stoppen nach Wochentag und Uhrzeit)
-- Automatische Inventarisierung sowie manuelle Aktualisierung
+- Automatische sowie manuelle Inventarisierung der Server
 - Sicherheitsabfrage bei Änderungen an Produktivservern
 - Authentifizierung und Autorisierung über Shibboleth SSO (nur RZ-Mitarbeiter)
 
@@ -25,7 +25,7 @@ Entwicklung einer Webanwendung zur automatisierten Zeitplansteuerung und Inventa
 | Komponente | Technologie |
 |---|---|
 | Backend | PHP mit Laravel Framework |
-| Frontend | Bootstrap v5 |
+| User-Interface/ GUI | Laravel-Blade & Bootstrap v5 |
 | Datenbank | MariaDB |
 | Infrastruktur | Docker & Docker Compose |
 | Authentifizierung | Shibboleth SSO |
