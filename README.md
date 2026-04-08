@@ -45,5 +45,3 @@ Entwicklung einer Webanwendung zur automatisierten Zeitplansteuerung und Inventa
     - [Diagramme](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Diagramme)
     - [Verzeichnisstruktur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Verzeichnisstruktur)
     - [UI & UX Design](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/7.-Systemarchitektur/UI---UX-Design)
-
-    jaöödfjoesa ijeist neu
