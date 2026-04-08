@@ -33,7 +33,6 @@ Entwicklung einer Webanwendung zur automatisierten Zeitplansteuerung und Inventa
 ### Wiki Übersicht
 
 - [Home](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home)
-  <<<<<<< HEAD
   - [Teamorganisation](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/3.-Teamorganisation)
   - [Stakeholder](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Stakeholder)
   - [Meilensteine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/1.-Meilenstein)
@@ -42,6 +41,7 @@ Entwicklung einer Webanwendung zur automatisierten Zeitplansteuerung und Inventa
   - [Meetingprotokolle & Ergebnisse](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse)
     - [Projektexterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektexterne-Meetings)
     - [Projektinterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektinterne-Meetings)
-  - [Systemarchitektur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur) - [Diagramme](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Diagramme) - [Verzeichnisstruktur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Verzeichnisstruktur) - [UI & UX Design](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/7.-Systemarchitektur/UI---UX-Design)
-    ======= - [Teamorganisation](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/3.-Teamorganisation) - [Stakeholder](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Stakeholder) - [Meilensteine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/1.-Meilenstein) - [Termine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/2.-Termin) - [Beistellungen](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Beistellungen) - [Meetingprotokolle & Ergebnisse](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse) - [Projektexterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektexterne-Meetings) - [Projektinterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektinterne-Meetings) - [Systemarchitektur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur) - [Diagramme](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Diagramme) - [Verzeichnisstruktur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Verzeichnisstruktur) - [UI & UX Design](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/7.-Systemarchitektur/UI---UX-Design)
-    > > > > > > > parent of 4c9c691 (commit)
+  - [Systemarchitektur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur)
+    - [Diagramme](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Diagramme)
+    - [Verzeichnisstruktur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Verzeichnisstruktur)
+    - [UI & UX Design](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/7.-Systemarchitektur/UI---UX-Design)
