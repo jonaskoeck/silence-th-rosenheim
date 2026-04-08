@@ -2,7 +2,7 @@
 
 ## Projektübersicht
 
-Dieses Projekt entsteht im Rahmen der Lehrveranstaltung *Software Engineering Praxis* (SoSe 2026) an der Technischen Hochschule Rosenheim in Zusammenarbeit mit dem Rechenzentrum der TH.
+Dieses Projekt entsteht im Rahmen der Lehrveranstaltung _Software Engineering Praxis_ (SoSe 2026) an der Technischen Hochschule Rosenheim in Zusammenarbeit mit dem Rechenzentrum der TH.
 
 ### Hintergrund
 
@@ -22,25 +22,28 @@ Entwicklung einer Webanwendung zur automatisierten Zeitplansteuerung und Inventa
 
 ### Technologie-Stack
 
-| Komponente | Technologie |
-|---|---|
-| Backend | PHP mit Laravel Framework |
+| Komponente          | Technologie                  |
+| ------------------- | ---------------------------- |
+| Backend             | PHP mit Laravel Framework    |
 | User-Interface/ GUI | Laravel-Blade & Bootstrap v5 |
-| Datenbank | MariaDB |
-| Infrastruktur | Docker & Docker Compose |
-| Authentifizierung | Shibboleth SSO |
+| Datenbank           | MariaDB                      |
+| Infrastruktur       | Docker & Docker Compose      |
+| Authentifizierung   | Shibboleth SSO               |
 
 ### Wiki Übersicht
+
 - [Home](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home)
-    - [Teamorganisation](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/3.-Teamorganisation)
-    - [Stakeholder](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Stakeholder)
-    - [Meilensteine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/1.-Meilenstein)
-    - [Termine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/2.-Termin)
-    - [Beistellungen](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Beistellungen)
-    - [Meetingprotokolle & Ergebnisse](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse)
-        - [Projektexterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektexterne-Meetings)
-        - [Projektinterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektinterne-Meetings)
-    - [Systemarchitektur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur)
-        - [Diagramme](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Diagramme)
-        - [Verzeichnisstruktur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Verzeichnisstruktur)
-        - [UI & UX Design](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/7.-Systemarchitektur/UI---UX-Design)
+  - [Teamorganisation](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/3.-Teamorganisation)
+  - [Stakeholder](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Stakeholder)
+  - [Meilensteine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/1.-Meilenstein)
+  - [Termine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/2.-Termin)
+  - [Beistellungen](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Beistellungen)
+  - [Meetingprotokolle & Ergebnisse](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse)
+    - [Projektexterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektexterne-Meetings)
+    - [Projektinterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektinterne-Meetings)
+  - [Systemarchitektur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur)
+    - [Diagramme](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Diagramme)
+    - [Verzeichnisstruktur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Verzeichnisstruktur)
+    - [UI & UX Design](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/7.-Systemarchitektur/UI---UX-Design)
+
+    jaöödfjoesa ijeist neu
