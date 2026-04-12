@@ -33,20 +33,13 @@ Entwicklung einer Webanwendung zur automatisierten Zeitplansteuerung und Inventa
 ### Wiki Übersicht
 
 - [Home](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home)
-  - [Teamorganisation](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/3.-Teamorganisation)
-  - [Stakeholder](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Stakeholder)
-  - [Meilensteine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/1.-Meilenstein)
-  - [Termine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/2.-Termin)
+  - [Entwicklerteam](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Entwicklerteam)
+  - [Projektpartner und Stakeholder](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Projektpartner-und-Stakeholder)
+  - [Meilensteine und Termine](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meilensteine-und-Termine)
+  - [Meetings und Protokolle](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meetings-und-Protokolle)
+  - [Struktur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Struktur)
   - [Beistellungen](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Beistellungen)
-  - [Meetingprotokolle & Ergebnisse](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse)
-    - [Projektexterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektexterne-Meetings)
-    - [Projektinterne Meetings](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meeting-Protokolle-&-Ergebnisse/Projektinterne-Meetings)
-  - [Systemarchitektur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur)
-    - [Diagramme](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Diagramme)
-    - [Verzeichnisstruktur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Systemarchitektur/Verzeichnisstruktur)
-    - [UI & UX Design](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/7.-Systemarchitektur/UI---UX-Design)
-  - [Glossar](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/8.-Glossar)
-  - [Ki-Werkzeug](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/9.-Ki-Werkzeug)
-  - [Happiness Index](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/10.-Happiness-Index)
+  - [Glossar](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Glossar)
+  - [KI-Werkzeug](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/KI-Werkzeug)
 
 <!-- wiki-end -->
