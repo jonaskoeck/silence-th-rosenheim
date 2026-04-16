@@ -41,5 +41,6 @@ Entwicklung einer Webanwendung zur automatisierten Zeitplansteuerung und Inventa
   - [Beistellungen](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Beistellungen)
   - [Glossar](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Glossar)
   - [KI-Werkzeug](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/KI-Werkzeug)
+  - [KI-Werkzeug](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/DOD-DOR)
 
 <!-- wiki-end -->
