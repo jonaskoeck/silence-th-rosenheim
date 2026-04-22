@@ -1,0 +1,63 @@
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "web"
+
+stages:
+  - build
+  - test
+
+build-assets:
+  stage: build
+  image: node:22-alpine
+  cache:
+    key:
+      files:
+        - backend/package-lock.json
+    paths:
+      - backend/node_modules/
+  script:
+    - cd backend
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - backend/public/build/
+    expire_in: 1 day
+
+test:
+  stage: test
+  image: php:8.4-cli
+  services:
+    - name: mariadb:12
+      alias: mariadb
+  variables:
+    # MariaDB service configuration
+    MARIADB_DATABASE: silence
+    MARIADB_ROOT_PASSWORD: root
+    MARIADB_USER: backend
+    MARIADB_PASSWORD: backend123
+    # Laravel DB connection (DB_HOST matches the service alias)
+    DB_CONNECTION: mariadb
+    DB_HOST: mariadb
+    DB_PORT: "3306"
+    DB_DATABASE: silence
+    DB_USERNAME: backend
+    DB_PASSWORD: backend123
+  cache:
+    key:
+      files:
+        - backend/composer.lock
+    paths:
+      - backend/vendor/
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq libzip-dev unzip git
+    - docker-php-ext-install zip pdo pdo_mysql
+    - curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+  script:
+    - cd backend
+    - composer install --no-interaction --prefer-dist
+    - cp .env.example .env
+    - php artisan key:generate
+    - php artisan migrate --force
+    - php artisan test
