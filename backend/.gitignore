@@ -21,6 +21,7 @@ boost.json
 /.vite
 /auth.json
 /node_modules
+/.vite
 /public/build
 /public/hot
 /public/storage
