@@ -18,6 +18,7 @@ boost.json
 /.phpunit.cache
 /.vscode
 /.zed
+/.vite
 /auth.json
 /node_modules
 /.vite
