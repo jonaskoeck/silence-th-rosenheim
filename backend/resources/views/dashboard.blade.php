@@ -67,9 +67,10 @@
 
                 @forelse ($projects as $project)
                 <div class="border-bottom">
-                    <div class="px-3 py-2 bg-light d-flex align-items-center gap-2">
+                    <div class="px-3 py-2 bg-light d-flex flex-column">
                         <span class="fw-semibold small">{{ $project['name'] }}</span>
-                        </div>
+                        <span class="text-muted font-monospace" style="font-size:0.7rem">{{ $project['open_stack_project_id'] }}</span>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
@@ -190,6 +191,11 @@
             <form method="POST" action="{{ route('projects.store') }}">
                 @csrf
                 <div class="modal-body d-flex flex-column gap-3">
+                    @if ($errors->any())
+                        <div class="alert alert-danger small mb-0 py-2">
+                            {{ $errors->first() }}
+                        </div>
+                    @endif
                     <div>
                         <label class="form-label small fw-semibold">Name</label>
                         <input type="text" name="name" class="form-control">
