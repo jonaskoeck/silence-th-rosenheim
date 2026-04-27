@@ -20,7 +20,6 @@ class DashboardController extends Controller
             'name'    => $p->name,
             'servers' => $p->servers->map(fn($s) => [
                 'name'         => $s->name,
-                'ip'           => '—',
                 'status'       => 'stopped',
                 'label'        => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
                 'online_since' => null,
@@ -36,8 +35,7 @@ class DashboardController extends Controller
             'total'           => $total,
             'running'         => 0,
             'stopped'         => $total,
-            'activeSchedules' => 0,
-            'time'            => fn(?string $since): string => 'k.A.',
+            'activeSchedules' => 0
         ]);
     }
 }

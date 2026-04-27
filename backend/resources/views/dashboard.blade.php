@@ -192,7 +192,7 @@
                 <div class="modal-body d-flex flex-column gap-3">
                     <div>
                         <label class="form-label small fw-semibold">Name</label>
-                        <input type="text" name="name" class="form-control" required>
+                        <input type="text" name="name" class="form-control">
                     </div>
                     <div>
                         <label class="form-label small fw-semibold">App Credential ID</label>
