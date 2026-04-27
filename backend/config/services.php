@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'openstack' => [
+        'auth_url' => env('OPENSTACK_AUTH_URL'),
+    ],
+
 ];

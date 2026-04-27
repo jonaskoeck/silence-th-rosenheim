@@ -4,23 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreProjectRequest;
 use App\Services\Contracts\ProjectServiceInterface;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 
 class ProjectController extends Controller
 {
     public function __construct(private ProjectServiceInterface $projects) {}
 
-    public function store(Request $request): RedirectResponse
+    public function store(StoreProjectRequest $request): RedirectResponse
     {
-        $project = $this->projects->create(
-            $request->only(['name', 'open_stack_project_id', 'app_credential_id', 'app_credential_secret']),
-        );
+        $project = $this->projects->create($request->projectAttributes());
 
         return redirect()
-            ->route('projects.create')
+            ->route('dashboard')
             ->with('status', "Project stored with id {$project->id}");
     }
 }
