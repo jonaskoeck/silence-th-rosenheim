@@ -1,12 +1,5 @@
 @extends('layouts.app')
 
-@push('styles')
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
-<style>
-    .ts-wrapper.single .ts-control { padding-right: 2.5rem !important; }
-</style>
-@endpush
-
 @section('title', 'Inventarisierung')
 
 @section('content')
@@ -17,7 +10,7 @@
             <h1 class="h4 fw-bold mb-0">Inventarisierung</h1>
         </div>
         <div class="d-flex gap-2 align-items-center">
-            <select id="projectSelect" placeholder="Projekt wählen..." style="min-width:220px">
+            <select id="projectSelect" placeholder="Projekt wählen..." style="max-width:220px">
                 @foreach ($projects as $project)
                     <option value="{{ $project->id }}">{{ $project->name }}</option>
                 @endforeach
@@ -93,7 +86,6 @@
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
     new TomSelect('#projectSelect', { maxOptions: 100 });
 </script>
