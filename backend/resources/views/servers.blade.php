@@ -1,0 +1,157 @@
+@extends('layouts.app')
+
+
+@section('title', 'Server')
+
+@section('content')
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center page-header">
+        <div>
+            <h1 class="h4 fw-bold mb-0">Server</h1>
+        </div>
+    </div>
+
+    @forelse ($projects as $index => $project)
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center" style="cursor:pointer"
+                 data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}">
+                <i class="bi bi-chevron-down me-2 text-muted" style="font-size:0.85rem"></i>
+                <span class="fw-semibold">{{ $project['name'] }}</span>
+            </div>
+            <button class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-arrow-repeat me-1"></i>Inventarisieren
+            </button>
+        </div>
+        <div class="collapse" id="project-{{ $index }}">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Name / IP</th>
+                            <th>Status</th>
+                            <th>Typ</th>
+                            <th>Letzte Aktion</th>
+                            <th class="text-end">Aktionen</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($project['servers'] as $srv)
+                        @php
+                            [$sc, $sl] = match($srv['status']) {
+                                'running' => ['success',   'Laufend'],
+                                default   => ['secondary', 'Gestoppt'],
+                            };
+                        @endphp
+                        <tr>
+                            <td>
+                                <div class="fw-semibold small">{{ $srv['name'] }}</div>
+                                <div class="text-muted font-monospace" style="font-size:0.72rem">
+                                    {{ $srv['ip'] }}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge text-bg-{{ $sc }} rounded-pill">{{ $sl }}</span>
+                            </td>
+                            <td>
+                                @if ($srv['label'] === 'production')
+                                <span class="badge text-bg-danger rounded-pill">Produktiv</span>
+                                @else
+                                <span class="badge text-bg-warning rounded-pill">Test</span>
+                                @endif
+                            </td>
+                            <td class="text-muted small">{{ $srv['last_action'] }}</td>
+                            <td class="text-end">
+                                <div class="btn-group">
+                                    @if ($srv['status'] === 'running')
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            data-server-action="stop"
+                                            data-server-name="{{ $srv['name'] }}"
+                                            data-server-id="{{ $srv['id'] }}"
+                                            data-server-label="{{ $srv['label'] }}"
+                                            title="Stoppen">
+                                        <i class="bi bi-stop-fill"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-warning"
+                                            data-server-action="restart"
+                                            data-server-name="{{ $srv['name'] }}"
+                                            data-server-id="{{ $srv['id'] }}"
+                                            data-server-label="{{ $srv['label'] }}"
+                                            title="Neustarten">
+                                        <i class="bi bi-arrow-clockwise"></i>
+                                    </button>
+                                    @else
+                                    <button class="btn btn-sm btn-outline-success"
+                                            data-server-action="start"
+                                            data-server-name="{{ $srv['name'] }}"
+                                            data-server-id="{{ $srv['id'] }}"
+                                            title="Starten">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                    @endif
+
+                                    <a href="{{ route('schedules', ['server' => $srv['id']]) }}"
+                                       class="btn btn-sm btn-outline-secondary" title="Zeitpläne">
+                                        <i class="bi bi-clock"></i>
+                                    </a>
+
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                            data-bs-toggle="modal" data-bs-target="#labelModal"
+                                            data-server-id="{{ $srv['id'] }}"
+                                            data-server-name="{{ $srv['name'] }}"
+                                            data-server-label="{{ $srv['label'] }}"
+                                            title="Label ändern">
+                                        <i class="bi bi-tag"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center text-muted small py-3">
+                                Keine Server in diesem Projekt.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @empty
+    <div class="text-center text-muted py-5">
+        Keine Projekte vorhanden.
+    </div>
+    @endforelse
+
+</div>
+
+<div class="modal fade" id="labelModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-tag me-2"></i>Label ändern
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">
+                    Server: <strong id="modal-server-name">k.A.</strong>
+                </p>
+                <input type="hidden" id="modal-server-id">
+                <div class="d-grid gap-2">
+                    <button type="button" class="btn btn-danger" onclick="setLabel('production')">
+                        Produktiv setzen
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="setLabel('test')">
+                        Test setzen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection
+
