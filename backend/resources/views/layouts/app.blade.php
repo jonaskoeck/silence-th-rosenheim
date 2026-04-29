@@ -7,6 +7,7 @@
     <title>@yield('title', 'silence!') | TH Rosenheim</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="{{ asset('assets/css/custom.css') }}" rel="stylesheet">
+    @stack('styles')
 </head>
 <body class="bg-light">
 
@@ -32,23 +33,21 @@
     </div>
 </nav>
 
-<div class="offcanvas offcanvas-start bg-dark text-white" id="mobileSidebar" style="width:240px">
-    <div class="offcanvas-header border-bottom border-secondary">
-        <h6 class="offcanvas-title text-white mb-0 d-flex align-items-center gap-2">
+<div class="offcanvas offcanvas-start bg-white" id="mobileSidebar" style="width:240px">
+    <div class="offcanvas-header border-bottom">
+        <h6 class="offcanvas-title mb-0 d-flex align-items-center gap-2">
             <img src="{{ asset('assets/logo.png') }}" alt="TH Rosenheim" style="height:28px; width:auto">
-            silence!
         </h6>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body p-2">
         @include('includes.sidebar')
-        <hr class="border-secondary">
+        <hr>
         <div class="px-2">
             <p class="text-muted small mb-1">
-                <i class="bi bi-person-circle me-1"></i>
-                {{ session('user_displayname', 'RZ Mitarbeiter') }}
+                {{ str_replace(' (RZ)', '', session('user_displayname', 'Mitarbeiter')) }}
             </p>
-            <a href="{{ route('logout') }}" class="btn btn-outline-light btn-sm w-100">
+            <a href="{{ route('logout') }}" class="btn btn-outline-secondary btn-sm w-100">
                 <i class="bi bi-box-arrow-right me-1"></i>Abmelden
             </a>
         </div>
