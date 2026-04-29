@@ -29,10 +29,10 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th>Name / IP</th>
+                            <th>Name</th>
+                            <th>OpenStack ID</th>
                             <th>Status</th>
                             <th>Typ</th>
-                            <th>Letzte Aktion</th>
                             <th class="text-end">Aktionen</th>
                         </tr>
                     </thead>
@@ -47,10 +47,8 @@
                         <tr>
                             <td>
                                 <div class="fw-semibold small">{{ $srv['name'] }}</div>
-                                <div class="text-muted font-monospace" style="font-size:0.72rem">
-                                    {{ $srv['ip'] }}
-                                </div>
                             </td>
+                            <td class="text-muted font-monospace small">{{ $srv['open_stack_server_id'] ?? '—' }}</td>
                             <td>
                                 <span class="badge text-bg-{{ $sc }} rounded-pill">{{ $sl }}</span>
                             </td>
@@ -61,7 +59,6 @@
                                 <span class="badge text-bg-warning rounded-pill">Test</span>
                                 @endif
                             </td>
-                            <td class="text-muted small">{{ $srv['last_action'] }}</td>
                             <td class="text-end">
                                 <div class="btn-group">
                                     @if ($srv['status'] === 'running')

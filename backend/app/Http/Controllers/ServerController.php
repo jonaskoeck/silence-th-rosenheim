@@ -19,12 +19,11 @@ class ServerController extends Controller
         $projects = $projectModels->map(fn($p) => [
             'name'    => $p->name,
             'servers' => $p->servers->map(fn($s) => [
-                'id'          => $s->id,
-                'name'        => $s->name,
-                'ip'          => '—',
-                'status'      => 'stopped',
-                'label'       => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
-                'last_action' => '—',
+                'id'                   => $s->id,
+                'name'                 => $s->name,
+                'open_stack_server_id' => $s->open_stack_server_id,
+                'status'               => 'stopped',
+                'label'                => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
             ])->all(),
         ])->all();
 
