@@ -6,7 +6,7 @@ namespace App\Services\Contracts;
 
 interface InventoryServiceInterface
 {
-    public function runForAllProjects(): void;
+    public function runForAllProjects(bool $triggeredAutomatically = false): void;
 
     public function runForProject(int $projectId): void;
 }

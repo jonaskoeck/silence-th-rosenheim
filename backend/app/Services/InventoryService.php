@@ -21,12 +21,12 @@ class InventoryService implements InventoryServiceInterface
         private ProjectServiceInterface $projects,
     ) {}
 
-    public function runForAllProjects(): void
+    public function runForAllProjects(bool $triggeredAutomatically = false): void
     {
         // Protokoll anlegen — wird am Ende mit Ergebnis aktualisiert
         $run = InventoryRun::create([
             'start_time'              => now(),
-            'triggered_automatically' => false,
+            'triggered_automatically' => $triggeredAutomatically,
             'had_errors'              => false,
             'found_new_servers'       => false,
         ]);
@@ -56,7 +56,7 @@ class InventoryService implements InventoryServiceInterface
 
                     // Label nur bei neuen Servern setzen
                     if (! $server->exists) {
-                        $server->label              = ServerLabel::NONE;
+                        $server->label             = ServerLabel::NONE;
                         $server->discovered_by_run_id = $run->id;
                         $foundNew                   = true;
                     }
@@ -72,6 +72,9 @@ class InventoryService implements InventoryServiceInterface
                 $project->servers()
                     ->whereNotIn('open_stack_server_id', $fetchedIds)
                     ->delete();
+
+                // Beim Projekt speichern welcher Run der letzte war
+                $project->update(['last_inventory_run_id' => $run->id]);
 
             } catch (Throwable $e) {
                 // Fehler loggen aber mit dem nächsten Projekt weitermachen
@@ -134,6 +137,9 @@ class InventoryService implements InventoryServiceInterface
             $project->servers()
                 ->whereNotIn('open_stack_server_id', $fetchedIds)
                 ->delete();
+
+            // Beim Projekt speichern welcher Run der letzte war
+            $project->update(['last_inventory_run_id' => $run->id]);
 
         } catch (Throwable $e) {
             Log::error('Inventory failed for project', [
