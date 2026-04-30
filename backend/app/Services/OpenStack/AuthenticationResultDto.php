@@ -9,5 +9,6 @@ final readonly class AuthenticationResultDto
     public function __construct(
         public string $token,
         public string $projectId,
+        public string $computeEndpoint,
     ) {}
 }
