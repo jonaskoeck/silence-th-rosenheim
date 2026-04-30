@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Models\InventoryRun;
 use App\Services\Contracts\InventoryServiceInterface;
 use App\Services\Contracts\ProjectServiceInterface;
 use Illuminate\Contracts\View\View;
@@ -18,10 +19,12 @@ class InventoryController extends Controller
 
     public function index(): View
     {
-        $projects = $this->projects->getAll()->load('servers');
+        $projects = $this->projects->getAll();
+        $runs = InventoryRun::latest()->get();
 
-        return view('inventory.index', [
+        return view('inventory', [
             'projects' => $projects,
+            'runs'     => $runs,
         ]);
     }
 
@@ -29,6 +32,6 @@ class InventoryController extends Controller
     {
         $this->inventory->runForAllProjects();
 
-        return redirect()->route('dashboard');
+        return redirect()->route('inventory');
     }
 }

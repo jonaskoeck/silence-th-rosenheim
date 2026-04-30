@@ -18,9 +18,12 @@
             <button class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-play-fill me-1"></i>Manuell inventarisieren
             </button>
-            <button class="btn btn-sm btn-primary">
-                <i class="bi bi-arrow-repeat me-1"></i>Alle Projekte inventarisieren
-            </button>
+            <form method="POST" action="{{ route('inventory.run') }}">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-arrow-repeat me-1"></i>Alle Projekte inventarisieren
+                </button>
+            </form>
         </div>
     </div>
 

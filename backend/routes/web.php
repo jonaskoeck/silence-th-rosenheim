@@ -17,4 +17,3 @@ Route::get('/schedules', [ScheduleController::class, 'index'])->name('schedules'
 
 Route::get('/login',  fn() => view('login'))->name('login');
 Route::get('/logout', fn() => redirect()->route('login'))->name('logout');
-
