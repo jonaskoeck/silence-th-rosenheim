@@ -34,4 +34,11 @@ class InventoryController extends Controller
 
         return redirect()->route('inventory');
     }
+
+    public function runForProject(int $project): RedirectResponse
+    {
+        $this->inventory->runForProject($project);
+
+        return redirect()->route('inventory');
+    }
 }
