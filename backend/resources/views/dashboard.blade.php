@@ -91,9 +91,6 @@
                                 <tr>
                                     <td>
                                         <div class="fw-semibold small">{{ $srv['name'] }}</div>
-                                        <div class="text-muted font-monospace" style="font-size:0.72rem">
-                                            {{ $srv['ip'] }}
-                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge text-bg-{{ $sc }} rounded-pill">
