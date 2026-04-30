@@ -120,6 +120,8 @@
     }
 }
 
+.ts-wrapper.single .ts-control { padding-right: 2.5rem !important; }
+
 @media print {
     .navbar, nav.d-lg-flex, .btn, footer { display: none !important; }
     main { padding: 0 !important; }
