@@ -11,7 +11,7 @@
         </div>
         <span class="text-muted small font-monospace">
             <i class="bi bi-arrow-clockwise me-1"></i>
-            <span>Stand: {{ now()->format('d.m.Y H:i') }} Uhr</span>
+            <span>Letzte Inventarisierung: {{ $lastInventory ? $lastInventory->start_time->format('d.m.Y H:i') . ' Uhr' : '—' }}</span>
         </span>
     </div>
 
@@ -78,7 +78,6 @@
                                     <th>Name</th>
                                     <th>Status</th>
                                     <th>Typ</th>
-                                    <th>Online Zeit</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -92,9 +91,6 @@
                                 <tr>
                                     <td>
                                         <div class="fw-semibold small">{{ $srv['name'] }}</div>
-                                        <div class="text-muted font-monospace" style="font-size:0.72rem">
-                                            {{ $srv['ip'] }}
-                                        </div>
                                     </td>
                                     <td>
                                         <span class="badge text-bg-{{ $sc }} rounded-pill">
@@ -108,20 +104,12 @@
                                         <span class="badge text-bg-warning rounded-pill" style="font-size:0.72rem">Test</span>
                                         @endif
                                     </td>
-                                    <td class="text-muted small">
-                                        @if ($srv['status'] === 'running' && !empty($srv['online_since']))
-                                        <span class="text-success fw-semibold">
-                                            <i class="bi bi-clock me-1"></i>{{ $time($srv['online_since']) }}
-                                        </span>
-                                        @else
-                                        <span class="text-muted">k.A.</span>
-                                        @endif
-                                    </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted small py-3">
+                                    <td colspan="3" class="text-center text-muted small py-3">
                                         Keine Server in diesem Projekt.
+
                                     </td>
                                 </tr>
                                 @endforelse

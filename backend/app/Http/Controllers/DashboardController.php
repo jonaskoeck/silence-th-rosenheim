@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Enums\ServerLabel;
+use App\Models\InventoryRun;
 use App\Services\Contracts\ProjectServiceInterface;
 use Illuminate\Contracts\View\View;
 
@@ -29,14 +30,17 @@ class DashboardController extends Controller
 
         $total = $projectModels->sum(fn ($p) => $p->servers->count());
 
+        $lastInventory = InventoryRun::latest()->first();
+
         return view('dashboard', [
-            'projects' => $projects,
-            'schedules' => collect(),
-            'activity' => [],
-            'total' => $total,
-            'running' => 0,
-            'stopped' => $total,
+            'projects'      => $projects,
+            'schedules'     => collect(),
+            'activity'      => [],
+            'total'         => $total,
+            'running'       => 0,
+            'stopped'       => $total,
             'activeSchedules' => 0,
+            'lastInventory' => $lastInventory,
         ]);
     }
 }
