@@ -23,7 +23,7 @@ class InventoryService implements InventoryServiceInterface
 
     public function runForAllProjects(bool $triggeredAutomatically = false): void
     {
-        // Protokoll anlegen — wird am Ende mit Ergebnis aktualisiert
+        
         $run = InventoryRun::create([
             'start_time'              => now(),
             'triggered_automatically' => $triggeredAutomatically,
@@ -34,21 +34,21 @@ class InventoryService implements InventoryServiceInterface
         $hadErrors = false;
         $foundNew  = false;
 
-        // Alle Projekte aus der DB holen und nacheinander durchgehen
+   
         foreach ($this->projects->getAll() as $project) {
             try {
-                // Bei Keystone authentifizieren — gibt Token und Nova-URL zurück
+              
                 $auth = $this->client->authenticate(
                     $project->app_credential_id,
                     $project->app_credential_secret,
                 );
 
-                // Alle Server des Projekts von Nova holen
+                
                 $osServers = $this->client->listServers($auth->token, $auth->computeEndpoint);
 
-                // Jeden Server mit der DB abgleichen
+                
                 foreach ($osServers as $osServer) {
-                    // Server suchen — vorhanden: laden, nicht vorhanden: neu erstellen
+                  
                     $server = Server::firstOrNew([
                         'open_stack_server_id' => $osServer['id'],
                         'project_id'           => $project->id,
@@ -61,7 +61,7 @@ class InventoryService implements InventoryServiceInterface
                         $foundNew                   = true;
                     }
 
-                    // Name immer aktualisieren und speichern
+                    
                     $server->name = $osServer['name'];
                     $server->save();
                 }
@@ -73,11 +73,11 @@ class InventoryService implements InventoryServiceInterface
                     ->whereNotIn('open_stack_server_id', $fetchedIds)
                     ->delete();
 
-                // Beim Projekt speichern welcher Run der letzte war
+             
                 $project->update(['last_inventory_run_id' => $run->id]);
 
             } catch (Throwable $e) {
-                // Fehler loggen aber mit dem nächsten Projekt weitermachen
+               
                 Log::error('Inventory failed for project', [
                     'project_id' => $project->id,
                     'error'      => $e->getMessage(),
