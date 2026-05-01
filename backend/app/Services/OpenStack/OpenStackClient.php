@@ -25,8 +25,7 @@ class OpenStackClient implements OpenStackClientInterface
         ]);
 
         try {
-            $response = Http::withoutVerifying()
-                ->acceptJson()
+            $response = Http::acceptJson()
                 ->asJson()
                 ->post($url, [
                     'auth' => [
@@ -82,13 +81,12 @@ class OpenStackClient implements OpenStackClientInterface
      */
     public function listServers(string $token, string $computeEndpoint): array
     {
-        $url = $computeEndpoint.'/servers/detail';
+        $url = $computeEndpoint.'/servers';
 
         Log::debug('OpenStack list servers request', ['url' => $url]);
 
         try {
-            $response = Http::withoutVerifying()
-                ->withHeader('X-Auth-Token', $token)
+            $response = Http::withHeader('X-Auth-Token', $token)
                 ->acceptJson()
                 ->get($url);
         } catch (ConnectionException $e) {
