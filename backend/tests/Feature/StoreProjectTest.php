@@ -73,6 +73,29 @@ class StoreProjectTest extends TestCase
         ]);
     }
 
+    public function test_project_is_rejected_when_open_stack_project_already_exists(): void
+    {
+        $this->fakeSuccessfulAuth();
+
+        Project::create([
+            'name' => 'Existing',
+            'open_stack_project_id' => self::RESOLVED_PROJECT_ID,
+            'app_credential_id' => 'other-id',
+            'app_credential_secret' => 'other-secret',
+        ]);
+
+        $countBefore = Project::query()->count();
+
+        $response = $this->post(route('projects.store'), [
+            'name' => 'Duplicate',
+            'app_credential_id' => 'cred-id-123',
+            'app_credential_secret' => 'cred-secret-xyz',
+        ]);
+
+        $response->assertSessionHasErrors('app_credential_id');
+        $this->assertSame($countBefore, Project::query()->count());
+    }
+
     public function test_project_is_rejected_when_open_stack_credentials_are_invalid(): void
     {
         config(['services.openstack.auth_url' => 'https://openstack.test']);

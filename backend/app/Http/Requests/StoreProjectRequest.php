@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests;
 
+use App\Models\Project;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use App\Services\OpenStack\OpenStackClient;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -41,6 +42,12 @@ class StoreProjectRequest extends FormRequest
         } catch (InvalidOpenStackCredentialsException) {
             throw ValidationException::withMessages([
                 'app_credential_secret' => 'Ungültige OpenStack-Zugangsdaten.',
+            ]);
+        }
+
+        if (Project::where('open_stack_project_id', $result->projectId)->exists()) {
+            throw ValidationException::withMessages([
+                'app_credential_id' => 'Für dieses OpenStack-Projekt existiert bereits ein Eintrag.',
             ]);
         }
 
