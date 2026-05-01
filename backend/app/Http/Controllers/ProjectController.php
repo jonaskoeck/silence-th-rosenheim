@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreProjectRequest;
+use App\Http\Requests\UpdateProjectRequest;
 use App\Models\Project;
 use App\Services\Contracts\ProjectServiceInterface;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +21,15 @@ class ProjectController extends Controller
         return redirect()
             ->route('dashboard')
             ->with('status', "Project stored with id {$project->id}");
+    }
+
+    public function update(UpdateProjectRequest $request, Project $project): RedirectResponse
+    {
+        $this->projects->update($project, $request->projectAttributes());
+
+        return redirect()
+            ->route('dashboard')
+            ->with('status', "Project {$project->id} updated");
     }
 
     public function destroy(Project $project): RedirectResponse
