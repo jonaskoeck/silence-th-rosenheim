@@ -56,13 +56,10 @@
 
         <div class="col-lg-8">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <div class="card-header bg-white border-bottom py-3">
                     <h6 class="fw-semibold mb-0">
                         <i class="bi bi-diagram-3 me-2 text-primary"></i>Server nach Projekt
                     </h6>
-                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createProjectModal">
-                        <i class="bi bi-plus-lg me-1"></i>Projekt
-                    </button>
                 </div>
 
                 @forelse ($projects as $project)
@@ -168,43 +165,4 @@
     </div>
 
 </div>
-@push('scripts')
-<div class="modal fade" id="createProjectModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-semibold">Projekt hinzufügen</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="{{ route('projects.store') }}">
-                @csrf
-                <div class="modal-body d-flex flex-column gap-3">
-                    @if ($errors->any())
-                        <div class="alert alert-danger small mb-0 py-2">
-                            {{ $errors->first() }}
-                        </div>
-                    @endif
-                    <div>
-                        <label class="form-label small fw-semibold">Name</label>
-                        <input type="text" name="name" class="form-control">
-                    </div>
-                    <div>
-                        <label class="form-label small fw-semibold">App Credential ID</label>
-                        <input type="text" name="app_credential_id" class="form-control" required>
-                    </div>
-                    <div>
-                        <label class="form-label small fw-semibold">App Credential Secret</label>
-                        <input type="password" name="app_credential_secret" class="form-control" required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Speichern</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-@endpush
-
 @endsection

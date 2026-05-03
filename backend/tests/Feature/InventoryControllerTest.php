@@ -75,7 +75,7 @@ class InventoryControllerTest extends TestCase
         $mock->shouldReceive('runForAllProjects')->once();
         $this->app->instance(InventoryServiceInterface::class, $mock);
 
-        $response = $this->post(route('inventory.run'));
+        $response = $this->from(route('inventory'))->post(route('inventory.run'));
 
         $response->assertRedirect(route('inventory'));
     }
@@ -94,7 +94,7 @@ class InventoryControllerTest extends TestCase
         $mock->shouldReceive('runForProject')->with($project->id)->once();
         $this->app->instance(InventoryServiceInterface::class, $mock);
 
-        $response = $this->post(route('inventory.run.project', $project->id));
+        $response = $this->from(route('inventory'))->post(route('inventory.run.project', $project->id));
 
         $response->assertRedirect(route('inventory'));
     }

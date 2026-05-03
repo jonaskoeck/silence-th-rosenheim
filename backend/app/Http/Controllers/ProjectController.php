@@ -16,8 +16,6 @@ class ProjectController extends Controller
     {
         $project = $this->projects->create($request->projectAttributes());
 
-        return redirect()
-            ->route('dashboard')
-            ->with('status', "Project stored with id {$project->id}");
+        return redirect()->back();
     }
 }
