@@ -15,12 +15,18 @@
                     <option value="{{ $project->id }}">{{ $project->name }}</option>
                 @endforeach
             </select>
-            <button class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-play-fill me-1"></i>Manuell inventarisieren
-            </button>
-            <button class="btn btn-sm btn-primary">
-                <i class="bi bi-arrow-repeat me-1"></i>Alle Projekte inventarisieren
-            </button>
+            <form method="POST" id="manualForm" action="">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-primary" onclick="submitManual(event)">
+                    <i class="bi bi-play-fill me-1"></i>Manuell inventarisieren
+                </button>
+            </form>
+            <form method="POST" action="{{ route('inventory.run') }}">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-arrow-repeat me-1"></i>Alle Projekte inventarisieren
+                </button>
+            </form>
         </div>
     </div>
 
@@ -88,5 +94,14 @@
 @push('scripts')
 <script>
     new TomSelect('#projectSelect', { maxOptions: 100 });
+
+    function submitManual(e) {
+        e.preventDefault();
+        const projectId = document.getElementById('projectSelect').value;
+        if (!projectId) return;
+        const form = document.getElementById('manualForm');
+        form.action = '/inventory/run/' + projectId;
+        form.submit();
+    }
 </script>
 @endpush

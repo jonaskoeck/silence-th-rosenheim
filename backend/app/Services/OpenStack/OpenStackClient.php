@@ -4,13 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\OpenStack;
 
+use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
-class OpenStackClient
+class OpenStackClient implements OpenStackClientInterface
 {
     public function __construct(private string $authUrl) {}
 
@@ -67,6 +68,57 @@ class OpenStackClient
             );
         }
 
-        return new AuthenticationResultDto($token, $projectId);
+        $catalog = $response->json('token.catalog') ?? [];
+        $computeEndpoint = $this->extractComputeEndpoint($catalog);
+
+        return new AuthenticationResultDto($token, $projectId, $computeEndpoint);
+    }
+
+    /**
+     * Ruft alle Server des Projekts von OpenStack ab.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listServers(string $token, string $computeEndpoint): array
+    {
+        $url = $computeEndpoint.'/servers';
+
+        Log::debug('OpenStack list servers request', ['url' => $url]);
+
+        try {
+            $response = Http::withHeader('X-Auth-Token', $token)
+                ->acceptJson()
+                ->get($url);
+        } catch (ConnectionException $e) {
+            throw new RuntimeException('OpenStack compute connection failed: '.$e->getMessage(), previous: $e);
+        }
+
+        if ($response->failed()) {
+            throw new RuntimeException("OpenStack compute returned status {$response->status()}.");
+        }
+
+        return $response->json('servers') ?? [];
+    }
+
+    /**
+     * Sucht im OpenStack Service-Catalog nach der öffentlichen URL des Compute-Dienstes.
+     *
+     * @param  array<mixed>  $catalog
+     */
+    private function extractComputeEndpoint(array $catalog): string
+    {
+        foreach ($catalog as $service) {
+            if (($service['type'] ?? '') !== 'compute') {
+                continue;
+            }
+
+            foreach ($service['endpoints'] ?? [] as $endpoint) {
+                if (($endpoint['interface'] ?? '') === 'public') {
+                    return rtrim((string) $endpoint['url'], '/');
+                }
+            }
+        }
+
+        return '';
     }
 }
