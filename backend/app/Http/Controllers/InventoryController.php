@@ -9,6 +9,7 @@ use App\Services\Contracts\InventoryServiceInterface;
 use App\Services\Contracts\ProjectServiceInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class InventoryController extends Controller
 {
