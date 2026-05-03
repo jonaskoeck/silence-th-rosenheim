@@ -54,10 +54,12 @@
                         title="Projekt löschen">
                     <i class="bi bi-trash"></i>
                 </button>
-                <button class="btn btn-sm btn-outline-primary"
-                        title="Inventarisieren">
-                    <i class="bi bi-arrow-repeat"></i>
-                </button>
+                <form method="POST" action="{{ route('inventory.run.project', $project['id']) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-sm btn-outline-primary" title="Inventarisieren">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                </form>
             </div>
         </div>
         <div class="collapse" id="project-{{ $index }}">
