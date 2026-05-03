@@ -20,7 +20,7 @@ class InventoryController extends Controller
     public function index(): View
     {
         $projects = $this->projects->getAll();
-        $runs = InventoryRun::latest()->get();
+        $runs = InventoryRun::latest()->with('discoveredServers')->get();
 
         return view('inventory', [
             'projects' => $projects,
@@ -32,13 +32,13 @@ class InventoryController extends Controller
     {
         $this->inventory->runForAllProjects();
 
-        return redirect()->route('inventory');
+        return redirect()->back();
     }
 
     public function runForProject(int $project): RedirectResponse
     {
         $this->inventory->runForProject($project);
 
-        return redirect()->route('inventory');
+        return redirect()->back();
     }
 }

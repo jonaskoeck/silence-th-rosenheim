@@ -1,14 +1,36 @@
 @extends('layouts.app')
 
 
-@section('title', 'Server')
+@section('title', 'Projekte & Server')
 
 @section('content')
 <div class="container-fluid">
 
     <div class="d-flex justify-content-between align-items-center page-header">
         <div>
-            <h1 class="h4 fw-bold mb-0">Server</h1>
+            <h1 class="h4 fw-bold mb-0">Projekte & Server</h1>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <select id="projectSelect" placeholder="Projekt wählen..." style="max-width:220px">
+                @foreach ($projects as $project)
+                    <option value="{{ $project['id'] }}">{{ $project['name'] }}</option>
+                @endforeach
+            </select>
+            <form method="POST" id="manualForm" action="">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-outline-primary" onclick="submitManual(event)">
+                    <i class="bi bi-play-fill me-1"></i>Manuell inventarisieren
+                </button>
+            </form>
+            <form method="POST" action="{{ route('inventory.run') }}">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-primary">
+                    <i class="bi bi-arrow-repeat me-1"></i>Alle Projekte inventarisieren
+                </button>
+            </form>
+            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createProjectModal">
+                <i class="bi bi-plus-lg me-1"></i>Projekt
+            </button>
         </div>
     </div>
 
@@ -20,9 +42,23 @@
                 <i class="bi bi-chevron-down me-2 text-muted" style="font-size:0.85rem"></i>
                 <span class="fw-semibold">{{ $project['name'] }}</span>
             </div>
-            <button class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-arrow-repeat me-1"></i>Inventarisieren
-            </button>
+            <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-outline-secondary"
+                        data-bs-toggle="modal" data-bs-target="#editProjectModal"
+                        data-project-id="{{ $project['id'] }}"
+                        data-project-name="{{ $project['name'] }}"
+                        title="Projekt bearbeiten">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger"
+                        title="Projekt löschen">
+                    <i class="bi bi-trash"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-primary"
+                        title="Inventarisieren">
+                    <i class="bi bi-arrow-repeat"></i>
+                </button>
+            </div>
         </div>
         <div class="collapse" id="project-{{ $index }}">
             <div class="table-responsive">
@@ -124,6 +160,73 @@
 
 </div>
 
+<div class="modal fade" id="createProjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold">Projekt hinzufügen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ route('projects.store') }}">
+                @csrf
+                <div class="modal-body d-flex flex-column gap-3">
+                    @if ($errors->any())
+                        <div class="alert alert-danger small mb-0 py-2">
+                            {{ $errors->first() }}
+                        </div>
+                    @endif
+                    <div>
+                        <label class="form-label small fw-semibold">Name</label>
+                        <input type="text" name="name" class="form-control">
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">App Credential ID</label>
+                        <input type="text" name="app_credential_id" class="form-control" required>
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">App Credential Secret</label>
+                        <input type="password" name="app_credential_secret" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editProjectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold">Projekt bearbeiten</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body d-flex flex-column gap-3">
+                <input type="hidden" id="edit-project-id">
+                <div>
+                    <label class="form-label small fw-semibold">Name</label>
+                    <input type="text" id="edit-project-name" class="form-control">
+                </div>
+                <div>
+                    <label class="form-label small fw-semibold">App Credential ID</label>
+                    <input type="text" id="edit-project-credential-id" class="form-control">
+                </div>
+                <div>
+                    <label class="form-label small fw-semibold">App Credential Secret</label>
+                    <input type="password" id="edit-project-credential-secret" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="labelModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -135,15 +238,21 @@
             </div>
             <div class="modal-body">
                 <p class="text-muted small mb-3">
-                    Server: <strong id="modal-server-name">k.A.</strong>
+                    Server: <strong id="modal-server-name"></strong>
                 </p>
                 <input type="hidden" id="modal-server-id">
                 <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-danger" onclick="setLabel('production')">
+                    <button type="button" class="btn btn-outline-danger" onclick="setLabel('production')">
                         Produktiv setzen
                     </button>
-                    <button type="button" class="btn btn-warning" onclick="setLabel('test')">
+                    <button type="button" class="btn btn-outline-warning" onclick="setLabel('test')">
                         Test setzen
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" onclick="setLabel('development')">
+                        Entwicklung setzen
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="setLabel('none')">
+                        None setzen
                     </button>
                 </div>
             </div>
@@ -151,4 +260,27 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+new TomSelect('#projectSelect', { maxOptions: 100 });
+
+function submitManual(e) {
+    e.preventDefault();
+    const projectId = document.getElementById('projectSelect').value;
+    if (!projectId) return;
+    const form = document.getElementById('manualForm');
+    form.action = '/inventory/run/' + projectId;
+    form.submit();
+}
+
+document.getElementById('editProjectModal').addEventListener('show.bs.modal', e => {
+    const btn = e.relatedTarget;
+    document.getElementById('edit-project-id').value   = btn.dataset.projectId;
+    document.getElementById('edit-project-name').value = btn.dataset.projectName;
+    document.getElementById('edit-project-credential-id').value     = '';
+    document.getElementById('edit-project-credential-secret').value = '';
+});
+</script>
+@endpush
 
