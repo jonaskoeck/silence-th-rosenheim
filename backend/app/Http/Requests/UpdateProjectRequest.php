@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Models\Project;
+use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
-use App\Services\OpenStack\OpenStackClient;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\ValidationException;
@@ -42,7 +42,7 @@ class UpdateProjectRequest extends FormRequest
         }
 
         try {
-            $result = app(OpenStackClient::class)->authenticate(
+            $result = app(OpenStackClientInterface::class)->authenticate(
                 (string) $this->validated('app_credential_id'),
                 (string) $this->validated('app_credential_secret'),
             );

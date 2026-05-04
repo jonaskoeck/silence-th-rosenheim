@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\ServerLabel;
+use App\Models\Concerns\HasDisplayTimezone;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Server extends Model
 {
-    use HasFactory;
+    use HasDisplayTimezone, HasFactory;
+
     protected $fillable = [
         'project_id',
         'open_stack_server_id',

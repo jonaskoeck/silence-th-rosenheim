@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Models\Concerns\HasDisplayTimezone;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InventoryRun extends Model
 {
-    use HasFactory;
+    use HasDisplayTimezone, HasFactory;
+
     protected $fillable = [
         'start_time',
         'end_time',
