@@ -55,7 +55,7 @@ class UpdateProjectTest extends TestCase
         ]);
 
         $response->assertSessionHasNoErrors();
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('servers'));
         $this->assertDatabaseHas('projects', [
             'id' => $project->id,
             'name' => 'Renamed',

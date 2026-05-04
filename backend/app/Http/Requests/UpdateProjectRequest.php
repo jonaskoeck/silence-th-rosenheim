@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\ValidationException;
 
@@ -24,9 +25,9 @@ class UpdateProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['nullable', 'string', 'max:255'],
-            'app_credential_id' => ['required', 'string', 'max:255'],
-            'app_credential_secret' => ['required', 'string'],
+            'name'                  => ['nullable', 'string', 'max:255'],
+            'app_credential_id'     => ['nullable', 'string', 'max:255'],
+            'app_credential_secret' => ['nullable', 'string'],
         ];
     }
 
@@ -34,17 +35,39 @@ class UpdateProjectRequest extends FormRequest
     {
         /** @var Project $project */
         $project = $this->route('project');
+        session()->flash('edit_project_id', $project->id);
 
-        $credentialsChanged = $this->credentialsChanged($project);
+        try {
+            $this->verifyCredentials($project);
+        } catch (ValidationException $e) {
+            throw $e;
+        }
+    }
 
-        if (! $credentialsChanged) {
+    private function verifyCredentials(Project $project): void
+    {
+        $submittedId     = $this->validated('app_credential_id');
+        $submittedSecret = $this->validated('app_credential_secret');
+
+        // Kein Credential angegeben → nur Name wird gespeichert, keine Auth nötig
+        if (! $submittedId && ! $submittedSecret) {
+            return;
+        }
+
+        // Fehlende Seite aus der DB ergänzen
+        $credentialId     = $submittedId     ?: $project->app_credential_id;
+        $credentialSecret = $submittedSecret ?: $project->app_credential_secret;
+
+        // Credentials unverändert → keine Auth nötig
+        if ($credentialId === $project->app_credential_id
+            && $credentialSecret === $project->app_credential_secret) {
             return;
         }
 
         try {
             $result = app(OpenStackClientInterface::class)->authenticate(
-                (string) $this->validated('app_credential_id'),
-                (string) $this->validated('app_credential_secret'),
+                $credentialId,
+                $credentialSecret,
             );
         } catch (InvalidOpenStackCredentialsException) {
             throw ValidationException::withMessages([
@@ -60,16 +83,42 @@ class UpdateProjectRequest extends FormRequest
     }
 
     /**
+     * Felder für das Update zusammenstellen.
+     * Wenn nur ein Credential angegeben wurde, wird das andere aus der DB ergänzt,
+     * damit immer ein konsistentes Paar gespeichert wird.
+     *
      * @return array<string, mixed>
      */
     public function projectAttributes(): array
     {
-        return $this->validated();
+        /** @var Project $project */
+        $project = $this->route('project');
+
+        $attrs = array_filter(
+            $this->validated(),
+            fn ($value) => ! is_null($value) && $value !== '',
+        );
+
+        // Wenn nur eines der Credentials angegeben → das andere aus DB ergänzen
+        $hasId     = ! empty($attrs['app_credential_id']);
+        $hasSecret = ! empty($attrs['app_credential_secret']);
+
+        if ($hasId && ! $hasSecret) {
+            $attrs['app_credential_secret'] = $project->app_credential_secret;
+        } elseif ($hasSecret && ! $hasId) {
+            $attrs['app_credential_id'] = $project->app_credential_id;
+        }
+
+        return $attrs;
     }
 
-    private function credentialsChanged(Project $project): bool
+    protected function failedValidation(Validator $validator): void
     {
-        return $this->validated('app_credential_id') !== $project->app_credential_id
-            || $this->validated('app_credential_secret') !== $project->app_credential_secret;
+        /** @var Project $project */
+        $project = $this->route('project');
+        session()->flash('edit_project_id', $project->id);
+
+        parent::failedValidation($validator);
     }
+
 }

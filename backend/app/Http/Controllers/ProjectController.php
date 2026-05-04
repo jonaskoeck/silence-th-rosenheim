@@ -26,8 +26,8 @@ class ProjectController extends Controller
         $this->projects->update($project, $request->projectAttributes());
 
         return redirect()
-            ->route('dashboard')
-            ->with('status', "Project {$project->id} updated");
+            ->route('servers')
+            ->with('status', "Projekt \"{$project->name}\" wurde aktualisiert.");
     }
 
     public function destroy(Project $project): RedirectResponse
@@ -35,7 +35,7 @@ class ProjectController extends Controller
         $this->projects->delete($project);
 
         return redirect()
-            ->route('dashboard')
-            ->with('status', "Project {$project->id} deleted");
+            ->route('servers')
+            ->with('status', "Projekt \"{$project->name}\" wurde gelöscht.");
     }
 }
