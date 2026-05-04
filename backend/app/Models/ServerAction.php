@@ -6,11 +6,14 @@ namespace App\Models;
 
 use App\Enums\ActionType;
 use App\Enums\Weekday;
+use App\Models\Concerns\HasDisplayTimezone;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ServerAction extends Model
 {
+    use HasDisplayTimezone;
+
     protected $fillable = [
         'server_id',
         'weekday',
