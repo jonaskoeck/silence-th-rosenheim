@@ -69,7 +69,7 @@ class StoreProjectTest extends TestCase
         $response->assertSessionHasNoErrors();
         $this->assertDatabaseHas('projects', [
             'open_stack_project_id' => self::RESOLVED_PROJECT_ID,
-            'name' => null,
+            'name' => self::RESOLVED_PROJECT_ID,
         ]);
     }
 
