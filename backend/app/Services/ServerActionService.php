@@ -18,6 +18,18 @@ class ServerActionService implements ServerActionServiceInterface
 
     public function create(array $attributes): ServerAction
     {
+        $existing = ServerAction::where('server_id', $attributes['server_id'])
+            ->where('type', $attributes['type'])
+            ->where('time', $attributes['time'])
+            ->first();
+
+        if ($existing !== null) {
+            $existing->weekday = ((int) $existing->weekday) | ((int) $attributes['weekday']);
+            $existing->save();
+
+            return $existing;
+        }
+
         return ServerAction::create($attributes);
     }
 

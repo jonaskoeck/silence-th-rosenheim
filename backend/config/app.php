@@ -69,6 +69,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Display Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Timezone used by the HasDisplayTimezone trait when reading model
+    | datetimes for display and when interpreting user-supplied datetimes
+    | before storing them in UTC.
+    |
+    */
+
+    'display_timezone' => env('DISPLAY_TIMEZONE', 'Europe/Berlin'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

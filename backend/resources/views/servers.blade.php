@@ -265,7 +265,9 @@
 
 @push('scripts')
 <script>
-new TomSelect('#projectSelect', { maxOptions: 100 });
+document.addEventListener('DOMContentLoaded', () => {
+    new TomSelect('#projectSelect', { maxOptions: 10 });
+});
 
 function submitManual(e) {
     e.preventDefault();

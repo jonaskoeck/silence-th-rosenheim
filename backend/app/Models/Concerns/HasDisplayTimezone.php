@@ -8,14 +8,12 @@ use Carbon\CarbonInterface;
 
 trait HasDisplayTimezone
 {
-    private const DISPLAY_TIMEZONE = 'Europe/Berlin';
-
     protected function asDateTime($value)
     {
         $date = parent::asDateTime($value);
 
         return $date instanceof CarbonInterface
-            ? $date->setTimezone(self::DISPLAY_TIMEZONE)
+            ? $date->setTimezone((string) config('app.display_timezone'))
             : $date;
     }
 

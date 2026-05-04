@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('time', 5);
             $table->string('type');
             $table->timestamps();
+
+            $table->unique(['server_id', 'time', 'type']);
         });
     }
 
