@@ -11,10 +11,8 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\ValidationException;
 
-class StoreProjectRequest extends FormRequest
+class UpdateProjectRequest extends FormRequest
 {
-    private string $resolvedOpenStackProjectId;
-
     public function authorize(): bool
     {
         return true;
@@ -34,6 +32,15 @@ class StoreProjectRequest extends FormRequest
 
     protected function passedValidation(): void
     {
+        /** @var Project $project */
+        $project = $this->route('project');
+
+        $credentialsChanged = $this->credentialsChanged($project);
+
+        if (! $credentialsChanged) {
+            return;
+        }
+
         try {
             $result = app(OpenStackClient::class)->authenticate(
                 (string) $this->validated('app_credential_id'),
@@ -45,13 +52,11 @@ class StoreProjectRequest extends FormRequest
             ]);
         }
 
-        if (Project::where('open_stack_project_id', $result->projectId)->exists()) {
+        if ($result->projectId !== $project->open_stack_project_id) {
             throw ValidationException::withMessages([
-                'app_credential_id' => 'Für dieses OpenStack-Projekt existiert bereits ein Eintrag.',
+                'app_credential_id' => 'Diese Zugangsdaten gehören zu einem anderen OpenStack-Projekt.',
             ]);
         }
-
-        $this->resolvedOpenStackProjectId = $result->projectId;
     }
 
     /**
@@ -59,9 +64,12 @@ class StoreProjectRequest extends FormRequest
      */
     public function projectAttributes(): array
     {
-        return [
-            ...$this->validated(),
-            'open_stack_project_id' => $this->resolvedOpenStackProjectId,
-        ];
+        return $this->validated();
+    }
+
+    private function credentialsChanged(Project $project): bool
+    {
+        return $this->validated('app_credential_id') !== $project->app_credential_id
+            || $this->validated('app_credential_secret') !== $project->app_credential_secret;
     }
 }

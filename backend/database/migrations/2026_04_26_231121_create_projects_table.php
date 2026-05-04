@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->string('name')->nullable();
-            $table->string('open_stack_project_id')->index();
+            $table->string('open_stack_project_id')->unique();
             // Encrypted via Laravel's `encrypted` cast — ciphertext exceeds varchar bounds, so TEXT.
             $table->text('app_credential_id');
             $table->text('app_credential_secret');
