@@ -35,6 +35,15 @@ class Project extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::created(function (Project $project) {
+            if (empty($project->name)) {
+                $project->updateQuietly(['name' => $project->open_stack_project_id]);
+            }
+        });
+    }
+
     public function servers(): HasMany
     {
         return $this->hasMany(Server::class);
