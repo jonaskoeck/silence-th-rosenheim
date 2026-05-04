@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Inventarisierung')
+@section('title', 'Inventarisierungs Läufe')
 
 @section('content')
 <div class="container-fluid">
 
     <div class="d-flex justify-content-between align-items-center page-header">
         <div>
-            <h1 class="h4 fw-bold mb-0">Inventarisierung</h1>
+            <h1 class="h4 fw-bold mb-0">Inventarisierungs Läufe</h1>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <select id="projectSelect" placeholder="Projekt wählen..." style="max-width:220px">
@@ -43,7 +43,7 @@
                         <th>ID</th>
                         <th>Startzeit</th>
                         <th>Endzeit</th>
-                        <th>Automatisch</th>
+                        <th>Auslöser</th>
                         <th>Fehler</th>
                         <th>Neue Server</th>
                     </tr>
@@ -69,10 +69,14 @@
                             @endif
                         </td>
                         <td>
-                            @if ($run->found_new_servers)
-                                <span class="badge text-bg-success rounded-pill">Ja</span>
+                            @if ($run->found_new_servers && $run->discoveredServers->isNotEmpty())
+                                <div class="d-flex flex-wrap gap-1">
+                                    @foreach ($run->discoveredServers as $server)
+                                        <span class="badge text-bg-success rounded-pill">{{ $server->name }}</span>
+                                    @endforeach
+                                </div>
                             @else
-                                <span class="badge text-bg-secondary rounded-pill">Nein</span>
+                                <span class="text-muted small">—</span>
                             @endif
                         </td>
                     </tr>

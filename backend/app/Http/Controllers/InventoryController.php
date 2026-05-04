@@ -9,6 +9,7 @@ use App\Services\Contracts\InventoryServiceInterface;
 use App\Services\Contracts\ProjectServiceInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 class InventoryController extends Controller
 {
@@ -20,7 +21,7 @@ class InventoryController extends Controller
     public function index(): View
     {
         $projects = $this->projects->getAll();
-        $runs = InventoryRun::latest()->get();
+        $runs = InventoryRun::latest()->with('discoveredServers')->get();
 
         return view('inventory', [
             'projects' => $projects,
@@ -32,13 +33,13 @@ class InventoryController extends Controller
     {
         $this->inventory->runForAllProjects();
 
-        return redirect()->route('inventory');
+        return redirect()->back();
     }
 
     public function runForProject(int $project): RedirectResponse
     {
         $this->inventory->runForProject($project);
 
-        return redirect()->route('inventory');
+        return redirect()->back();
     }
 }

@@ -8,7 +8,7 @@ use App\Enums\ServerLabel;
 use App\Services\Contracts\ProjectServiceInterface;
 use Illuminate\Contracts\View\View;
 
-class ServerController extends Controller
+class ProjectServerController extends Controller
 {
     public function __construct(private ProjectServiceInterface $projects) {}
 
@@ -17,6 +17,7 @@ class ServerController extends Controller
         $projectModels = $this->projects->getAll()->load('servers');
 
         $projects = $projectModels->map(fn($p) => [
+            'id'      => $p->id,
             'name'    => $p->name,
             'servers' => $p->servers->map(fn($s) => [
                 'id'                   => $s->id,

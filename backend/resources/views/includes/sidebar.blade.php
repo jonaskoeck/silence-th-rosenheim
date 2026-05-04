@@ -1,8 +1,8 @@
 @php
 $navItems = [
     ['route' => 'dashboard',  'icon' => 'speedometer2',  'label' => 'Dashboard'],
-    ['route' => 'servers',    'icon' => 'server',         'label' => 'Server'],
-    ['route' => 'inventory',  'icon' => 'arrow-repeat',   'label' => 'Inventarisierung'],
+    ['route' => 'servers',    'icon' => 'server',         'label' => 'Projekte & Server'],
+    ['route' => 'inventory',  'icon' => 'arrow-repeat',   'label' => 'Inventarisierungs Läufe'],
     ['route' => 'schedules',  'icon' => 'clock-history',  'label' => 'Zeitpläne'],
 ];
 @endphp
