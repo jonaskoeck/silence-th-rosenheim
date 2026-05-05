@@ -24,7 +24,7 @@ class ServerAction extends Model
     protected function casts(): array
     {
         return [
-            'weekday' => Weekday::class,
+            'weekday' => 'integer',
             'type' => ActionType::class,
         ];
     }
@@ -32,5 +32,13 @@ class ServerAction extends Model
     public function server(): BelongsTo
     {
         return $this->belongsTo(Server::class);
+    }
+
+    /**
+     * @return array<int, Weekday>
+     */
+    public function weekdays(): array
+    {
+        return Weekday::unpack((int) $this->weekday);
     }
 }
