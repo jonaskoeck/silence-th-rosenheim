@@ -15,10 +15,12 @@ return new class extends Migration
             $table->foreignId('server_id')
                 ->constrained('servers')
                 ->cascadeOnDelete();
-            $table->string('weekday');
+            $table->unsignedTinyInteger('weekday');
             $table->string('time', 5);
             $table->string('type');
             $table->timestamps();
+
+            $table->unique(['server_id', 'time', 'type']);
         });
     }
 

@@ -306,7 +306,9 @@
 
 @push('scripts')
 <script>
-new TomSelect('#projectSelect', { maxOptions: 100 });
+document.addEventListener('DOMContentLoaded', () => {
+    new TomSelect('#projectSelect', { maxOptions: 10 });
+});
 
 document.getElementById('projectSearch').addEventListener('input', function () {
     const normalize = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');

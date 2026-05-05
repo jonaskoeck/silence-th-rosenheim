@@ -33,12 +33,12 @@ class DashboardController extends Controller
         $lastInventory = InventoryRun::latest()->first();
 
         return view('dashboard', [
-            'projects'      => $projects,
-            'schedules'     => collect(),
-            'activity'      => [],
-            'total'         => $total,
-            'running'       => 0,
-            'stopped'       => $total,
+            'projects' => $projects,
+            'schedules' => collect(),
+            'activity' => [],
+            'total' => $total,
+            'running' => 0,
+            'stopped' => $total,
             'activeSchedules' => 0,
             'lastInventory' => $lastInventory,
         ]);
