@@ -258,7 +258,7 @@
                 @csrf
                 @method('PUT')
                 <div class="modal-body d-flex flex-column gap-3">
-                    @if ($errors->hasAny(['name', 'app_credential_id', 'app_credential_secret']))
+                    @if (session('edit_project_id'))
                         <div class="alert alert-danger small mb-0 py-2">
                             <i class="bi bi-exclamation-circle me-1"></i>{{ $errors->first() }}
                         </div>
@@ -291,16 +291,19 @@
     </div>
 </div>
 
-@if ($errors->hasAny(['name', 'app_credential_id', 'app_credential_secret']))
+@if (session('edit_project_id'))
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const projectId = {{ session('edit_project_id', 0) }};
-            if (projectId > 0) {
-                document.getElementById('editProjectForm').action = '/projects/' + projectId;
-                document.getElementById('edit-project-id').value = projectId;
-            }
-            const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
-            modal.show();
+            const projectId = {{ session('edit_project_id') }};
+            document.getElementById('editProjectForm').action = '/projects/' + projectId;
+            document.getElementById('edit-project-id').value = projectId;
+            new bootstrap.Modal(document.getElementById('editProjectModal')).show();
+        });
+    </script>
+@elseif (session('store_project_error'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            new bootstrap.Modal(document.getElementById('createProjectModal')).show();
         });
     </script>
 @endif
