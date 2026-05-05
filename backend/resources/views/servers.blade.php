@@ -117,8 +117,12 @@
                             <td>
                                 @if ($srv['label'] === 'production')
                                 <span class="badge text-bg-danger rounded-pill">Produktiv</span>
+                                @elseif ($srv['label'] === 'test')
+                                <span class="badge text-bg-info rounded-pill">Test</span>
+                                @elseif ($srv['label'] === 'development')
+                                <span class="badge text-bg-primary rounded-pill">Entwicklung</span>
                                 @else
-                                <span class="badge text-bg-warning rounded-pill">Test</span>
+                                <span class="badge text-bg-secondary rounded-pill">Unkategorisiert</span>
                                 @endif
                             </td>
                             <td class="text-end">
@@ -301,6 +305,12 @@
     </script>
 @endif
 
+<form id="labelForm" method="POST" style="display:none">
+    @csrf
+    @method('PATCH')
+    <input type="hidden" name="label" id="label-input">
+</form>
+
 <div class="modal fade" id="labelModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -337,6 +347,8 @@
 
 @push('scripts')
 <script>
+let pendingServerId = '';
+
 document.addEventListener('DOMContentLoaded', () => {
     new TomSelect('#projectSelect', { maxOptions: 10 });
 });
@@ -377,10 +389,19 @@ function prepareEditModal(projectId, projectName) {
     document.getElementById('edit-project-credential-secret').value = '';
 }
 
+document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-bs-target="#labelModal"]');
+    if (btn) {
+        pendingServerId = btn.dataset.serverId;
+        document.getElementById('modal-server-name').textContent = btn.dataset.serverName;
+    }
+});
+
 function setLabel(label) {
-    const serverId = document.getElementById('modal-server-id').value;
-    if (!serverId) return;
-    console.log('setLabel not yet implemented - would set label to:', label);
+    const form = document.getElementById('labelForm');
+    form.action = '/servers/' + pendingServerId + '/label';
+    document.getElementById('label-input').value = label.toUpperCase();
+    form.submit();
 }
 </script>
 @endpush
