@@ -63,15 +63,18 @@
             <div class="d-flex gap-1 align-items-center py-3">
                 <button class="btn btn-sm btn-outline-secondary"
                         data-bs-toggle="modal" data-bs-target="#editProjectModal"
-                        data-project-id="{{ $project['id'] }}"
-                        data-project-name="{{ $project['name'] }}"
+                        onclick="prepareEditModal({{ $project['id'] }}, '{{ addslashes($project['name']) }}')"
                         title="Projekt bearbeiten">
                     <i class="bi bi-pencil"></i>
                 </button>
+                <form id="delete-form-{{ $project['id'] }}" method="POST"
+                      action="{{ route('projects.destroy', $project['id']) }}" style="display:none">
+                    @csrf
+                    @method('DELETE')
+                </form>
                 <button class="btn btn-sm btn-outline-danger"
                         data-bs-toggle="modal" data-bs-target="#deleteProjectModal"
-                        data-project-id="{{ $project['id'] }}"
-                        data-project-name="{{ $project['name'] }}"
+                        onclick="prepareDeleteModal('delete-form-{{ $project['id'] }}', '{{ addslashes($project['name']) }}')"
                         title="Projekt löschen">
                     <i class="bi bi-trash"></i>
                 </button>
@@ -197,7 +200,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Löschen</button>
+                <button type="button" class="btn btn-danger" onclick="submitDeleteForm()">Löschen</button>
             </div>
         </div>
     </div>
@@ -213,7 +216,7 @@
             <form method="POST" action="{{ route('projects.store') }}">
                 @csrf
                 <div class="modal-body d-flex flex-column gap-3">
-                    @if ($errors->any())
+                    @if (session('store_project_error'))
                         <div class="alert alert-danger small mb-0 py-2">
                             {{ $errors->first() }}
                         </div>
@@ -247,28 +250,56 @@
                 <h5 class="modal-title fw-semibold">Projekt bearbeiten</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body d-flex flex-column gap-3">
-                <input type="hidden" id="edit-project-id">
-                <div>
-                    <label class="form-label small fw-semibold">Name</label>
-                    <input type="text" id="edit-project-name" class="form-control">
+            <form id="editProjectForm" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body d-flex flex-column gap-3">
+                    @if ($errors->hasAny(['name', 'app_credential_id', 'app_credential_secret']))
+                        <div class="alert alert-danger small mb-0 py-2">
+                            <i class="bi bi-exclamation-circle me-1"></i>{{ $errors->first() }}
+                        </div>
+                    @endif
+                    <input type="hidden" id="edit-project-id">
+                    <div>
+                        <label class="form-label small fw-semibold">Name</label>
+                        <input type="text" name="name" id="edit-project-name" class="form-control @error('name') is-invalid @enderror"
+                               value="{{ old('name') }}">
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">App Credential ID</label>
+                        <input type="text" name="app_credential_id" id="edit-project-credential-id"
+                               class="form-control @error('app_credential_id') is-invalid @enderror" placeholder="Leer lassen um beizubehalten"
+                               value="{{ old('app_credential_id') }}">
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">App Credential Secret</label>
+                        <input type="password" name="app_credential_secret" id="edit-project-credential-secret"
+                               class="form-control @error('app_credential_secret') is-invalid @enderror" placeholder="Leer lassen um beizubehalten"
+                               value="{{ old('app_credential_secret') }}">
+                    </div>
                 </div>
-                <div>
-                    <label class="form-label small fw-semibold">App Credential ID</label>
-                    <input type="text" id="edit-project-credential-id" class="form-control">
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
                 </div>
-                <div>
-                    <label class="form-label small fw-semibold">App Credential Secret</label>
-                    <input type="password" id="edit-project-credential-secret" class="form-control">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Speichern</button>
-            </div>
+            </form>
         </div>
     </div>
 </div>
+
+@if ($errors->hasAny(['name', 'app_credential_id', 'app_credential_secret']))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const projectId = {{ session('edit_project_id', 0) }};
+            if (projectId > 0) {
+                document.getElementById('editProjectForm').action = '/projects/' + projectId;
+                document.getElementById('edit-project-id').value = projectId;
+            }
+            const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
+            modal.show();
+        });
+    </script>
+@endif
 
 <div class="modal fade" id="labelModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
@@ -313,9 +344,9 @@ document.addEventListener('DOMContentLoaded', () => {
 document.getElementById('projectSearch').addEventListener('input', function () {
     const normalize = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
     const query = normalize(this.value);
-    document.querySelectorAll('[data-project-name]').forEach(card => {
-        const name = normalize(card.dataset.projectName);
-        card.closest('.card').style.display = name.includes(query) ? '' : 'none';
+    document.querySelectorAll('[data-project-name]').forEach(el => {
+        const card = el.closest('.card');
+        if (card) card.style.display = normalize(el.dataset.projectName).includes(query) ? '' : 'none';
     });
 });
 
@@ -328,17 +359,29 @@ function submitManual(e) {
     form.submit();
 }
 
-document.getElementById('deleteProjectModal').addEventListener('show.bs.modal', e => {
-    document.getElementById('delete-project-name').textContent = e.relatedTarget.dataset.projectName;
-});
+function prepareDeleteModal(formId, projectName) {
+    document.getElementById('deleteProjectModal').dataset.targetForm = formId;
+    document.getElementById('delete-project-name').textContent = projectName;
+}
 
-document.getElementById('editProjectModal').addEventListener('show.bs.modal', e => {
-    const btn = e.relatedTarget;
-    document.getElementById('edit-project-id').value   = btn.dataset.projectId;
-    document.getElementById('edit-project-name').value = btn.dataset.projectName;
-    document.getElementById('edit-project-credential-id').value     = '';
+function submitDeleteForm() {
+    const formId = document.getElementById('deleteProjectModal').dataset.targetForm;
+    if (formId) document.getElementById(formId).submit();
+}
+
+function prepareEditModal(projectId, projectName) {
+    document.getElementById('editProjectForm').action = '/projects/' + projectId;
+    document.getElementById('edit-project-id').value  = projectId;
+    document.getElementById('edit-project-name').value = projectName;
+    document.getElementById('edit-project-credential-id').value    = '';
     document.getElementById('edit-project-credential-secret').value = '';
-});
+}
+
+function setLabel(label) {
+    const serverId = document.getElementById('modal-server-id').value;
+    if (!serverId) return;
+    console.log('setLabel not yet implemented - would set label to:', label);
+}
 </script>
 @endpush
 

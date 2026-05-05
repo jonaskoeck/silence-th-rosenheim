@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\ValidationException;
 
@@ -39,19 +40,29 @@ class StoreProjectRequest extends FormRequest
                 (string) $this->validated('app_credential_id'),
                 (string) $this->validated('app_credential_secret'),
             );
+
+            if (Project::where('open_stack_project_id', $result->projectId)->exists()) {
+                throw ValidationException::withMessages([
+                    'app_credential_id' => 'Für dieses OpenStack-Projekt existiert bereits ein Eintrag.',
+                ]);
+            }
+
+            $this->resolvedOpenStackProjectId = $result->projectId;
         } catch (InvalidOpenStackCredentialsException) {
+            session()->flash('store_project_error', true);
             throw ValidationException::withMessages([
                 'app_credential_secret' => 'Ungültige OpenStack-Zugangsdaten.',
             ]);
+        } catch (ValidationException $e) {
+            session()->flash('store_project_error', true);
+            throw $e;
         }
+    }
 
-        if (Project::where('open_stack_project_id', $result->projectId)->exists()) {
-            throw ValidationException::withMessages([
-                'app_credential_id' => 'Für dieses OpenStack-Projekt existiert bereits ein Eintrag.',
-            ]);
-        }
-
-        $this->resolvedOpenStackProjectId = $result->projectId;
+    protected function failedValidation(Validator $validator): void
+    {
+        session()->flash('store_project_error', true);
+        parent::failedValidation($validator);
     }
 
     /**

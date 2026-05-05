@@ -24,7 +24,7 @@ class DeleteProjectTest extends TestCase
         $response = $this->delete(route('projects.destroy', $project));
 
         $response->assertSessionHasNoErrors();
-        $response->assertRedirect(route('dashboard'));
+        $response->assertRedirect(route('servers'));
         $this->assertDatabaseMissing('projects', ['id' => $project->id]);
     }
 
