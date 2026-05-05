@@ -18,7 +18,7 @@ class DashboardController extends Controller
         $projectModels = $this->projects->getAll()->load('servers');
 
         $projects = $projectModels->map(fn ($p) => [
-            'name' => $p->name ?: $p->open_stack_project_id,
+            'name' => $p->name,
             'open_stack_project_id' => $p->open_stack_project_id,
             'servers' => $p->servers->map(fn ($s) => [
                 'name' => $s->name,
@@ -33,12 +33,12 @@ class DashboardController extends Controller
         $lastInventory = InventoryRun::latest()->first();
 
         return view('dashboard', [
-            'projects'      => $projects,
-            'schedules'     => collect(),
-            'activity'      => [],
-            'total'         => $total,
-            'running'       => 0,
-            'stopped'       => $total,
+            'projects' => $projects,
+            'schedules' => collect(),
+            'activity' => [],
+            'total' => $total,
+            'running' => 0,
+            'stopped' => $total,
             'activeSchedules' => 0,
             'lastInventory' => $lastInventory,
         ]);

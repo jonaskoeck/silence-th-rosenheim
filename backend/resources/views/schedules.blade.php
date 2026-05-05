@@ -21,23 +21,19 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     {{-- Filter --}}
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body py-2 px-3">
-            <form method="get" action="{{ route('schedules') }}" class="d-flex align-items-center gap-2 flex-wrap">
-                <i class="bi bi-funnel text-muted"></i>
-                <select name="server" class="form-select form-select-sm" style="max-width:220px"
-                        onchange="this.form.submit()">
-                    <option value="">Alle Server</option>
-                    @foreach ($allServers as $srv)
-                    <option value="{{ $srv['id'] }}" {{ $filterServer === $srv['id'] ? 'selected' : '' }}>
-                        {{ $srv['name'] }}
-                    </option>
-                    @endforeach
-                </select>
-                @if ($filterServer)
-                <a href="{{ route('schedules') }}" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-x-lg me-1"></i>Zurücksetzen
-                </a>
-                @endif
-            </form>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" id="scheduleSearch" class="form-control border-start-0 ps-0"
+                       placeholder="Zeitplan suchen..." list="schedule-suggestions" autocomplete="off">
+            </div>
+            <datalist id="schedule-suggestions">
+                @foreach ($schedules as $sch)
+                <option value="{{ $sch['server_name'] }}">
+                <option value="{{ $sch['name'] }}">
+                @endforeach
+            </datalist>
         </div>
     </div>
 
@@ -52,27 +48,29 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     <div class="d-flex flex-column gap-3">
         @foreach ($schedules as $sch)
         <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-2" style="cursor:pointer"
-                     data-bs-toggle="collapse" data-bs-target="#schedule-{{ $sch['id'] }}">
+            <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
+                <div class="d-flex align-items-center gap-2 flex-grow-1 py-3" style="cursor:pointer"
+                     data-bs-toggle="collapse" data-bs-target="#schedule-{{ $sch['id'] }}"
+                     data-schedule-search="{{ $sch['server_name'] }} {{ $sch['name'] }}">
                     <i class="bi bi-chevron-down text-muted" style="font-size:0.85rem"></i>
                     <span class="fw-semibold">{{ $sch['server_name'] }}</span>
                     <span class="text-muted small">— {{ $sch['name'] }}</span>
                 </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-secondary">
+                <div class="d-flex gap-2 align-items-center py-3">
+                    <button class="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="modal" data-bs-target="#editScheduleModal"
+                            data-schedule-id="{{ $sch['id'] }}"
+                            data-schedule-name="{{ $sch['name'] }}"
+                            data-schedule-server="{{ $sch['server_name'] }}"
+                            data-schedule-events="{{ json_encode($sch['events'] ?? []) }}">
                         <i class="bi bi-pencil me-1"></i>Bearbeiten
                     </button>
-                    <form method="POST"
-                          action="{{ route('server-actions.destroy-for-server', ['server' => $sch['id']]) }}"
-                          onsubmit="return confirm('Wirklich alle Einträge dieses Zeitplans löschen?');"
-                          class="d-inline">
-                        @csrf
-                        @method('DELETE')
-                        <button class="btn btn-sm btn-outline-danger" type="submit">
-                            <i class="bi bi-trash me-1"></i>Löschen
-                        </button>
-                    </form>
+                    <button class="btn btn-sm btn-outline-danger"
+                            data-bs-toggle="modal" data-bs-target="#deleteScheduleModal"
+                            data-schedule-id="{{ $sch['id'] }}"
+                            data-schedule-name="{{ $sch['name'] }}">
+                        <i class="bi bi-trash me-1"></i>Löschen
+                    </button>
                 </div>
             </div>
             <div class="collapse" id="schedule-{{ $sch['id'] }}">
@@ -105,6 +103,73 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
 </div>
 
+{{-- Zeitplan bearbeiten Modal --}}
+<div class="modal fade" id="editScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold">Zeitplan bearbeiten</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Name</label>
+                        <input type="text" class="form-control" id="edit-schedule-name">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Server</label>
+                        <p class="form-control-plaintext fw-semibold" id="edit-schedule-server"></p>
+                    </div>
+                </div>
+                <div class="border rounded-3 overflow-hidden">
+                    <div class="d-flex" style="min-height:120px">
+                        @foreach ($days as $day)
+                        <div class="{{ !$loop->last ? 'border-end' : '' }}" style="width:calc(100%/7); min-width:0">
+                            <div class="text-center fw-semibold small py-2 border-bottom bg-light text-muted">{{ $day }}</div>
+                            <div class="p-1 d-flex flex-column gap-1" style="min-height:80px">
+                                <div class="d-flex flex-column gap-1 w-100" id="edit-events-{{ $day }}"></div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Speichern</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Zeitplan löschen Modal --}}
+<div class="modal fade" id="deleteScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold">Zeitplan löschen</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-0">
+                    Möchtest du den Zeitplan <strong id="delete-schedule-name"></strong> wirklich löschen?
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <form method="POST" id="deleteScheduleForm"
+                      data-action-template="{{ route('server-actions.destroy-for-server', ['server' => '__ID__']) }}"
+                      class="d-inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">Löschen</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{-- Neuer Zeitplan Modal --}}
 <div class="modal fade" id="newScheduleModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
@@ -117,21 +182,21 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                 </div>
                 <div class="modal-body">
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="new-name" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Server <span class="text-danger">*</span></label>
-                            <select class="form-select" id="new-server" name="server_id" required>
-                                <option value="">Server wählen</option>
-                                @foreach ($allServers as $srv)
-                                <option value="{{ $srv['id'] }}">{{ $srv['name'] }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Name</label>
+                        <input type="text" class="form-control" id="new-name">
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Server <span class="text-danger">*</span></label>
+                        <select class="form-select" id="new-server" name="server_id" required>
+                            <option value="">Server wählen</option>
+                            @foreach ($allServers as $srv)
+                            <option value="{{ $srv->id }}">{{ $srv->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
 
                     {{-- Kalender --}}
                     <div class="border rounded-3 overflow-hidden">
@@ -259,6 +324,47 @@ document.getElementById('newScheduleForm').addEventListener('submit', function (
             group.days.map(d => `<input type="hidden" name="actions[${i}][days][]" value="${d}">`).join('')
         );
     });
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    new TomSelect('#new-server', { maxOptions: 10 });
+});
+
+document.getElementById('scheduleSearch').addEventListener('input', function () {
+    const normalize = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const query = normalize(this.value);
+    document.querySelectorAll('[data-schedule-search]').forEach(card => {
+        const text = normalize(card.dataset.scheduleSearch);
+        card.closest('.card').style.display = text.includes(query) ? '' : 'none';
+    });
+});
+
+document.getElementById('editScheduleModal').addEventListener('show.bs.modal', e => {
+    const btn = e.relatedTarget;
+    document.getElementById('edit-schedule-name').value         = btn.dataset.scheduleName;
+    document.getElementById('edit-schedule-server').textContent = btn.dataset.scheduleServer;
+
+    ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
+        document.getElementById('edit-events-' + d).innerHTML = '';
+    });
+
+    JSON.parse(btn.dataset.scheduleEvents || '[]').forEach(ev => {
+        const container = document.getElementById('edit-events-' + ev.day);
+        if (!container) return;
+        const bg = ev.type === 'start' ? '#198754' : '#dc3545';
+        const el = document.createElement('div');
+        el.className = 'rounded px-2 py-1 text-white w-100';
+        el.style.cssText = `background:${bg}; font-size:0.72rem`;
+        el.textContent = ev.time + ' ' + (ev.type === 'start' ? 'Starten' : 'Stoppen');
+        container.appendChild(el);
+    });
+});
+
+document.getElementById('deleteScheduleModal').addEventListener('show.bs.modal', e => {
+    const btn = e.relatedTarget;
+    document.getElementById('delete-schedule-name').textContent = btn.dataset.scheduleName;
+    const form = document.getElementById('deleteScheduleForm');
+    form.action = form.dataset.actionTemplate.replace('__ID__', btn.dataset.scheduleId);
 });
 </script>
 @endpush

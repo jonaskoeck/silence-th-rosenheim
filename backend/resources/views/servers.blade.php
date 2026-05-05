@@ -34,15 +34,33 @@
         </div>
     </div>
 
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-body py-2 px-3">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" id="projectSearch" class="form-control border-start-0 ps-0"
+                       placeholder="Projekt suchen..." list="project-suggestions" autocomplete="off">
+            </div>
+            <datalist id="project-suggestions">
+                @foreach ($projects as $project)
+                <option value="{{ $project['name'] }}">
+                @endforeach
+            </datalist>
+        </div>
+    </div>
+
     @forelse ($projects as $index => $project)
     <div class="card shadow-sm border-0 mb-3">
-        <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center" style="cursor:pointer"
-                 data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}">
+        <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
+            <div class="d-flex align-items-center flex-grow-1 py-3" style="cursor:pointer"
+                 data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}"
+                 data-project-name="{{ $project['name'] }}">
                 <i class="bi bi-chevron-down me-2 text-muted" style="font-size:0.85rem"></i>
                 <span class="fw-semibold">{{ $project['name'] }}</span>
             </div>
-            <div class="d-flex gap-1">
+            <div class="d-flex gap-1 align-items-center py-3">
                 <button class="btn btn-sm btn-outline-secondary"
                         data-bs-toggle="modal" data-bs-target="#editProjectModal"
                         data-project-id="{{ $project['id'] }}"
@@ -51,6 +69,9 @@
                     <i class="bi bi-pencil"></i>
                 </button>
                 <button class="btn btn-sm btn-outline-danger"
+                        data-bs-toggle="modal" data-bs-target="#deleteProjectModal"
+                        data-project-id="{{ $project['id'] }}"
+                        data-project-name="{{ $project['name'] }}"
                         title="Projekt löschen">
                     <i class="bi bi-trash"></i>
                 </button>
@@ -162,6 +183,26 @@
 
 </div>
 
+<div class="modal fade" id="deleteProjectModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold">Projekt löschen</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-0">
+                    Möchtest du das Projekt <strong id="delete-project-name"></strong> wirklich löschen?
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Löschen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="createProjectModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -269,6 +310,15 @@ document.addEventListener('DOMContentLoaded', () => {
     new TomSelect('#projectSelect', { maxOptions: 10 });
 });
 
+document.getElementById('projectSearch').addEventListener('input', function () {
+    const normalize = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const query = normalize(this.value);
+    document.querySelectorAll('[data-project-name]').forEach(card => {
+        const name = normalize(card.dataset.projectName);
+        card.closest('.card').style.display = name.includes(query) ? '' : 'none';
+    });
+});
+
 function submitManual(e) {
     e.preventDefault();
     const projectId = document.getElementById('projectSelect').value;
@@ -277,6 +327,10 @@ function submitManual(e) {
     form.action = '/inventory/run/' + projectId;
     form.submit();
 }
+
+document.getElementById('deleteProjectModal').addEventListener('show.bs.modal', e => {
+    document.getElementById('delete-project-name').textContent = e.relatedTarget.dataset.projectName;
+});
 
 document.getElementById('editProjectModal').addEventListener('show.bs.modal', e => {
     const btn = e.relatedTarget;
