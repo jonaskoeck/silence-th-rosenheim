@@ -390,7 +390,13 @@ function prepareEditModal(projectId, projectName) {
     document.getElementById('edit-project-name').value = projectName;
     document.getElementById('edit-project-credential-id').value    = '';
     document.getElementById('edit-project-credential-secret').value = '';
+    document.querySelector('#editProjectModal .alert-danger')?.remove();
+    document.querySelectorAll('#editProjectModal .is-invalid').forEach(el => el.classList.remove('is-invalid'));
 }
+
+document.getElementById('createProjectModal').addEventListener('hidden.bs.modal', () => {
+    document.querySelector('#createProjectModal .alert-danger')?.remove();
+});
 
 document.addEventListener('click', e => {
     const btn = e.target.closest('[data-bs-target="#labelModal"]');
