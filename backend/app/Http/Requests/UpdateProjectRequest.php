@@ -25,8 +25,8 @@ class UpdateProjectRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name'                  => ['nullable', 'string', 'max:255'],
-            'app_credential_id'     => ['nullable', 'string', 'max:255'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'app_credential_id' => ['nullable', 'string', 'max:255'],
             'app_credential_secret' => ['nullable', 'string'],
         ];
     }
@@ -35,18 +35,18 @@ class UpdateProjectRequest extends FormRequest
     {
         /** @var Project $project */
         $project = $this->route('project');
-        session()->flash('edit_project_id', $project->id);
 
         try {
             $this->verifyCredentials($project);
         } catch (ValidationException $e) {
+            session()->flash('edit_project_id', $project->id);
             throw $e;
         }
     }
 
     private function verifyCredentials(Project $project): void
     {
-        $submittedId     = $this->validated('app_credential_id');
+        $submittedId = $this->validated('app_credential_id');
         $submittedSecret = $this->validated('app_credential_secret');
 
         // Kein Credential angegeben → nur Name wird gespeichert, keine Auth nötig
@@ -55,7 +55,7 @@ class UpdateProjectRequest extends FormRequest
         }
 
         // Fehlende Seite aus der DB ergänzen
-        $credentialId     = $submittedId     ?: $project->app_credential_id;
+        $credentialId = $submittedId ?: $project->app_credential_id;
         $credentialSecret = $submittedSecret ?: $project->app_credential_secret;
 
         // Credentials unverändert → keine Auth nötig
@@ -100,7 +100,7 @@ class UpdateProjectRequest extends FormRequest
         );
 
         // Wenn nur eines der Credentials angegeben → das andere aus DB ergänzen
-        $hasId     = ! empty($attrs['app_credential_id']);
+        $hasId = ! empty($attrs['app_credential_id']);
         $hasSecret = ! empty($attrs['app_credential_secret']);
 
         if ($hasId && ! $hasSecret) {
@@ -120,5 +120,4 @@ class UpdateProjectRequest extends FormRequest
 
         parent::failedValidation($validator);
     }
-
 }
