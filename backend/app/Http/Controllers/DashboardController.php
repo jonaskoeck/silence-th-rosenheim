@@ -8,12 +8,13 @@ use App\Enums\ServerLabel;
 use App\Models\InventoryRun;
 use App\Services\Contracts\ProjectServiceInterface;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
     public function __construct(private ProjectServiceInterface $projects) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $projectModels = $this->projects->getAll()->load('servers');
 
@@ -32,7 +33,7 @@ class DashboardController extends Controller
 
         $lastInventory = InventoryRun::latest()->first();
 
-        return view('dashboard', [
+        $data = [
             'projects' => $projects,
             'schedules' => collect(),
             'activity' => [],
@@ -41,6 +42,12 @@ class DashboardController extends Controller
             'stopped' => $total,
             'activeSchedules' => 0,
             'lastInventory' => $lastInventory,
-        ]);
+        ];
+
+        if ($request->header('HX-Target') === 'dashboard-content') {
+            return view('partials.dashboard-content', $data);
+        }
+
+        return view('dashboard', $data);
     }
 }

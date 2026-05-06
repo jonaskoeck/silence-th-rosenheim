@@ -1,3 +1,7 @@
+@if(request()->header('HX-Request'))
+@yield('content')
+@stack('scripts')
+@else
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -63,15 +67,16 @@
         </div>
     </nav>
 
-    <main class="flex-grow-1 p-4" style="min-width:0">
+    <main id="main-content" class="flex-grow-1 p-4" style="min-width:0">
         @yield('content')
     </main>
 </div>
 
 <footer class="bg-white border-top text-center text-muted py-2" style="font-size:0.8rem">
-    silence! &copy; {{ date('Y') }} | Technische Hochschule Rosenheim, Rechenzentrum
+    Technische Hochschule Rosenheim
 </footer>
 
 @stack('scripts')
 </body>
 </html>
+@endif
