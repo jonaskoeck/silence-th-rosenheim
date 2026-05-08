@@ -6,6 +6,7 @@ namespace App\Services\OpenStack;
 
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
+use App\Services\OpenStack\Exceptions\OpenStackServerActionException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -81,7 +82,7 @@ class OpenStackClient implements OpenStackClientInterface
      */
     public function listServers(string $token, string $computeEndpoint): array
     {
-        $url = $computeEndpoint.'/servers';
+        $url = $computeEndpoint.'/servers/detail';
 
         Log::debug('OpenStack list servers request', ['url' => $url]);
 
@@ -98,6 +99,79 @@ class OpenStackClient implements OpenStackClientInterface
         }
 
         return $response->json('servers') ?? [];
+    }
+
+    public function startServer(string $token, string $computeEndpoint, string $serverId): void
+    {
+        $url = $computeEndpoint.'/servers/'.$serverId.'/action';
+
+        Log::debug('OpenStack start server request', ['url' => $url, 'server_id' => $serverId]);
+
+        try {
+            $response = Http::withHeader('X-Auth-Token', $token)
+                ->acceptJson()
+                ->asJson()
+                ->post($url, ['os-start' => null]);
+        } catch (ConnectionException $e) {
+            throw OpenStackServerActionException::fromTransportError('start', $e);
+        }
+
+        Log::debug('OpenStack start server response', ['status' => $response->status()]);
+
+        if ($response->failed()) {
+            throw OpenStackServerActionException::fromUnexpectedStatus('start', $response->status());
+        }
+    }
+
+    public function stopServer(string $token, string $computeEndpoint, string $serverId): void
+    {
+        $url = $computeEndpoint.'/servers/'.$serverId.'/action';
+
+        Log::debug('OpenStack stop server request', ['url' => $url, 'server_id' => $serverId]);
+
+        try {
+            $response = Http::withHeader('X-Auth-Token', $token)
+                ->acceptJson()
+                ->asJson()
+                ->post($url, ['os-stop' => null]);
+        } catch (ConnectionException $e) {
+            throw OpenStackServerActionException::fromTransportError('stop', $e);
+        }
+
+        Log::debug('OpenStack stop server response', ['status' => $response->status()]);
+
+        if ($response->failed()) {
+            throw OpenStackServerActionException::fromUnexpectedStatus('stop', $response->status());
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getServer(string $token, string $computeEndpoint, string $serverId): array
+    {
+        $url = $computeEndpoint.'/servers/'.$serverId;
+
+        Log::debug('OpenStack get server request', ['url' => $url]);
+
+        try {
+            $response = Http::withHeader('X-Auth-Token', $token)
+                ->acceptJson()
+                ->get($url);
+        } catch (ConnectionException $e) {
+            throw OpenStackServerActionException::fromTransportError('fetch', $e);
+        }
+
+        if ($response->failed()) {
+            throw OpenStackServerActionException::fromUnexpectedStatus('fetch', $response->status());
+        }
+
+        Log::debug('OpenStack get server response', [
+            'status' => $response->status(),
+            'server_status' => $response->json('server.status'),
+        ]);
+
+        return $response->json('server') ?? [];
     }
 
     /**
