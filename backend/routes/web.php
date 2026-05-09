@@ -23,3 +23,5 @@ Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->nam
 Route::post('/server-actions', [ServerActionController::class, 'store'])->name('server-actions.store');
 Route::delete('/servers/{server}/server-actions', [ServerActionController::class, 'destroyForServer'])->name('server-actions.destroy-for-server');
 Route::patch('/servers/{server}/label', [ProjectServerController::class, 'updateLabel'])->name('servers.label');
+Route::post('/servers/{server}/start', [ProjectServerController::class, 'start'])->name('servers.start');
+Route::post('/servers/{server}/stop', [ProjectServerController::class, 'stop'])->name('servers.stop');

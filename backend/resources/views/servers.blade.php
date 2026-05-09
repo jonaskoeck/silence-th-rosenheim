@@ -129,10 +129,8 @@
                                 <div class="btn-group">
                                     @if ($srv['status'] === 'running')
                                     <button class="btn btn-sm btn-outline-danger"
-                                            data-server-action="stop"
-                                            data-server-name="{{ $srv['name'] }}"
-                                            data-server-id="{{ $srv['id'] }}"
-                                            data-server-label="{{ $srv['label'] }}"
+                                            type="button"
+                                            onclick="stopServer({{ $srv['id'] }})"
                                             title="Stoppen">
                                         <i class="bi bi-stop-fill"></i>
                                     </button>
@@ -146,9 +144,8 @@
                                     </button>
                                     @else
                                     <button class="btn btn-sm btn-outline-success"
-                                            data-server-action="start"
-                                            data-server-name="{{ $srv['name'] }}"
-                                            data-server-id="{{ $srv['id'] }}"
+                                            type="button"
+                                            onclick="startServer({{ $srv['id'] }})"
                                             title="Starten">
                                         <i class="bi bi-play-fill"></i>
                                     </button>
@@ -314,6 +311,14 @@
     <input type="hidden" name="label" id="label-input">
 </form>
 
+<form id="startServerForm" method="POST" style="display:none">
+    @csrf
+</form>
+
+<form id="stopServerForm" method="POST" style="display:none">
+    @csrf
+</form>
+
 <div class="modal fade" id="labelModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -410,6 +415,18 @@ function setLabel(label) {
     const form = document.getElementById('labelForm');
     form.action = '/servers/' + pendingServerId + '/label';
     document.getElementById('label-input').value = label.toUpperCase();
+    form.submit();
+}
+
+function startServer(serverId) {
+    const form = document.getElementById('startServerForm');
+    form.action = '/servers/' + serverId + '/start';
+    form.submit();
+}
+
+function stopServer(serverId) {
+    const form = document.getElementById('stopServerForm');
+    form.action = '/servers/' + serverId + '/stop';
     form.submit();
 }
 </script>

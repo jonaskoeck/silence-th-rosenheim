@@ -22,13 +22,14 @@ class DashboardController extends Controller
             'open_stack_project_id' => $p->open_stack_project_id,
             'servers' => $p->servers->map(fn ($s) => [
                 'name' => $s->name,
-                'status' => 'stopped',
+                'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
                 'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
                 'online_since' => null,
             ])->all(),
         ])->all();
 
         $total = $projectModels->sum(fn ($p) => $p->servers->count());
+        $running = $projectModels->sum(fn ($p) => $p->servers->where('status', 'ACTIVE')->count());
 
         $lastInventory = InventoryRun::latest()->first();
 
@@ -37,8 +38,8 @@ class DashboardController extends Controller
             'schedules' => collect(),
             'activity' => [],
             'total' => $total,
-            'running' => 0,
-            'stopped' => $total,
+            'running' => $running,
+            'stopped' => $total - $running,
             'activeSchedules' => 0,
             'lastInventory' => $lastInventory,
         ]);
