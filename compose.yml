@@ -20,7 +20,7 @@ services:
       - /home/student/certificates/web/silence.key:/certs/silence.key:ro
       - ./traefik/certs.yml:/traefik/certs.yml:ro
     networks:
-      - web
+      - silence-internal
     restart: unless-stopped
 
   database:
@@ -59,7 +59,6 @@ services:
       - .env
     networks:
       - silence-internal
-      - web
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.silence.rule=Host(`silence.th-rosenheim.de`)"
@@ -92,5 +91,3 @@ volumes:
 networks:
   silence-internal:
     driver: bridge
-  web:
-    external: true
