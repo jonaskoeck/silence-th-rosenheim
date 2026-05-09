@@ -1,28 +1,5 @@
 services:
 
-  traefik:
-    image: traefik:v3
-    container_name: silence-traefik
-    command:
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--providers.file.filename=/traefik/certs.yml"
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /home/student/certificates/web/silence.crt:/certs/silence.crt:ro
-      - /home/student/certificates/web/silence.key:/certs/silence.key:ro
-      - ./traefik/certs.yml:/traefik/certs.yml:ro
-    networks:
-      - silence-internal
-    restart: unless-stopped
-
   database:
     image: mariadb:12
     container_name: silence-db
@@ -59,12 +36,11 @@ services:
       - .env
     networks:
       - silence-internal
+      - web
+    ports:
+      - "8080:80"
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.silence.rule=Host(`silence.th-rosenheim.de`)"
-      - "traefik.http.routers.silence.entrypoints=websecure"
-      - "traefik.http.routers.silence.tls=true"
-      - "traefik.http.services.silence.loadbalancer.server.port=80"
+      - "traefik.enable=false"
     depends_on:
       database:
         condition: service_healthy
@@ -91,3 +67,5 @@ volumes:
 networks:
   silence-internal:
     driver: bridge
+  web:
+    external: true
