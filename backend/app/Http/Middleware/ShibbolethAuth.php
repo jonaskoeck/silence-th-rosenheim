@@ -84,19 +84,30 @@ class ShibbolethAuth
      *
      * mod_shib kann Attribute auf verschiedene Weisen bereitstellen:
      * - Als Server-Variable (z.B. $_SERVER['eppn'])
+     * - Mit REDIRECT_-Prefix (z.B. $_SERVER['REDIRECT_eppn'])
      * - Als HTTP-Header (z.B. HTTP_EPPN)
-     * Wir prüfen zuerst die Server-Variable, da das die sicherere Variante ist
-     * (HTTP-Header könnten theoretisch vom Client gefälscht werden, Server-Variablen nicht).
+     *
+     * Das REDIRECT_-Prefix wird von Apache automatisch hinzugefügt, wenn der
+     * Request intern weitergeleitet wird (z.B. durch mod_rewrite). Das passiert
+     * je nach Server-Konfiguration und ist laut Herrn Bauer ein bekanntes Verhalten.
+     * Wir prüfen daher beide Varianten.
      */
     private function getShibbolethAttribute(Request $request, string $name): ?string
     {
-        // Zuerst Server-Variable prüfen (sicherer, da von mod_shib direkt gesetzt)
+        // Zuerst die direkte Server-Variable prüfen
         $value = $request->server($name);
         if (!empty($value)) {
             return $value;
         }
 
-        // Fallback auf HTTP-Header (z.B. wenn Apache die Attribute als Header weiterleitet)
+        // Dann die Variante mit REDIRECT_-Prefix prüfen, da Apache bei internen
+        // Weiterleitungen dieses Prefix vor die Shibboleth-Attribute setzt
+        $redirectValue = $request->server('REDIRECT_' . $name);
+        if (!empty($redirectValue)) {
+            return $redirectValue;
+        }
+
+        // Letzter Fallback auf HTTP-Header
         return $request->header($name);
     }
 
