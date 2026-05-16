@@ -42,7 +42,7 @@ class InventoryController extends Controller
                     'id' => $s->id,
                     'name' => $s->name,
                     'open_stack_server_id' => $s->open_stack_server_id,
-                    'status' => 'stopped',
+                    'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
                     'label' => strtolower($s->label instanceof \App\Enums\ServerLabel ? $s->label->value : $s->label),
                 ])->all(),
             ])->all();
@@ -70,7 +70,7 @@ class InventoryController extends Controller
                     'id' => $s->id,
                     'name' => $s->name,
                     'open_stack_server_id' => $s->open_stack_server_id,
-                    'status' => 'stopped',
+                    'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
                     'label' => strtolower($s->label instanceof \App\Enums\ServerLabel ? $s->label->value : $s->label),
                 ])->all(),
             ])->all();
