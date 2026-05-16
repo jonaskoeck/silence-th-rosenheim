@@ -53,6 +53,8 @@
         @include('partials.projects-list')
     </div>
 
+</div>
+
 <div class="modal fade" id="deleteProjectModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -187,6 +189,14 @@
     <input type="hidden" name="label" id="label-input">
 </form>
 
+<form id="startServerForm" method="POST" style="display:none">
+    @csrf
+</form>
+
+<form id="stopServerForm" method="POST" style="display:none">
+    @csrf
+</form>
+
 <div class="modal fade" id="labelModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -225,9 +235,6 @@
 <script>
 let pendingServerId = '';
 
-document.addEventListener('DOMContentLoaded', () => {
-    new TomSelect('#projectSelect', { maxOptions: 10 });
-});
 
 document.getElementById('projectSearch').addEventListener('input', function () {
     const normalize = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -298,6 +305,18 @@ function setLabel(label) {
             headers: { 'HX-Target': 'projects-container' }
         });
     });
+}
+
+function startServer(serverId) {
+    const form = document.getElementById('startServerForm');
+    form.action = '/servers/' + serverId + '/start';
+    form.submit();
+}
+
+function stopServer(serverId) {
+    const form = document.getElementById('stopServerForm');
+    form.action = '/servers/' + serverId + '/stop';
+    form.submit();
 }
 </script>
 @endpush

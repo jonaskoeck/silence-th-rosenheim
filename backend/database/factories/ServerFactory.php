@@ -16,10 +16,11 @@ class ServerFactory extends Factory
     public function definition(): array
     {
         return [
-            'project_id'           => Project::factory(),
+            'project_id' => Project::factory(),
             'open_stack_server_id' => $this->faker->uuid(),
-            'name'                 => $this->faker->word(),
-            'label'                => ServerLabel::NONE,
+            'name' => $this->faker->word(),
+            'label' => ServerLabel::NONE,
+            'status' => 'SHUTOFF',
             'discovered_by_run_id' => null,
         ];
     }

@@ -20,6 +20,7 @@ class Server extends Model
         'open_stack_server_id',
         'name',
         'label',
+        'status',
         'discovered_by_run_id',
     ];
 
