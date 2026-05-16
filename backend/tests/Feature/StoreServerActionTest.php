@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Enums\ServerLabel;
 use App\Models\Server;
 use App\Models\ServerAction;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -160,5 +161,51 @@ class StoreServerActionTest extends TestCase
 
         $response->assertSessionHasErrors('actions.0.type');
         $this->assertSame(0, ServerAction::where('server_id', $server->id)->count());
+    }
+
+    public function test_store_rejects_production_server_without_confirmation(): void
+    {
+        $server = Server::factory()->create(['label' => ServerLabel::PRODUCTION]);
+
+        $response = $this->post(route('server-actions.store'), [
+            'server_id' => $server->id,
+            'actions' => [
+                ['type' => 'START', 'time' => '08:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('confirmed_production');
+        $this->assertSame(0, ServerAction::where('server_id', $server->id)->count());
+    }
+
+    public function test_store_persists_for_production_server_with_confirmation(): void
+    {
+        $server = Server::factory()->create(['label' => ServerLabel::PRODUCTION]);
+
+        $response = $this->post(route('server-actions.store'), [
+            'server_id' => $server->id,
+            'confirmed_production' => '1',
+            'actions' => [
+                ['type' => 'START', 'time' => '08:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertSame(1, ServerAction::where('server_id', $server->id)->count());
+    }
+
+    public function test_store_persists_for_non_production_server_without_confirmation(): void
+    {
+        $server = Server::factory()->create(['label' => ServerLabel::DEVELOPMENT]);
+
+        $response = $this->post(route('server-actions.store'), [
+            'server_id' => $server->id,
+            'actions' => [
+                ['type' => 'START', 'time' => '08:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertSame(1, ServerAction::where('server_id', $server->id)->count());
     }
 }

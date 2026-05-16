@@ -62,6 +62,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                             data-schedule-id="{{ $sch['id'] }}"
                             data-schedule-name="{{ $sch['name'] }}"
                             data-schedule-server="{{ $sch['server_name'] }}"
+                            data-server-label="{{ $sch['server_label'] }}"
                             data-schedule-events="{{ json_encode($sch['events'] ?? []) }}">
                         <i class="bi bi-pencil me-1"></i>Bearbeiten
                     </button>
@@ -192,7 +193,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                         <select class="form-select" id="new-server" name="server_id" required>
                             <option value="">Server wählen</option>
                             @foreach ($allServers as $srv)
-                            <option value="{{ $srv->id }}">{{ $srv->name }}</option>
+                            <option value="{{ $srv->id }}" data-label="{{ $srv->label->value }}">{{ $srv->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -232,6 +233,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                     </div>
 
                     <div id="actions-payload"></div>
+                    <input type="hidden" name="confirmed_production" id="confirmed-production" value="0">
 
                 </div>
                 <div class="modal-footer">
@@ -241,6 +243,34 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+{{-- Sicherheitsabfrage für Produktivserver --}}
+<div class="modal fade" id="confirmProductionScheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title fw-semibold">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>Sicherheitsabfrage
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-0">
+                    Der Server <strong id="confirm-production-server-name"></strong> ist als
+                    <span class="badge text-bg-danger rounded-pill">Produktiv</span> markiert.
+                    Möchtest du den Zeitplan wirklich
+                    <strong id="confirm-production-action-label">speichern</strong>?
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-warning" id="confirm-production-submit">
+                    <i class="bi bi-check-lg me-1"></i>Bestätigen
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -324,6 +354,41 @@ document.getElementById('newScheduleForm').addEventListener('submit', function (
             group.days.map(d => `<input type="hidden" name="actions[${i}][days][]" value="${d}">`).join('')
         );
     });
+
+    const serverSelect = document.getElementById('new-server');
+    const selectedOption = serverSelect.options[serverSelect.selectedIndex];
+    const confirmedFlag = document.getElementById('confirmed-production');
+
+    if (selectedOption?.dataset.label === 'PRODUCTION' && confirmedFlag.value !== '1') {
+        e.preventDefault();
+        document.getElementById('confirm-production-server-name').textContent = selectedOption.textContent.trim();
+        document.getElementById('confirm-production-action-label').textContent = 'speichern';
+        pendingProductionAction = 'create-submit';
+        new bootstrap.Modal(document.getElementById('confirmProductionScheduleModal')).show();
+    }
+});
+
+let pendingProductionAction = null;
+let pendingEditBtn = null;
+let skipProductionConfirm = false;
+
+document.getElementById('confirm-production-submit').addEventListener('click', () => {
+    bootstrap.Modal.getInstance(document.getElementById('confirmProductionScheduleModal'))?.hide();
+
+    if (pendingProductionAction === 'create-submit') {
+        document.getElementById('confirmed-production').value = '1';
+        document.getElementById('newScheduleForm').submit();
+    } else if (pendingProductionAction === 'edit-open' && pendingEditBtn) {
+        skipProductionConfirm = true;
+        pendingEditBtn.click();
+        skipProductionConfirm = false;
+        pendingEditBtn = null;
+    }
+    pendingProductionAction = null;
+});
+
+document.getElementById('newScheduleModal').addEventListener('hidden.bs.modal', () => {
+    document.getElementById('confirmed-production').value = '0';
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -341,6 +406,17 @@ document.getElementById('scheduleSearch').addEventListener('input', function () 
 
 document.getElementById('editScheduleModal').addEventListener('show.bs.modal', e => {
     const btn = e.relatedTarget;
+
+    if (!skipProductionConfirm && btn?.dataset.serverLabel === 'PRODUCTION') {
+        e.preventDefault();
+        pendingEditBtn = btn;
+        pendingProductionAction = 'edit-open';
+        document.getElementById('confirm-production-server-name').textContent = btn.dataset.scheduleServer;
+        document.getElementById('confirm-production-action-label').textContent = 'bearbeiten';
+        new bootstrap.Modal(document.getElementById('confirmProductionScheduleModal')).show();
+        return;
+    }
+
     document.getElementById('edit-schedule-name').value         = btn.dataset.scheduleName;
     document.getElementById('edit-schedule-server').textContent = btn.dataset.scheduleServer;
 

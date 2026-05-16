@@ -27,7 +27,7 @@ class ScheduleController extends Controller
 
     public function index(Request $request): View
     {
-        $allServers = Server::orderBy('name')->get(['id', 'name']);
+        $allServers = Server::orderBy('name')->get(['id', 'name', 'label']);
         $filterServer = $request->get('server', '');
 
         $actions = $this->serverActions->getAll();
@@ -40,6 +40,7 @@ class ScheduleController extends Controller
             ->map(fn ($group, $serverId) => [
                 'id' => $serverId,
                 'server_name' => $group->first()->server?->name ?? '—',
+                'server_label' => $group->first()->server?->label?->value ?? 'NONE',
                 'name' => 'Zeitplan',
                 'events' => $this->buildEvents($group),
             ])

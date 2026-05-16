@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Enums\ActionType;
+use App\Enums\ServerLabel;
 use App\Enums\Weekday;
+use App\Models\Server;
 use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -31,6 +34,30 @@ class StoreServerActionRequest extends FormRequest
             'actions.*.time' => ['required', 'date_format:H:i'],
             'actions.*.days' => ['required', 'array', 'min:1'],
             'actions.*.days.*' => ['required', 'string', Rule::in($weekdayNames)],
+            'confirmed_production' => ['nullable', 'string'],
+        ];
+    }
+
+    /**
+     * @return array<int, callable(Validator): void>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $server = Server::find((int) $this->input('server_id'));
+
+                if ($server === null || $server->label !== ServerLabel::PRODUCTION) {
+                    return;
+                }
+
+                if ($this->input('confirmed_production') !== '1') {
+                    $validator->errors()->add(
+                        'confirmed_production',
+                        'Sicherheitsabfrage für Produktivserver muss bestätigt werden.',
+                    );
+                }
+            },
         ];
     }
 
