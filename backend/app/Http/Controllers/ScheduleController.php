@@ -48,14 +48,14 @@ class ScheduleController extends Controller
             ->all();
 
         if ($search !== '') {
-            $needle = strtolower(preg_replace('/[^a-z0-9]/i', '', $search));
+            $needle = strtolower(preg_replace('/[^a-z0-9]/i', '', $search ?? ''));
             $schedules = array_values(array_filter(
                 $schedules,
                 function ($sch) use ($needle) {
                     $haystack = strtolower(preg_replace(
                         '/[^a-z0-9]/i',
                         '',
-                        $sch['server_name'].' '.$sch['name']
+                        ($sch['server_name'] ?? '').' '.($sch['name'] ?? '')
                     ));
                     return str_contains($haystack, $needle);
                 }
