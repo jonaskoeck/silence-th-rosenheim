@@ -64,7 +64,7 @@
             </div>
             <div class="modal-body">
                 <p class="text-muted small mb-0">
-                    Möchtest du das Projekt <strong id="delete-project-name"></strong> wirklich löschen?
+                    Möchtest du das Projekt <strong id="delete-project-name" style="word-break:break-all"></strong> wirklich löschen?
                 </p>
             </div>
             <div class="modal-footer">
