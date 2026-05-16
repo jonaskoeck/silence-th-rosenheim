@@ -66,7 +66,7 @@ class ProjectServerController extends Controller
         return back();
     }
 
-    public function start(Server $server): RedirectResponse
+    public function start(Request $request, Server $server): RedirectResponse|View|Response
     {
         $project = $server->project;
 
@@ -81,22 +81,31 @@ class ProjectServerController extends Controller
                 $auth->computeEndpoint,
                 $server->open_stack_server_id,
             );
-
-            $fresh = $this->openStack->getServer(
-                $auth->token,
-                $auth->computeEndpoint,
-                $server->open_stack_server_id,
-            );
-
-            $server->update(['status' => $fresh['status'] ?? null]);
         } catch (InvalidOpenStackCredentialsException|OpenStackServerActionException $e) {
+            if ($request->header('HX-Request')) {
+                return response()->noContent(422)->header(
+                    'HX-Trigger',
+                    json_encode(['toast' => ['message' => "Server \"{$server->name}\" konnte nicht gestartet werden.", 'type' => 'danger']])
+                );
+            }
             return back()->with('server_action_error', "Server \"{$server->name}\" konnte nicht gestartet werden.");
+        }
+
+        try {
+            $fresh = $this->openStack->getServer($auth->token, $auth->computeEndpoint, $server->open_stack_server_id);
+            $server->update(['status' => $fresh['status'] ?? null]);
+        } catch (OpenStackServerActionException) {
+            $server->update(['status' => 'ACTIVE']);
+        }
+
+        if ($request->header('HX-Request')) {
+            return $this->projectsPartial("Server \"{$server->name}\" wurde gestartet.");
         }
 
         return back()->with('status', "Server \"{$server->name}\" wurde gestartet.");
     }
 
-    public function stop(Server $server): RedirectResponse
+    public function stop(Request $request, Server $server): RedirectResponse|View|Response
     {
         $project = $server->project;
 
@@ -111,19 +120,47 @@ class ProjectServerController extends Controller
                 $auth->computeEndpoint,
                 $server->open_stack_server_id,
             );
-
-            $fresh = $this->openStack->getServer(
-                $auth->token,
-                $auth->computeEndpoint,
-                $server->open_stack_server_id,
-            );
-
-            $server->update(['status' => $fresh['status'] ?? null]);
         } catch (InvalidOpenStackCredentialsException|OpenStackServerActionException $e) {
+            if ($request->header('HX-Request')) {
+                return response()->noContent(422)->header(
+                    'HX-Trigger',
+                    json_encode(['toast' => ['message' => "Server \"{$server->name}\" konnte nicht gestoppt werden.", 'type' => 'danger']])
+                );
+            }
             return back()->with('server_action_error', "Server \"{$server->name}\" konnte nicht gestoppt werden.");
         }
 
+        try {
+            $fresh = $this->openStack->getServer($auth->token, $auth->computeEndpoint, $server->open_stack_server_id);
+            $server->update(['status' => $fresh['status'] ?? null]);
+        } catch (OpenStackServerActionException) {
+            $server->update(['status' => 'SHUTOFF']);
+        }
+
+        if ($request->header('HX-Request')) {
+            return $this->projectsPartial("Server \"{$server->name}\" wurde gestoppt.");
+        }
+
         return back()->with('status', "Server \"{$server->name}\" wurde gestoppt.");
+    }
+
+    private function projectsPartial(string $toastMessage, string $toastType = 'success'): \Illuminate\Http\Response
+    {
+        $projectModels = $this->projects->getAll()->load('servers');
+        $projects = $projectModels->map(fn ($p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'servers' => $p->servers->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'open_stack_server_id' => $s->open_stack_server_id,
+                'status' => self::displayStatus($s->status),
+                'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
+            ])->all(),
+        ])->all();
+
+        return response(view('partials.projects-list', compact('projects')))
+            ->header('HX-Trigger', json_encode(['toast' => ['message' => $toastMessage, 'type' => $toastType]]));
     }
 
     private static function displayStatus(?string $rawStatus): string

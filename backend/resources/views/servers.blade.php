@@ -92,11 +92,6 @@
                   hx-on::after-request="if(event.detail.successful) bootstrap.Modal.getInstance(document.getElementById('createProjectModal'))?.hide()">
                 @csrf
                 <div class="modal-body d-flex flex-column gap-3">
-                    @if (session('store_project_error'))
-                        <div class="alert alert-danger small mb-0 py-2">
-                            {{ $errors->first() }}
-                        </div>
-                    @endif
                     <div>
                         <label class="form-label small fw-semibold">Name</label>
                         <input type="text" name="name" class="form-control">
@@ -133,11 +128,6 @@
                 @csrf
                 @method('PUT')
                 <div class="modal-body d-flex flex-column gap-3">
-                    @if (session('edit_project_id'))
-                        <div class="alert alert-danger small mb-0 py-2">
-                            <i class="bi bi-exclamation-circle me-1"></i>{{ $errors->first() }}
-                        </div>
-                    @endif
                     <input type="hidden" id="edit-project-id">
                     <div>
                         <label class="form-label small fw-semibold">Name</label>

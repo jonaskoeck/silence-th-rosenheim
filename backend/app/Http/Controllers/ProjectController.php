@@ -12,28 +12,29 @@ use App\Services\Contracts\ProjectServiceInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class ProjectController extends Controller
 {
     public function __construct(private ProjectServiceInterface $projects) {}
 
-    public function store(StoreProjectRequest $request): RedirectResponse|View
+    public function store(StoreProjectRequest $request): RedirectResponse|Response
     {
         $this->projects->create($request->projectAttributes());
 
         if ($request->header('HX-Request')) {
-            return $this->projectsPartial();
+            return $this->projectsPartial('Projekt wurde erstellt.');
         }
 
         return redirect()->back();
     }
 
-    public function update(UpdateProjectRequest $request, Project $project): RedirectResponse|View
+    public function update(UpdateProjectRequest $request, Project $project): RedirectResponse|Response
     {
         $this->projects->update($project, $request->projectAttributes());
 
         if ($request->header('HX-Request')) {
-            return $this->projectsPartial();
+            return $this->projectsPartial("Projekt \"{$project->name}\" wurde aktualisiert.");
         }
 
         return redirect()
@@ -41,12 +42,12 @@ class ProjectController extends Controller
             ->with('status', "Projekt \"{$project->name}\" wurde aktualisiert.");
     }
 
-    public function destroy(Request $request, Project $project): RedirectResponse|View
+    public function destroy(Request $request, Project $project): RedirectResponse|Response
     {
         $this->projects->delete($project);
 
         if ($request->header('HX-Request')) {
-            return $this->projectsPartial();
+            return $this->projectsPartial("Projekt \"{$project->name}\" wurde gelöscht.");
         }
 
         return redirect()
@@ -54,7 +55,7 @@ class ProjectController extends Controller
             ->with('status', "Projekt \"{$project->name}\" wurde gelöscht.");
     }
 
-    private function projectsPartial(): View
+    private function projectsPartial(string $toastMessage, string $toastType = 'success'): Response
     {
         $projects = $this->projects->getAll()->load('servers')->map(fn ($p) => [
             'id' => $p->id,
@@ -68,6 +69,7 @@ class ProjectController extends Controller
             ])->all(),
         ])->all();
 
-        return view('partials.projects-list', compact('projects'));
+        return response(view('partials.projects-list', compact('projects')))
+            ->header('HX-Trigger', json_encode(['toast' => ['message' => $toastMessage, 'type' => $toastType]]));
     }
 }

@@ -6,12 +6,14 @@ namespace App\Http\Requests;
 
 use App\Enums\ActionType;
 use App\Enums\Weekday;
+use App\Http\Requests\Concerns\ToastsValidationErrors;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreServerActionRequest extends FormRequest
 {
+    use ToastsValidationErrors;
     public function authorize(): bool
     {
         return true;

@@ -75,20 +75,19 @@
                         <td class="text-end">
                             <div class="btn-group">
                                 @if ($srv['status'] === 'running')
-                                <button class="btn btn-sm btn-outline-danger" data-server-action="stop"
-                                        data-server-name="{{ $srv['name'] }}" data-server-id="{{ $srv['id'] }}"
-                                        data-server-label="{{ $srv['label'] }}" title="Stoppen">
+                                <button class="btn btn-sm btn-outline-danger" title="Stoppen"
+                                        hx-post="{{ route('servers.stop', $srv['id']) }}"
+                                        hx-target="#projects-container"
+                                        hx-swap="innerHTML"
+                                        hx-on::before-request="window._collapseRestoreAfterSwap=[...document.querySelectorAll('.collapse.show')].map(el=>el.id)">
                                     <i class="bi bi-stop-fill"></i>
                                 </button>
-                                <button class="btn btn-sm btn-outline-warning" data-server-action="restart"
-                                        data-server-name="{{ $srv['name'] }}" data-server-id="{{ $srv['id'] }}"
-                                        data-server-label="{{ $srv['label'] }}" title="Neustarten">
-                                    <i class="bi bi-arrow-clockwise"></i>
-                                </button>
                                 @else
-                                <button class="btn btn-sm btn-outline-success" data-server-action="start"
-                                        data-server-name="{{ $srv['name'] }}" data-server-id="{{ $srv['id'] }}"
-                                        title="Starten">
+                                <button class="btn btn-sm btn-outline-success" title="Starten"
+                                        hx-post="{{ route('servers.start', $srv['id']) }}"
+                                        hx-target="#projects-container"
+                                        hx-swap="innerHTML"
+                                        hx-on::before-request="window._collapseRestoreAfterSwap=[...document.querySelectorAll('.collapse.show')].map(el=>el.id)">
                                     <i class="bi bi-play-fill"></i>
                                 </button>
                                 @endif

@@ -72,6 +72,8 @@
     </main>
 </div>
 
+<div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1100"></div>
+
 <footer class="bg-white border-top text-center text-muted py-2" style="font-size:0.8rem">
     Technische Hochschule Rosenheim
 </footer>
