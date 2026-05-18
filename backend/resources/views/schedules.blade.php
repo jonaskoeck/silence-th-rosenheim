@@ -13,7 +13,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
         <div>
             <h1 class="h4 fw-bold mb-0">Zeitpläne</h1>
         </div>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newScheduleModal">
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newScheduleModal">
             <i class="bi bi-plus-lg me-1"></i>Neuer Zeitplan
         </button>
     </div>
@@ -25,8 +25,13 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                 <span class="input-group-text bg-white border-end-0">
                     <i class="bi bi-search text-muted"></i>
                 </span>
-                <input type="text" id="scheduleSearch" class="form-control border-start-0 ps-0"
-                       placeholder="Zeitplan suchen..." list="schedule-suggestions" autocomplete="off">
+                <input type="text" id="scheduleSearch" name="search"
+                       class="form-control border-start-0 ps-0"
+                       placeholder="Zeitplan suchen..." list="schedule-suggestions"
+                       hx-get="{{ route('schedules') }}"
+                       hx-trigger="input changed delay:300ms"
+                       hx-target="#schedules-container"
+                       hx-include="[name='search']">
             </div>
             <datalist id="schedule-suggestions">
                 @foreach ($schedules as $sch)
@@ -38,68 +43,9 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     </div>
 
     {{-- Zeitplan-Liste --}}
-    @if (empty($schedules))
-    <div class="card border-0 shadow-sm">
-        <div class="card-body text-center py-5 text-muted">
-            Keine Zeitpläne vorhanden.
-        </div>
+    <div id="schedules-container">
+        @include('partials.schedules-list', ['schedules' => $schedules])
     </div>
-    @else
-    <div class="d-flex flex-column gap-3">
-        @foreach ($schedules as $sch)
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
-                <div class="d-flex align-items-center gap-2 flex-grow-1 py-3" style="cursor:pointer"
-                     data-bs-toggle="collapse" data-bs-target="#schedule-{{ $sch['id'] }}"
-                     data-schedule-search="{{ $sch['server_name'] }} {{ $sch['name'] }}">
-                    <i class="bi bi-chevron-down text-muted" style="font-size:0.85rem"></i>
-                    <span class="fw-semibold">{{ $sch['server_name'] }}</span>
-                    <span class="text-muted small">— {{ $sch['name'] }}</span>
-                </div>
-                <div class="d-flex gap-2 align-items-center py-3">
-                    <button class="btn btn-sm btn-outline-secondary"
-                            data-bs-toggle="modal" data-bs-target="#editScheduleModal"
-                            data-schedule-id="{{ $sch['id'] }}"
-                            data-schedule-name="{{ $sch['name'] }}"
-                            data-schedule-server="{{ $sch['server_name'] }}"
-                            data-schedule-events="{{ json_encode($sch['events'] ?? []) }}">
-                        <i class="bi bi-pencil me-1"></i>Bearbeiten
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger"
-                            data-bs-toggle="modal" data-bs-target="#deleteScheduleModal"
-                            data-schedule-id="{{ $sch['id'] }}"
-                            data-schedule-name="{{ $sch['name'] }}">
-                        <i class="bi bi-trash me-1"></i>Löschen
-                    </button>
-                </div>
-            </div>
-            <div class="collapse" id="schedule-{{ $sch['id'] }}">
-                <div class="card-body p-3">
-                    <div class="schedule-calendar">
-                        <div class="row g-2">
-                            @foreach ($days as $day)
-                            <div class="col">
-                                <div class="text-center fw-semibold small text-muted mb-2">{{ $day }}</div>
-                                <div class="d-flex flex-column gap-1">
-                                    @foreach ($sch['events'] ?? [] as $ev)
-                                        @if ($ev['day'] === $day)
-                                        <div class="rounded px-2 py-1 text-white"
-                                             style="font-size:0.72rem; background:{{ $ev['type'] === 'start' ? '#198754' : '#dc3545' }}">
-                                            {{ $ev['time'] }} {{ $ev['type'] === 'start' ? 'Starten' : 'Stoppen' }}
-                                        </div>
-                                        @endif
-                                    @endforeach
-                                </div>
-                            </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endforeach
-    </div>
-    @endif
 
 </div>
 
@@ -125,10 +71,29 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                 <div class="border rounded-3 overflow-hidden">
                     <div class="d-flex" style="min-height:120px">
                         @foreach ($days as $day)
-                        <div class="{{ !$loop->last ? 'border-end' : '' }}" style="width:calc(100%/7); min-width:0">
+                        <div class="{{ !$loop->last ? 'border-end' : '' }}" style="width:calc(100%/7); min-width:0" data-edit-day="{{ $day }}">
                             <div class="text-center fw-semibold small py-2 border-bottom bg-light text-muted">{{ $day }}</div>
                             <div class="p-1 d-flex flex-column gap-1" style="min-height:80px">
-                                <div class="d-flex flex-column gap-1 w-100" id="edit-events-{{ $day }}"></div>
+                                <div class="events-container d-flex flex-column gap-1 w-100" id="edit-events-{{ $day }}"></div>
+                                <button type="button" class="btn btn-sm btn-light text-muted mt-auto w-100"
+                                        style="font-size:0.75rem; border:1px dashed #dee2e6"
+                                        onclick="showEditAddEvent('{{ $day }}')">
+                                    <i class="bi bi-plus"></i>
+                                </button>
+                                <div class="add-event-form d-none" id="edit-form-{{ $day }}">
+                                    <select class="form-select form-select-sm mb-1" id="edit-type-{{ $day }}">
+                                        <option value="START">Starten</option>
+                                        <option value="STOP">Stoppen</option>
+                                    </select>
+                                    <input type="time" class="form-control form-control-sm mb-1"
+                                           id="edit-time-{{ $day }}" value="08:00">
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-primary flex-grow-1"
+                                                onclick="addEditEvent('{{ $day }}')">OK</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="hideEditAddEvent('{{ $day }}')">×</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         @endforeach
@@ -137,7 +102,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Speichern</button>
+                <button type="button" class="btn btn-primary">Speichern</button>
             </div>
         </div>
     </div>
@@ -158,13 +123,10 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <form method="POST" id="deleteScheduleForm"
-                      data-action-template="{{ route('server-actions.destroy-for-server', ['server' => '__ID__']) }}"
-                      class="d-inline">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Löschen</button>
-                </form>
+                <button type="button" class="btn btn-danger" id="deleteScheduleBtn"
+                        hx-target="#schedules-container"
+                        hx-swap="innerHTML"
+                        hx-on::after-request="bootstrap.Modal.getInstance(document.getElementById('deleteScheduleModal'))?.hide()">Löschen</button>
             </div>
         </div>
     </div>
@@ -174,7 +136,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 <div class="modal fade" id="newScheduleModal" tabindex="-1">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <form id="newScheduleForm" method="POST" action="{{ route('server-actions.store') }}">
+            <form id="newScheduleForm" method="POST" action="{{ route('server-actions.store') }}" novalidate>
                 @csrf
                 <div class="modal-header">
                     <h6 class="modal-title fw-semibold">Neuer Zeitplan</h6>
@@ -248,9 +210,9 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 
 @push('scripts')
 <script>
-const scheduleEvents = {};
+var scheduleEvents = {};
 
-const dayLabelToWeekday = {
+var dayLabelToWeekday = {
     'Mo': 'MONDAY',
     'Di': 'TUESDAY',
     'Mi': 'WEDNESDAY',
@@ -296,6 +258,20 @@ function removeEvent(day, index, el) {
 }
 
 document.getElementById('newScheduleForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const serverId = document.getElementById('new-server').value;
+    if (!serverId) {
+        showToast('Bitte einen Server auswählen.', 'danger');
+        return;
+    }
+
+    const existingServerIds = @json(array_column($schedules, 'id'));
+    if (existingServerIds.includes(parseInt(serverId))) {
+        showToast('Für diesen Server existiert bereits ein Zeitplan.', 'danger');
+        return;
+    }
+
     const groups = {};
     for (const [dayLabel, events] of Object.entries(scheduleEvents)) {
         const weekdayName = dayLabelToWeekday[dayLabel];
@@ -307,16 +283,14 @@ document.getElementById('newScheduleForm').addEventListener('submit', function (
         }
     }
 
-    const payload = document.getElementById('actions-payload');
-    payload.innerHTML = '';
-
     const groupList = Object.values(groups);
     if (groupList.length === 0) {
-        e.preventDefault();
-        alert('Bitte mindestens einen Eintrag hinzufügen.');
+        showToast('Bitte mindestens einen Eintrag hinzufügen.', 'danger');
         return;
     }
 
+    const payload = document.getElementById('actions-payload');
+    payload.innerHTML = '';
     groupList.forEach((group, i) => {
         payload.insertAdjacentHTML('beforeend',
             `<input type="hidden" name="actions[${i}][type]" value="${group.type}">` +
@@ -324,47 +298,126 @@ document.getElementById('newScheduleForm').addEventListener('submit', function (
             group.days.map(d => `<input type="hidden" name="actions[${i}][days][]" value="${d}">`).join('')
         );
     });
+
+    const storeUrl = this.action;
+    function closeOnSuccess(e) {
+        if (e.detail.successful) {
+            bootstrap.Modal.getInstance(document.getElementById('newScheduleModal'))?.hide();
+        }
+        document.removeEventListener('htmx:afterRequest', closeOnSuccess);
+    }
+    document.addEventListener('htmx:afterRequest', closeOnSuccess);
+
+    htmx.ajax('POST', storeUrl, {
+        source: this,
+        target: '#schedules-container',
+        swap: 'innerHTML',
+    });
 });
 
 document.addEventListener('DOMContentLoaded', () => {
     new TomSelect('#new-server', { maxOptions: 10 });
 });
 
-document.getElementById('scheduleSearch').addEventListener('input', function () {
-    const normalize = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const query = normalize(this.value);
-    document.querySelectorAll('[data-schedule-search]').forEach(card => {
-        const text = normalize(card.dataset.scheduleSearch);
-        card.closest('.card').style.display = text.includes(query) ? '' : 'none';
-    });
+@if ($editSchedule)
+(function() {
+    const sch = @json($editSchedule);
+    function openEditModal() {
+        document.getElementById('edit-schedule-name').value         = sch.name;
+        document.getElementById('edit-schedule-server').textContent = sch.server_name;
+        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
+            document.getElementById('edit-events-' + d).innerHTML = '';
+        });
+        editScheduleEvents = {};
+        ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
+            document.getElementById('edit-events-' + d).innerHTML = '';
+        });
+        (sch.events || []).forEach(ev => {
+            if (!editScheduleEvents[ev.day]) editScheduleEvents[ev.day] = [];
+            const index = editScheduleEvents[ev.day].length;
+            editScheduleEvents[ev.day].push({ type: ev.type, time: ev.time });
+            renderEditEvent(ev.day, index, ev.type, ev.time);
+        });
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('editScheduleModal')).show();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', openEditModal);
+    } else {
+        openEditModal();
+    }
+})();
+@endif
+
+document.getElementById('editScheduleModal').addEventListener('hidden.bs.modal', () => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('edit') || url.searchParams.has('server')) {
+        url.searchParams.delete('edit');
+        url.searchParams.delete('server');
+        history.replaceState({}, '', url.toString());
+        htmx.ajax('GET', url.toString(), { target: '#schedules-container', swap: 'innerHTML', headers: { 'HX-Target': 'schedules-container' } });
+    }
 });
+
+var editScheduleEvents = {};
+
+function showEditAddEvent(day) {
+    document.getElementById('edit-form-' + day).classList.remove('d-none');
+}
+function hideEditAddEvent(day) {
+    document.getElementById('edit-form-' + day).classList.add('d-none');
+}
+function addEditEvent(day) {
+    const type = document.getElementById('edit-type-' + day).value;
+    const time = document.getElementById('edit-time-' + day).value;
+    if (!time) return;
+    if (!editScheduleEvents[day]) editScheduleEvents[day] = [];
+    const index = editScheduleEvents[day].length;
+    editScheduleEvents[day].push({ type, time });
+    renderEditEvent(day, index, type, time);
+    hideEditAddEvent(day);
+}
+function removeEditEvent(day, index, el) {
+    editScheduleEvents[day].splice(index, 1);
+    el.closest('div').remove();
+}
+function renderEditEvent(day, index, type, time) {
+    const container = document.getElementById('edit-events-' + day);
+    if (!container) return;
+    const bg = type === 'START' || type === 'start' ? '#198754' : '#dc3545';
+    const label = (type === 'START' || type === 'start') ? 'Starten' : 'Stoppen';
+    const el = document.createElement('div');
+    el.className = 'rounded px-2 py-1 text-white d-flex justify-content-between align-items-center w-100';
+    el.style.cssText = `background:${bg}; font-size:0.72rem`;
+    el.innerHTML = `<span>${time} ${label}</span><span style="cursor:pointer" onclick="removeEditEvent('${day}', ${index}, this)">×</span>`;
+    container.appendChild(el);
+}
 
 document.getElementById('editScheduleModal').addEventListener('show.bs.modal', e => {
     const btn = e.relatedTarget;
+    if (!btn) return;
     document.getElementById('edit-schedule-name').value         = btn.dataset.scheduleName;
     document.getElementById('edit-schedule-server').textContent = btn.dataset.scheduleServer;
 
+    editScheduleEvents = {};
     ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
         document.getElementById('edit-events-' + d).innerHTML = '';
+        hideEditAddEvent(d);
     });
 
     JSON.parse(btn.dataset.scheduleEvents || '[]').forEach(ev => {
-        const container = document.getElementById('edit-events-' + ev.day);
-        if (!container) return;
-        const bg = ev.type === 'start' ? '#198754' : '#dc3545';
-        const el = document.createElement('div');
-        el.className = 'rounded px-2 py-1 text-white w-100';
-        el.style.cssText = `background:${bg}; font-size:0.72rem`;
-        el.textContent = ev.time + ' ' + (ev.type === 'start' ? 'Starten' : 'Stoppen');
-        container.appendChild(el);
+        if (!editScheduleEvents[ev.day]) editScheduleEvents[ev.day] = [];
+        const index = editScheduleEvents[ev.day].length;
+        editScheduleEvents[ev.day].push({ type: ev.type, time: ev.time });
+        renderEditEvent(ev.day, index, ev.type, ev.time);
     });
 });
 
 document.getElementById('deleteScheduleModal').addEventListener('show.bs.modal', e => {
     const btn = e.relatedTarget;
     document.getElementById('delete-schedule-name').textContent = btn.dataset.scheduleName;
-    const form = document.getElementById('deleteScheduleForm');
-    form.action = form.dataset.actionTemplate.replace('__ID__', btn.dataset.scheduleId);
+    const deleteBtn = document.getElementById('deleteScheduleBtn');
+    deleteBtn.setAttribute('hx-delete', '/servers/' + btn.dataset.scheduleId + '/server-actions');
+    htmx.process(deleteBtn);
 });
 </script>
 @endpush

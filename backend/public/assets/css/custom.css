@@ -120,7 +120,18 @@
     }
 }
 
-.ts-wrapper.single .ts-control { padding-right: 2.5rem !important; }
+.badge-label {
+    min-width: 110px;
+    display: inline-block;
+    text-align: center;
+}
+
+#projects-container {
+    transition: opacity 0.15s ease;
+}
+#projects-container.htmx-swapping {
+    opacity: 0;
+}
 
 @media print {
     .navbar, nav.d-lg-flex, .btn, footer { display: none !important; }

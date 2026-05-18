@@ -29,16 +29,53 @@ class InventoryController extends Controller
         ]);
     }
 
-    public function run(): RedirectResponse
+    public function run(Request $request): RedirectResponse|View
     {
         $this->inventory->runForAllProjects();
+
+        if ($request->header('HX-Target') === 'projects-container') {
+            $projectModels = $this->projects->getAll()->load('servers');
+            $projects = $projectModels->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'servers' => $p->servers->map(fn ($s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'open_stack_server_id' => $s->open_stack_server_id,
+                    'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
+                    'label' => strtolower($s->label instanceof \App\Enums\ServerLabel ? $s->label->value : $s->label),
+                ])->all(),
+            ])->all();
+            return view('partials.projects-list', compact('projects'));
+        }
+
+        if ($request->header('HX-Request')) {
+            $runs = InventoryRun::latest()->with('discoveredServers')->get();
+            return view('partials.inventory-runs', compact('runs'));
+        }
 
         return redirect()->back();
     }
 
-    public function runForProject(int $project): RedirectResponse
+    public function runForProject(Request $request, int $project): RedirectResponse|View
     {
         $this->inventory->runForProject($project);
+
+        if ($request->header('HX-Request')) {
+            $projectModels = $this->projects->getAll()->load('servers');
+            $projects = $projectModels->map(fn ($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'servers' => $p->servers->map(fn ($s) => [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'open_stack_server_id' => $s->open_stack_server_id,
+                    'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
+                    'label' => strtolower($s->label instanceof \App\Enums\ServerLabel ? $s->label->value : $s->label),
+                ])->all(),
+            ])->all();
+            return view('partials.projects-list', compact('projects'));
+        }
 
         return redirect()->back();
     }

@@ -10,6 +10,7 @@ use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Validation\ValidationException;
 
 class UpdateProjectRequest extends FormRequest
@@ -114,10 +115,17 @@ class UpdateProjectRequest extends FormRequest
 
     protected function failedValidation(Validator $validator): void
     {
+        if ($this->header('HX-Request')) {
+            throw new HttpResponseException(
+                response()->noContent(422)->header(
+                    'HX-Trigger',
+                    json_encode(['toast' => ['message' => $validator->errors()->first(), 'type' => 'danger']])
+                )
+            );
+        }
         /** @var Project $project */
         $project = $this->route('project');
         session()->flash('edit_project_id', $project->id);
-
         parent::failedValidation($validator);
     }
 }
