@@ -7,6 +7,7 @@ namespace App\Http\Requests;
 use App\Enums\ActionType;
 use App\Enums\ServerLabel;
 use App\Enums\Weekday;
+use App\Http\Requests\Concerns\ToastsValidationErrors;
 use App\Models\Server;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
@@ -15,6 +16,8 @@ use Illuminate\Validation\Rule;
 
 class StoreServerActionRequest extends FormRequest
 {
+    use ToastsValidationErrors;
+
     public function authorize(): bool
     {
         return true;

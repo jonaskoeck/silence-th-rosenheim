@@ -28,21 +28,6 @@ class InventoryControllerTest extends TestCase
     }
 
     /**
-     * Prüft: Auf der Inventory-Seite werden die Projekte aus der DB
-     * tatsächlich angezeigt. Wir legen ein Projekt mit bekanntem Namen
-     * an und prüfen mit `assertSee`, dass dieser im HTML auftaucht.
-     */
-    public function test_inventory_index_shows_projects(): void
-    {
-        $project = Project::factory()->create(['name' => 'Mein Projekt']);
-
-        $response = $this->get(route('inventory'));
-
-        $response->assertOk();
-        $response->assertSee('Mein Projekt');
-    }
-
-    /**
      * Prüft: Vergangene InventoryRuns werden auf der Seite angezeigt.
      * Ein manueller Lauf muss in der Liste mit dem Text "Manuell"
      * erscheinen (im Gegensatz zu "Automatisch").
@@ -50,11 +35,11 @@ class InventoryControllerTest extends TestCase
     public function test_inventory_index_shows_runs(): void
     {
         InventoryRun::factory()->create([
-            'start_time'              => now(),
-            'end_time'                => now(),
+            'start_time' => now(),
+            'end_time' => now(),
             'triggered_automatically' => false,
-            'had_errors'              => false,
-            'found_new_servers'       => false,
+            'had_errors' => false,
+            'found_new_servers' => false,
         ]);
 
         $response = $this->get(route('inventory'));

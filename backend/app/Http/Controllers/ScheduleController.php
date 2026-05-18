@@ -29,6 +29,7 @@ class ScheduleController extends Controller
     {
         $allServers = Server::orderBy('name')->get(['id', 'name', 'label']);
         $filterServer = $request->get('server', '');
+        $search = $request->input('search', '');
 
         $actions = $this->serverActions->getAll();
         if ($filterServer !== '') {
@@ -47,8 +48,30 @@ class ScheduleController extends Controller
             ->values()
             ->all();
 
+        if ($search !== '') {
+            $needle = strtolower(preg_replace('/[^a-z0-9]/i', '', $search ?? ''));
+            $schedules = array_values(array_filter(
+                $schedules,
+                function ($sch) use ($needle) {
+                    $haystack = strtolower(preg_replace(
+                        '/[^a-z0-9]/i',
+                        '',
+                        ($sch['server_name'] ?? '').' '.($sch['name'] ?? '')
+                    ));
+
+                    return str_contains($haystack, $needle);
+                }
+            ));
+        }
+
+        if ($request->header('HX-Target') === 'schedules-container') {
+            return view('partials.schedules-list', compact('schedules'));
+        }
+
+        $editSchedule = ($request->boolean('edit') && ! empty($schedules)) ? $schedules[0] : null;
+
         return view('schedules', compact(
-            'schedules', 'allServers', 'filterServer'
+            'schedules', 'allServers', 'filterServer', 'editSchedule'
         ));
     }
 
