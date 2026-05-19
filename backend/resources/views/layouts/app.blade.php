@@ -30,8 +30,9 @@
             <span class="text-muted small font-monospace">
                 {{ str_replace(' (RZ)', '', session('user_displayname', 'Mitarbeiter')) }}
             </span>
-            <button id="darkModeToggle" class="btn btn-sm me-1" style="border-color:#F29400; color:#F29400" title="Dark Mode">
-                <i class="bi bi-moon-fill"></i>
+            <button class="btn btn-sm" style="border-color:#F29400; color:#F29400" title="Einstellungen"
+                    data-bs-toggle="offcanvas" data-bs-target="#settingsOffcanvas">
+                <i class="bi bi-gear-fill"></i>
             </button>
             <a href="{{ route('logout') }}" class="btn btn-sm" style="border-color:#F29400; color:#F29400">
                 <i class="bi bi-box-arrow-right me-1"></i>Abmelden
@@ -75,6 +76,44 @@
     </main>
 </div>
 
+<div class="offcanvas offcanvas-end" id="settingsOffcanvas" style="width:320px" tabindex="-1">
+    <div class="offcanvas-header border-bottom">
+        <h6 class="offcanvas-title fw-semibold d-flex align-items-center gap-2">
+            <i class="bi bi-gear-fill" style="color:#F29400"></i> Einstellungen
+        </h6>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+
+        <div class="px-4 py-3 border-bottom">
+            <p class="text-muted small fw-semibold text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:.05em">Darstellung</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="small fw-semibold">Dark Mode</div>
+                    <div class="text-muted" style="font-size:0.75rem">Dunkles Farbschema aktivieren</div>
+                </div>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input settings-toggle" type="checkbox" id="darkModeToggle" role="switch" style="width:2.5em;height:1.3em;cursor:pointer">
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 py-3 border-bottom">
+            <p class="text-muted small fw-semibold text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:.05em">Server Status</p>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold">Polling-Intervall</label>
+                <select class="form-select form-select-sm mt-2" disabled>
+                    <option>Kein Polling</option>
+                    <option>Alle 10 Sekunden</option>
+                    <option>Alle 30 Sekunden</option>
+                    <option>Alle 60 Sekunden</option>
+                </select>
+            </div>
+        </div>
+
+    </div>
+</div>
+
 <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1100"></div>
 
 <footer class="bg-white border-top text-center text-muted py-2" style="font-size:0.8rem">
@@ -84,24 +123,18 @@
 @stack('scripts')
 <script>
     const toggle = document.getElementById('darkModeToggle');
-    const icon = toggle.querySelector('i');
     const saved = localStorage.getItem('theme') || 'light';
     document.body.setAttribute('data-bs-theme', saved);
     if (saved === 'dark') {
         document.body.classList.replace('bg-light', 'bg-dark');
-        icon.classList.replace('bi-moon-fill', 'bi-sun-fill');
+        toggle.checked = true;
     }
-    toggle.addEventListener('click', () => {
-        const current = document.body.getAttribute('data-bs-theme');
-        const next = current === 'dark' ? 'light' : 'dark';
+    toggle.addEventListener('change', () => {
+        const next = toggle.checked ? 'dark' : 'light';
         document.body.setAttribute('data-bs-theme', next);
         document.body.classList.replace(
             next === 'dark' ? 'bg-light' : 'bg-dark',
             next === 'dark' ? 'bg-dark' : 'bg-light'
-        );
-        icon.classList.replace(
-            next === 'dark' ? 'bi-moon-fill' : 'bi-sun-fill',
-            next === 'dark' ? 'bi-sun-fill' : 'bi-moon-fill'
         );
         localStorage.setItem('theme', next);
     });

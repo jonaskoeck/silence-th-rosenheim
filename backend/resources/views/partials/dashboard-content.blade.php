@@ -107,7 +107,12 @@
             @endforelse
 
             <div class="card-footer bg-white border-top text-center py-2">
-                <a href="{{ route('servers') }}" class="btn btn-sm btn-link text-decoration-none small">
+                <a href="{{ route('servers') }}" class="btn btn-sm btn-link text-decoration-none small fw-semibold"
+                   style="color:#F29400"
+                   hx-get="{{ route('servers') }}"
+                   hx-target="#main-content"
+                   hx-swap="innerHTML"
+                   hx-push-url="true">
                     Alle verwalten
                 </a>
             </div>
@@ -140,7 +145,12 @@
                 @endforeach
             </ul>
             <div class="card-footer bg-white border-top text-center py-2">
-                <a href="{{ route('schedules') }}" class="btn btn-sm btn-link text-decoration-none small">
+                <a href="{{ route('schedules') }}" class="btn btn-sm btn-link text-decoration-none small fw-semibold"
+                   style="color:#F29400"
+                   hx-get="{{ route('schedules') }}"
+                   hx-target="#main-content"
+                   hx-swap="innerHTML"
+                   hx-push-url="true">
                     Alle Zeitpläne
                 </a>
             </div>
