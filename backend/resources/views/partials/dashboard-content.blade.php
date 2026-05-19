@@ -124,25 +124,35 @@
         <div class="card shadow-sm border-0">
             <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
                 <h6 class="fw-semibold mb-0">
-                    <i class="bi bi-clock-history me-2 text-primary"></i>Aktive Zeitpläne
+                    <i class="bi bi-clock-history me-2 text-primary"></i>Nächste Events
                 </h6>
             </div>
             <ul class="list-group list-group-flush">
-                @foreach ($schedules->where('active', true) as $sch)
+                @forelse ($nextEvents as $event)
                 <li class="list-group-item py-2 px-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="small fw-semibold">{{ $sch['server_name'] }}</div>
+                            <div class="small fw-semibold">{{ $event['server'] }}</div>
                             <div class="text-muted" style="font-size:0.73rem">
-                                <i class="bi bi-play-fill text-success"></i> {{ $sch['start']['time'] }} Uhr
-                                &nbsp;&middot;&nbsp;
-                                <i class="bi bi-stop-fill text-danger"></i> {{ $sch['stop']['time'] }} Uhr
+                                @if ($event['type']->value === 'START')
+                                    <i class="bi bi-play-fill text-success"></i>
+                                @else
+                                    <i class="bi bi-stop-fill text-danger"></i>
+                                @endif
+                                {{ $event['type']->value === 'START' ? 'Starten' : 'Stoppen' }}
+                                &nbsp;·&nbsp; {{ $event['time'] }} Uhr
                             </div>
                         </div>
-                        <span class="badge text-bg-success rounded-pill" style="font-size:0.65rem">Aktiv</span>
+                        <span class="badge rounded-pill text-bg-secondary" style="font-size:0.65rem">
+                            {{ $event['day'] }}
+                        </span>
                     </div>
                 </li>
-                @endforeach
+                @empty
+                <li class="list-group-item py-3 text-center text-muted small">
+                    Keine Zeitpläne vorhanden.
+                </li>
+                @endforelse
             </ul>
             <div class="card-footer bg-white border-top text-center py-2">
                 <a href="{{ route('schedules') }}" class="btn btn-sm btn-link text-decoration-none small fw-semibold"
@@ -156,6 +166,117 @@
             </div>
         </div>
 
+
+        @php
+            $savingsData = [0, 0, 0, 0, 0, 0];
+            $savingsMonths = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $savingsMonths[] = now()->subMonths($i)->locale('de')->isoFormat('MMM');
+            }
+            $current = end($savingsData);
+            $maxVal = max($savingsData) ?: 1;
+            $svgPoints = [];
+            foreach ($savingsData as $i => $val) {
+                $x = $i * 60;
+                $y = round(65 - ($val / $maxVal) * 60 + 3);
+                $svgPoints[] = ['x' => $x, 'y' => $y];
+            }
+            $polyline = implode(' ', array_map(fn($p) => "{$p['x']},{$p['y']}", $svgPoints));
+            $polygon  = $polyline . ' 300,70 0,70';
+        @endphp
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="fw-semibold mb-0">
+                    <i class="bi bi-piggy-bank me-2 text-primary"></i>Kostenersparnis
+                </h6>
+            </div>
+            <div class="card-body pb-2">
+                <div class="d-flex align-items-baseline gap-2 mb-1">
+                    <h3 class="fw-bold mb-0" id="savings-main-value">€ {{ number_format($current, 2, ',', '.') }}</h3>
+                    <span id="savings-comparison" class="text-muted small fw-semibold">
+                        <i class="bi bi-arrow-up-short"></i>Ø pro Monat
+                    </span>
+                </div>
+                <p class="text-muted mb-2" style="font-size:0.75rem">Klick auf Monat zum Vergleichen</p>
+                <div style="height:70px;position:relative">
+                    <svg viewBox="0 0 300 70" preserveAspectRatio="none" style="width:100%;height:100%">
+                        <defs>
+                            <linearGradient id="savingsGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#F29400" stop-opacity="0.25"/>
+                                <stop offset="100%" stop-color="#F29400" stop-opacity="0"/>
+                            </linearGradient>
+                        </defs>
+                        <polygon points="{{ $polygon }}" fill="url(#savingsGrad)"/>
+                        <polyline points="{{ $polyline }}"
+                                  fill="none" stroke="#F29400" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+                    </svg>
+                    @foreach($svgPoints as $i => $pt)
+                    <div class="savings-point"
+                         style="position:absolute;
+                                left:calc({{ round($pt['x'] / 300 * 100, 2) }}% - 5px);
+                                top:calc({{ round($pt['y'] / 70 * 100, 2) }}% - 5px);
+                                width:10px;height:10px;border-radius:50%;
+                                background:white;border:2.5px solid #F29400;
+                                cursor:pointer;transition:transform 0.15s"
+                         data-month="{{ $savingsMonths[$i] }}"
+                         data-value="{{ $savingsData[$i] }}"
+                         data-current="{{ $current }}">
+                    </div>
+                    @endforeach
+                </div>
+                <div class="d-flex justify-content-between mt-1" style="font-size:0.68rem">
+                    @foreach($savingsMonths as $i => $month)
+                    <span class="savings-month-label text-muted" style="cursor:pointer"
+                          data-index="{{ $i }}">{{ $month }}</span>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+        <script>
+        (function() {
+            const points = document.querySelectorAll('.savings-point');
+            const labels = document.querySelectorAll('.savings-month-label');
+            const comparison = document.getElementById('savings-comparison');
+
+            const lastIdx = points.length - 1;
+
+            function selectPoint(idx) {
+                const pt = points[idx];
+                const val = parseFloat(pt.dataset.value);
+                const current = parseFloat(pt.dataset.current);
+                const month = pt.dataset.month;
+
+                points.forEach(p => { p.style.background = 'white'; p.style.transform = 'scale(1)'; });
+                labels.forEach(l => { l.style.fontWeight = 'normal'; l.style.color = ''; });
+                pt.style.background = '#F29400';
+                labels[idx].style.fontWeight = '700';
+                labels[idx].style.color = '#F29400';
+
+                if (idx === lastIdx) {
+                    comparison.innerHTML = `<i class="bi bi-calendar-check me-1"></i>Aktueller Monat`;
+                    comparison.className = 'text-muted small fw-semibold';
+                } else {
+                    const diff = (current - val).toFixed(2).replace('.', ',');
+                    const pct = val > 0 ? Math.round((current - val) / val * 100) : 0;
+                    const valFmt = val.toFixed(2).replace('.', ',');
+                    comparison.innerHTML = `<i class="bi bi-arrow-up-short"></i>${month}: €${valFmt} → +€${diff} (+${pct}%)`;
+                    comparison.className = 'text-success small fw-semibold';
+                }
+            }
+
+            let selected = -1;
+            points.forEach((pt, i) => {
+                pt.addEventListener('click', () => { selected = i; selectPoint(i); });
+                pt.addEventListener('mouseenter', () => { if (selected !== i) pt.style.transform = 'scale(1.5)'; });
+                pt.addEventListener('mouseleave', () => { if (selected !== i) pt.style.transform = 'scale(1)'; });
+            });
+            labels.forEach((lb, i) => {
+                lb.addEventListener('click', () => { selected = i; selectPoint(i); });
+                lb.addEventListener('mouseenter', () => { if (selected !== i) lb.style.color = '#F29400'; });
+                lb.addEventListener('mouseleave', () => { if (selected !== i) lb.style.color = ''; });
+            });
+        })();
+        </script>
 
     </div>
 </div>
