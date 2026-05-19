@@ -249,7 +249,7 @@
 }
 
 [data-bs-theme="dark"] .navbar-brand img {
-    filter: brightness(0) invert(1);
+    content: url('/assets/logo-dark.png');
 }
 
 /* Tabellen-Header leicht abgesetzt vom Card-Hintergrund für bessere Abgrenzung */
