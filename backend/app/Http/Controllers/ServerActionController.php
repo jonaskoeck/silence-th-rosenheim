@@ -43,7 +43,18 @@ class ServerActionController extends Controller
         return redirect()->route('schedules');
     }
 
-    private function schedulesPartial(string $toastMessage, string $toastType = 'success'): Response
+    public function toggleForServer(Request $request, Server $server): RedirectResponse|Response
+    {
+        $this->serverActions->toggleScheduleActive($server);
+
+        if ($request->header('HX-Request')) {
+            return $this->schedulesPartial(null);
+        }
+
+        return redirect()->route('schedules');
+    }
+
+    private function schedulesPartial(?string $toastMessage, string $toastType = 'success'): Response
     {
         $weekdayLabels = [
             Weekday::MONDAY->name => 'Mo', Weekday::TUESDAY->name => 'Di',
@@ -70,13 +81,19 @@ class ServerActionController extends Controller
                     'id' => $serverId,
                     'server_name' => $group->first()->server?->name ?? '—',
                     'name' => 'Zeitplan',
+                    'active' => (bool) ($group->first()->server?->schedule_active ?? true),
                     'events' => $events,
                 ];
             })
             ->values()
             ->all();
 
-        return response(view('partials.schedules-list', compact('schedules')))
-            ->header('HX-Trigger', json_encode(['toast' => ['message' => $toastMessage, 'type' => $toastType]]));
+        $response = response(view('partials.schedules-list', compact('schedules')));
+
+        if ($toastMessage !== null) {
+            $response->header('HX-Trigger', json_encode(['toast' => ['message' => $toastMessage, 'type' => $toastType]]));
+        }
+
+        return $response;
     }
 }

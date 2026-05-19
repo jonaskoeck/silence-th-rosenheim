@@ -11,15 +11,31 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 @else
 <div class="d-flex flex-column gap-3">
     @foreach ($schedules as $sch)
-    <div class="card border-0 shadow-sm">
+    @php($isActive = $sch['active'] ?? true)
+    <div class="card border-0 shadow-sm {{ $isActive ? '' : 'opacity-50' }}">
         <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
             <div class="d-flex align-items-center gap-2 flex-grow-1 py-3" style="cursor:pointer"
                  data-bs-toggle="collapse" data-bs-target="#schedule-{{ $sch['id'] }}">
                 <i class="bi bi-chevron-down text-muted" style="font-size:0.85rem"></i>
                 <span class="fw-semibold">{{ $sch['server_name'] }}</span>
                 <span class="text-muted small">— {{ $sch['name'] }}</span>
+                @unless ($isActive)
+                <span class="badge text-bg-secondary ms-1">Inaktiv</span>
+                @endunless
             </div>
             <div class="d-flex gap-2 align-items-center py-3">
+                <form class="m-0"
+                      hx-post="{{ route('server-actions.toggle-for-server', $sch['id']) }}"
+                      hx-target="#schedules-container"
+                      hx-swap="innerHTML">
+                    @csrf
+                    <div class="form-check form-switch m-0" title="Zeitplan aktivieren/deaktivieren">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="toggle-{{ $sch['id'] }}"
+                               {{ $isActive ? 'checked' : '' }}
+                               onchange="this.form.requestSubmit()">
+                    </div>
+                </form>
                 <button class="btn btn-sm btn-outline-secondary"
                         data-bs-toggle="modal" data-bs-target="#editScheduleModal"
                         data-schedule-id="{{ $sch['id'] }}"

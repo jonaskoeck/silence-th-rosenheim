@@ -43,6 +43,7 @@ class ScheduleController extends Controller
                 'server_name' => $group->first()->server?->name ?? '—',
                 'server_label' => $group->first()->server?->label?->value ?? 'NONE',
                 'name' => 'Zeitplan',
+                'active' => (bool) ($group->first()->server?->schedule_active ?? true),
                 'events' => $this->buildEvents($group),
             ])
             ->values()

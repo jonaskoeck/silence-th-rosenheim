@@ -21,4 +21,6 @@ interface ServerActionServiceInterface
     public function create(array $attributes): ServerAction;
 
     public function deleteAllForServer(Server $server): void;
+
+    public function toggleScheduleActive(Server $server): bool;
 }

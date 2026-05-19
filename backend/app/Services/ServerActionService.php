@@ -37,4 +37,12 @@ class ServerActionService implements ServerActionServiceInterface
     {
         $server->actions()->delete();
     }
+
+    public function toggleScheduleActive(Server $server): bool
+    {
+        $server->schedule_active = ! $server->schedule_active;
+        $server->save();
+
+        return $server->schedule_active;
+    }
 }
