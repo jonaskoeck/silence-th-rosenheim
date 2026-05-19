@@ -168,13 +168,13 @@
 
 
         @php
-            $savingsData = [18, 52, 34, 91, 63, 175];
+            $savingsData = [0, 0, 0, 0, 0, 0];
             $savingsMonths = [];
             for ($i = 5; $i >= 0; $i--) {
                 $savingsMonths[] = now()->subMonths($i)->locale('de')->isoFormat('MMM');
             }
             $current = end($savingsData);
-            $maxVal = max($savingsData);
+            $maxVal = max($savingsData) ?: 1;
             $svgPoints = [];
             foreach ($savingsData as $i => $val) {
                 $x = $i * 60;
@@ -193,7 +193,7 @@
             <div class="card-body pb-2">
                 <div class="d-flex align-items-baseline gap-2 mb-1">
                     <h3 class="fw-bold mb-0" id="savings-main-value">€ {{ number_format($current, 2, ',', '.') }}</h3>
-                    <span id="savings-comparison" class="text-success small fw-semibold">
+                    <span id="savings-comparison" class="text-muted small fw-semibold">
                         <i class="bi bi-arrow-up-short"></i>Ø pro Monat
                     </span>
                 </div>
@@ -237,7 +237,6 @@
             const points = document.querySelectorAll('.savings-point');
             const labels = document.querySelectorAll('.savings-month-label');
             const comparison = document.getElementById('savings-comparison');
-            const mainValue = document.getElementById('savings-main-value');
 
             const lastIdx = points.length - 1;
 
@@ -258,7 +257,7 @@
                     comparison.className = 'text-muted small fw-semibold';
                 } else {
                     const diff = (current - val).toFixed(2).replace('.', ',');
-                    const pct = Math.round((current - val) / val * 100);
+                    const pct = val > 0 ? Math.round((current - val) / val * 100) : 0;
                     const valFmt = val.toFixed(2).replace('.', ',');
                     comparison.innerHTML = `<i class="bi bi-arrow-up-short"></i>${month}: €${valFmt} → +€${diff} (+${pct}%)`;
                     comparison.className = 'text-success small fw-semibold';
