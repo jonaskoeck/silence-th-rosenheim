@@ -251,3 +251,10 @@
 [data-bs-theme="dark"] .navbar-brand img {
     filter: brightness(0) invert(1);
 }
+
+/* Tabellen-Header leicht abgesetzt vom Card-Hintergrund für bessere Abgrenzung */
+[data-bs-theme="dark"] .table-light,
+[data-bs-theme="dark"] thead.table-light th {
+    background-color: #343a40 !important;
+    color: #9ca3ab !important;
+}
