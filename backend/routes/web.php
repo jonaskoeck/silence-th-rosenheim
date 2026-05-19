@@ -54,6 +54,7 @@ Route::middleware('shibboleth')->group(function () {
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
     Route::post('/server-actions', [ServerActionController::class, 'store'])->name('server-actions.store');
+    Route::put('/servers/{server}/server-actions', [ServerActionController::class, 'updateForServer'])->name('server-actions.update-for-server');
     Route::delete('/servers/{server}/server-actions', [ServerActionController::class, 'destroyForServer'])->name('server-actions.destroy-for-server');
     Route::post('/servers/{server}/server-actions/toggle', [ServerActionController::class, 'toggleForServer'])->name('server-actions.toggle-for-server');
     Route::patch('/servers/{server}/label', [ProjectServerController::class, 'updateLabel'])->name('servers.label');

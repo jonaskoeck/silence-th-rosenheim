@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\Weekday;
 use App\Http\Requests\StoreServerActionRequest;
+use App\Http\Requests\UpdateServerActionsRequest;
 use App\Models\Server;
 use App\Services\Contracts\ServerActionServiceInterface;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +28,17 @@ class ServerActionController extends Controller
 
         if ($request->header('HX-Request')) {
             return $this->schedulesPartial('Zeitplan wurde gespeichert.');
+        }
+
+        return redirect()->route('schedules');
+    }
+
+    public function updateForServer(UpdateServerActionsRequest $request, Server $server): RedirectResponse|Response
+    {
+        $this->serverActions->replaceAllForServer($server, $request->groupedAttributes());
+
+        if ($request->header('HX-Request')) {
+            return $this->schedulesPartial('Zeitplan wurde aktualisiert.');
         }
 
         return redirect()->route('schedules');

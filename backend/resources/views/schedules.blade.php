@@ -102,7 +102,9 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                <button type="button" class="btn btn-primary">Speichern</button>
+                <button type="button" class="btn btn-primary" id="edit-schedule-submit">
+                    <i class="bi bi-check-lg me-1"></i>Speichern
+                </button>
             </div>
         </div>
     </div>
@@ -333,6 +335,10 @@ document.getElementById('newScheduleForm').addEventListener('submit', function (
     if (selectedOption?.dataset.label === 'PRODUCTION' && confirmedFlag.value !== '1') {
         document.getElementById('confirm-production-server-name').textContent = selectedOption.textContent.trim();
         document.getElementById('confirm-production-action-label').textContent = 'speichern';
+        pendingProductionSubmit = () => {
+            confirmedFlag.value = '1';
+            document.getElementById('newScheduleForm').requestSubmit();
+        };
         new bootstrap.Modal(document.getElementById('confirmProductionScheduleModal')).show();
         return;
     }
@@ -353,10 +359,15 @@ document.getElementById('newScheduleForm').addEventListener('submit', function (
     });
 });
 
+var pendingProductionSubmit = null;
+
 document.getElementById('confirm-production-submit').addEventListener('click', () => {
-    document.getElementById('confirmed-production').value = '1';
     bootstrap.Modal.getInstance(document.getElementById('confirmProductionScheduleModal'))?.hide();
-    document.getElementById('newScheduleForm').requestSubmit();
+    if (typeof pendingProductionSubmit === 'function') {
+        const submit = pendingProductionSubmit;
+        pendingProductionSubmit = null;
+        submit();
+    }
 });
 
 document.getElementById('newScheduleModal').addEventListener('hidden.bs.modal', () => {
@@ -373,6 +384,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function openEditModal() {
         document.getElementById('edit-schedule-name').value         = sch.name;
         document.getElementById('edit-schedule-server').textContent = sch.server_name;
+        currentEditScheduleId   = sch.id;
+        currentEditServerLabel  = sch.server_label ?? 'NONE';
+        currentEditServerName   = sch.server_name;
+        editConfirmedProduction = '0';
         ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
             document.getElementById('edit-events-' + d).innerHTML = '';
         });
@@ -381,10 +396,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('edit-events-' + d).innerHTML = '';
         });
         (sch.events || []).forEach(ev => {
+            const type = String(ev.type ?? '').toUpperCase();
             if (!editScheduleEvents[ev.day]) editScheduleEvents[ev.day] = [];
             const index = editScheduleEvents[ev.day].length;
-            editScheduleEvents[ev.day].push({ type: ev.type, time: ev.time });
-            renderEditEvent(ev.day, index, ev.type, ev.time);
+            editScheduleEvents[ev.day].push({ type, time: ev.time });
+            renderEditEvent(ev.day, index, type, ev.time);
         });
         bootstrap.Modal.getOrCreateInstance(document.getElementById('editScheduleModal')).show();
     }
@@ -397,6 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
 @endif
 
 document.getElementById('editScheduleModal').addEventListener('hidden.bs.modal', () => {
+    editConfirmedProduction = '0';
     const url = new URL(window.location.href);
     if (url.searchParams.has('edit') || url.searchParams.has('server')) {
         url.searchParams.delete('edit');
@@ -407,6 +424,10 @@ document.getElementById('editScheduleModal').addEventListener('hidden.bs.modal',
 });
 
 var editScheduleEvents = {};
+var currentEditScheduleId = null;
+var currentEditServerLabel = null;
+var currentEditServerName = null;
+var editConfirmedProduction = '0';
 
 function showEditAddEvent(day) {
     document.getElementById('edit-form-' + day).classList.remove('d-none');
@@ -446,6 +467,11 @@ document.getElementById('editScheduleModal').addEventListener('show.bs.modal', e
     document.getElementById('edit-schedule-name').value         = btn.dataset.scheduleName;
     document.getElementById('edit-schedule-server').textContent = btn.dataset.scheduleServer;
 
+    currentEditScheduleId   = btn.dataset.scheduleId;
+    currentEditServerLabel  = btn.dataset.serverLabel ?? 'NONE';
+    currentEditServerName   = btn.dataset.scheduleServer;
+    editConfirmedProduction = '0';
+
     editScheduleEvents = {};
     ['Mo','Di','Mi','Do','Fr','Sa','So'].forEach(d => {
         document.getElementById('edit-events-' + d).innerHTML = '';
@@ -453,10 +479,75 @@ document.getElementById('editScheduleModal').addEventListener('show.bs.modal', e
     });
 
     JSON.parse(btn.dataset.scheduleEvents || '[]').forEach(ev => {
+        const type = String(ev.type ?? '').toUpperCase();
         if (!editScheduleEvents[ev.day]) editScheduleEvents[ev.day] = [];
         const index = editScheduleEvents[ev.day].length;
-        editScheduleEvents[ev.day].push({ type: ev.type, time: ev.time });
-        renderEditEvent(ev.day, index, ev.type, ev.time);
+        editScheduleEvents[ev.day].push({ type, time: ev.time });
+        renderEditEvent(ev.day, index, type, ev.time);
+    });
+});
+
+document.getElementById('edit-schedule-submit').addEventListener('click', function () {
+    if (!currentEditScheduleId) {
+        showToast('Kein Zeitplan ausgewählt.', 'danger');
+        return;
+    }
+
+    const groups = {};
+    for (const [dayLabel, events] of Object.entries(editScheduleEvents)) {
+        const weekdayName = dayLabelToWeekday[dayLabel];
+        if (!weekdayName) continue;
+        for (const ev of events) {
+            const key = ev.type + '|' + ev.time;
+            if (!groups[key]) groups[key] = { type: ev.type, time: ev.time, days: [] };
+            groups[key].days.push(weekdayName);
+        }
+    }
+
+    const groupList = Object.values(groups);
+    if (groupList.length === 0) {
+        showToast('Bitte mindestens einen Eintrag hinzufügen.', 'danger');
+        return;
+    }
+
+    if (currentEditServerLabel === 'PRODUCTION' && editConfirmedProduction !== '1') {
+        document.getElementById('confirm-production-server-name').textContent = currentEditServerName ?? '';
+        document.getElementById('confirm-production-action-label').textContent = 'aktualisieren';
+        pendingProductionSubmit = () => {
+            editConfirmedProduction = '1';
+            document.getElementById('edit-schedule-submit').click();
+        };
+        new bootstrap.Modal(document.getElementById('confirmProductionScheduleModal')).show();
+        return;
+    }
+
+    const values = {
+        _token: document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+        confirmed_production: editConfirmedProduction,
+    };
+    groupList.forEach((group, i) => {
+        values[`actions[${i}][type]`] = group.type;
+        values[`actions[${i}][time]`] = group.time;
+        group.days.forEach((d, j) => {
+            values[`actions[${i}][days][${j}]`] = d;
+        });
+    });
+
+    function closeOnSuccess(e) {
+        if (e.detail.successful) {
+            bootstrap.Modal.getInstance(document.getElementById('editScheduleModal'))?.hide();
+        }
+        document.removeEventListener('htmx:afterRequest', closeOnSuccess);
+    }
+    document.addEventListener('htmx:afterRequest', closeOnSuccess);
+
+    window._collapseRestoreAfterSwap = [...document.querySelectorAll('.collapse.show')].map(el => el.id);
+
+    htmx.ajax('PUT', '/servers/' + currentEditScheduleId + '/server-actions', {
+        source: this,
+        values,
+        target: '#schedules-container',
+        swap: 'innerHTML',
     });
 });
 
