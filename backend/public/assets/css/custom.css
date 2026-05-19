@@ -358,12 +358,10 @@
     color: #F29400 !important;
 }
 
-/* Toast-Container im Dark Mode */
-[data-bs-theme="dark"] .toast {
-    background-color: #2b2f33 !important;
-    color: #dee2e6 !important;
-    border-color: #3d4147 !important;
-}
+/* Hinweis: Toasts werden bewusst NICHT im Dark Mode umgefärbt. Sie tragen
+   immer eine Signalfarbe (bg-success / bg-danger / bg-warning) und sollen
+   diese auch im Dark Mode behalten, damit sie als Warnung klar erkennbar
+   bleiben. Im Farbblindenmodus greifen die Regeln weiter unten. */
 
 /* ============================================================
    Zeitplan-Events: Farben über CSS-Klassen statt Inline-Styles.
