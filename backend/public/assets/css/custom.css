@@ -251,3 +251,112 @@
 [data-bs-theme="dark"] .navbar-brand img {
     filter: brightness(0) invert(1);
 }
+
+/* Tabellen-Header leicht abgesetzt vom Card-Hintergrund für bessere Abgrenzung */
+[data-bs-theme="dark"] .table-light,
+[data-bs-theme="dark"] thead.table-light th {
+    background-color: #343a40 !important;
+    color: #9ca3ab !important;
+}
+
+/* Formular-Elemente im Dark Mode (Inputs, Selects, Textareas) */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: #2b2f33 !important;
+    color: #dee2e6 !important;
+    border-color: #3d4147 !important;
+}
+
+[data-bs-theme="dark"] .form-control::placeholder {
+    color: #6c757d !important;
+}
+
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    border-color: #F29400 !important;
+    box-shadow: 0 0 0 0.2rem rgba(242, 148, 0, 0.25) !important;
+}
+
+/* Suchleiste: Icon-Bereich und Input einheitlich dunkel */
+[data-bs-theme="dark"] .input-group-text {
+    background-color: #2b2f33 !important;
+    color: #9ca3ab !important;
+    border-color: #3d4147 !important;
+}
+
+/* Modale Dialoge im Dark Mode */
+[data-bs-theme="dark"] .modal-content {
+    background-color: #2b2f33 !important;
+    color: #dee2e6 !important;
+    border-color: #3d4147 !important;
+}
+
+[data-bs-theme="dark"] .modal-header,
+[data-bs-theme="dark"] .modal-footer {
+    border-color: #3d4147 !important;
+}
+
+/* Buttons im Light-Stil anpassen */
+[data-bs-theme="dark"] .btn-light {
+    background-color: #3d4147 !important;
+    color: #9ca3ab !important;
+    border-color: #4d5157 !important;
+}
+
+[data-bs-theme="dark"] .btn-light:hover {
+    background-color: #4d5157 !important;
+    color: #dee2e6 !important;
+}
+
+[data-bs-theme="dark"] .btn-secondary {
+    background-color: #3d4147 !important;
+    border-color: #4d5157 !important;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary {
+    color: #9ca3ab !important;
+    border-color: #4d5157 !important;
+}
+
+[data-bs-theme="dark"] .btn-outline-secondary:hover {
+    background-color: #3d4147 !important;
+    color: #dee2e6 !important;
+}
+
+/* Kalender-Rahmen im Zeitplan-Modal */
+[data-bs-theme="dark"] .border,
+[data-bs-theme="dark"] .border-end,
+[data-bs-theme="dark"] .border-top {
+    border-color: #3d4147 !important;
+}
+
+/* Gestrichelte Buttons (+ im Kalender) im Dark Mode */
+[data-bs-theme="dark"] .btn-light[style*="dashed"] {
+    border: 1px dashed #4d5157 !important;
+}
+
+/* Form-Control-Plaintext (z.B. Servername im Edit-Modal) */
+[data-bs-theme="dark"] .form-control-plaintext {
+    color: #dee2e6 !important;
+}
+
+/* TomSelect Dropdown im Dark Mode */
+[data-bs-theme="dark"] .ts-wrapper .ts-control,
+[data-bs-theme="dark"] .ts-wrapper .ts-dropdown {
+    background-color: #2b2f33 !important;
+    color: #dee2e6 !important;
+    border-color: #3d4147 !important;
+}
+
+[data-bs-theme="dark"] .ts-wrapper .ts-dropdown .option:hover,
+[data-bs-theme="dark"] .ts-wrapper .ts-dropdown .active {
+    background-color: rgba(242, 148, 0, 0.15) !important;
+    color: #F29400 !important;
+}
+
+/* Toast-Container im Dark Mode */
+[data-bs-theme="dark"] .toast {
+    background-color: #2b2f33 !important;
+    color: #dee2e6 !important;
+    border-color: #3d4147 !important;
+}
