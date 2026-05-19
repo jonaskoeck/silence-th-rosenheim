@@ -137,3 +137,112 @@
     .navbar, nav.d-lg-flex, .btn, footer { display: none !important; }
     main { padding: 0 !important; }
 }
+
+/* Dark Mode */
+[data-bs-theme="dark"] {
+    --bs-body-bg: #1a1d21;
+    --bs-tertiary-bg: #2b2f33;
+}
+
+[data-bs-theme="dark"] .bg-light {
+    background-color: #1a1d21 !important;
+}
+
+[data-bs-theme="dark"] .bg-white,
+[data-bs-theme="dark"] .card,
+[data-bs-theme="dark"] .stat-card,
+[data-bs-theme="dark"] .card-header.bg-white,
+[data-bs-theme="dark"] .card-footer.bg-white,
+[data-bs-theme="dark"] .list-group-item {
+    background-color: #2b2f33 !important;
+    color: #dee2e6 !important;
+    border-color: #3d4147 !important;
+}
+
+[data-bs-theme="dark"] .navbar {
+    background-color: #212529 !important;
+}
+
+[data-bs-theme="dark"] nav.border-end {
+    background-color: #212529 !important;
+    border-color: #3d4147 !important;
+}
+
+[data-bs-theme="dark"] .offcanvas {
+    background-color: #212529 !important;
+}
+
+[data-bs-theme="dark"] footer {
+    background-color: #212529 !important;
+    border-color: #3d4147 !important;
+    color: #9ca3ab !important;
+}
+
+[data-bs-theme="dark"] .table {
+    color: #dee2e6;
+    border-color: #3d4147;
+}
+
+[data-bs-theme="dark"] .table-light,
+[data-bs-theme="dark"] .bg-light {
+    background-color: #2b2f33 !important;
+    color: #dee2e6 !important;
+}
+
+[data-bs-theme="dark"] .border-bottom {
+    border-color: #3d4147 !important;
+}
+
+[data-bs-theme="dark"] .text-dark {
+    color: #dee2e6 !important;
+}
+
+[data-bs-theme="dark"] .text-muted {
+    color: #9ca3ab !important;
+}
+
+[data-bs-theme="dark"] h1, [data-bs-theme="dark"] h2,
+[data-bs-theme="dark"] h3, [data-bs-theme="dark"] h4,
+[data-bs-theme="dark"] h5, [data-bs-theme="dark"] h6,
+[data-bs-theme="dark"] .fw-bold {
+    color: #f0f0f0 !important;
+}
+
+/* Bootstrap-Farbklassen im Dark Mode beibehalten (z.B. grüne "Laufend"-Zahl) */
+[data-bs-theme="dark"] .text-success {
+    color: #198754 !important;
+}
+
+[data-bs-theme="dark"] .text-secondary {
+    color: #9ca3ab !important;
+}
+
+[data-bs-theme="dark"] .page-header {
+    border-color: #3d4147;
+}
+
+[data-bs-theme="dark"] .sidebar-icon-link {
+    color: rgba(255,255,255,0.4);
+}
+
+[data-bs-theme="dark"] .sidebar-icon-link:hover {
+    background-color: rgba(242,148,0,0.15);
+    color: #F29400;
+}
+
+[data-bs-theme="dark"] .stat-card:hover {
+    box-shadow: 0 0.5rem 1.5rem rgba(242, 148, 0, 0.2) !important;
+    border: 1px solid rgba(242, 148, 0, 0.3) !important;
+}
+
+[data-bs-theme="dark"] .progress {
+    background-color: #3d4147;
+}
+
+[data-bs-theme="dark"] .shadow-sm {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-bs-theme="dark"] .navbar-brand img {
+    filter: brightness(0) invert(1);
+}

@@ -13,7 +13,7 @@
     <link href="{{ asset('assets/css/custom.css') }}" rel="stylesheet">
     @stack('styles')
 </head>
-<body class="bg-light">
+<body class="bg-light" data-bs-theme="light">
 
 <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm" style="z-index:1040; border-bottom:3px solid #F29400">
     <div class="container-fluid px-3">
@@ -30,6 +30,9 @@
             <span class="text-muted small font-monospace">
                 {{ str_replace(' (RZ)', '', session('user_displayname', 'Mitarbeiter')) }}
             </span>
+            <button id="darkModeToggle" class="btn btn-sm me-1" style="border-color:#F29400; color:#F29400" title="Dark Mode">
+                <i class="bi bi-moon-fill"></i>
+            </button>
             <a href="{{ route('logout') }}" class="btn btn-sm" style="border-color:#F29400; color:#F29400">
                 <i class="bi bi-box-arrow-right me-1"></i>Abmelden
             </a>
@@ -79,6 +82,30 @@
 </footer>
 
 @stack('scripts')
+<script>
+    const toggle = document.getElementById('darkModeToggle');
+    const icon = toggle.querySelector('i');
+    const saved = localStorage.getItem('theme') || 'light';
+    document.body.setAttribute('data-bs-theme', saved);
+    if (saved === 'dark') {
+        document.body.classList.replace('bg-light', 'bg-dark');
+        icon.classList.replace('bi-moon-fill', 'bi-sun-fill');
+    }
+    toggle.addEventListener('click', () => {
+        const current = document.body.getAttribute('data-bs-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-bs-theme', next);
+        document.body.classList.replace(
+            next === 'dark' ? 'bg-light' : 'bg-dark',
+            next === 'dark' ? 'bg-dark' : 'bg-light'
+        );
+        icon.classList.replace(
+            next === 'dark' ? 'bi-moon-fill' : 'bi-sun-fill',
+            next === 'dark' ? 'bi-sun-fill' : 'bi-moon-fill'
+        );
+        localStorage.setItem('theme', next);
+    });
+</script>
 </body>
 </html>
 @endif
