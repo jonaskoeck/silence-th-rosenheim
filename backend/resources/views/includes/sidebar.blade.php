@@ -2,7 +2,7 @@
 $navItems = [
     ['route' => 'dashboard',  'icon' => 'speedometer2',  'label' => 'Dashboard'],
     ['route' => 'servers',    'icon' => 'server',         'label' => 'Projekte & Server'],
-    ['route' => 'inventory',  'icon' => 'arrow-repeat',   'label' => 'Inventarisierungs Läufe'],
+    ['route' => 'inventory',  'icon' => 'arrow-repeat',   'label' => 'Inventarisierungsläufe'],
     ['route' => 'schedules',  'icon' => 'clock-history',  'label' => 'Zeitpläne'],
 ];
 @endphp
@@ -14,7 +14,11 @@ $navItems = [
            href="{{ route($item['route']) }}"
            title="{{ $item['label'] }}"
            data-bs-toggle="tooltip"
-           data-bs-placement="right">
+           data-bs-placement="right"
+           hx-get="{{ route($item['route']) }}"
+           hx-target="#main-content"
+           hx-swap="innerHTML"
+           hx-push-url="true">
             <i class="bi bi-{{ $item['icon'] }} fs-5"></i>
         </a>
     </li>
