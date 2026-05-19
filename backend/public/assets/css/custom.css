@@ -138,6 +138,11 @@
     main { padding: 0 !important; }
 }
 
+.settings-toggle:checked {
+    background-color: #F29400 !important;
+    border-color: #F29400 !important;
+}
+
 /* Dark Mode */
 [data-bs-theme="dark"] {
     --bs-body-bg: #1a1d21;
