@@ -43,6 +43,7 @@ class ScheduleController extends Controller
                 'server_name' => $group->first()->server?->name ?? '—',
                 'server_label' => $group->first()->server?->label?->value ?? 'NONE',
                 'name' => 'Zeitplan',
+                'active' => (bool) ($group->first()->server?->schedule_active ?? true),
                 'events' => $this->buildEvents($group),
             ])
             ->values()
@@ -70,8 +71,32 @@ class ScheduleController extends Controller
 
         $editSchedule = ($request->boolean('edit') && ! empty($schedules)) ? $schedules[0] : null;
 
+        $preselectServerId = null;
+        if ($editSchedule === null
+            && $filterServer !== ''
+            && $request->boolean('edit')
+            && Server::whereKey((int) $filterServer)->exists()
+        ) {
+            $preselectServerId = (int) $filterServer;
+            // Im Create-Pfad keinen Server-Filter auf die Liste anwenden,
+            // damit nach dem Anlegen / Abbrechen alle Schedules sichtbar bleiben.
+            $filterServer = '';
+            $schedules = $this->serverActions->getAll()
+                ->groupBy('server_id')
+                ->map(fn ($group, $serverId) => [
+                    'id' => $serverId,
+                    'server_name' => $group->first()->server?->name ?? '—',
+                    'server_label' => $group->first()->server?->label?->value ?? 'NONE',
+                    'name' => 'Zeitplan',
+                    'active' => (bool) ($group->first()->server?->schedule_active ?? true),
+                    'events' => $this->buildEvents($group),
+                ])
+                ->values()
+                ->all();
+        }
+
         return view('schedules', compact(
-            'schedules', 'allServers', 'filterServer', 'editSchedule'
+            'schedules', 'allServers', 'filterServer', 'editSchedule', 'preselectServerId'
         ));
     }
 

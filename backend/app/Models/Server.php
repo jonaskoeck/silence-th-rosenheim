@@ -21,6 +21,7 @@ class Server extends Model
         'name',
         'label',
         'status',
+        'schedule_active',
         'discovered_by_run_id',
     ];
 
@@ -28,6 +29,7 @@ class Server extends Model
     {
         return [
             'label' => ServerLabel::class,
+            'schedule_active' => 'boolean',
         ];
     }
 

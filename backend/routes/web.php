@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Route;
  */
 Route::get('/login', function () {
     $targetUrl = url('/dashboard');
-    return redirect(config('shibboleth.login_url') . '?target=' . urlencode($targetUrl));
+
+    return redirect(config('shibboleth.login_url').'?target='.urlencode($targetUrl));
 })->name('login');
 
 /*
@@ -30,7 +31,7 @@ Route::get('/logout', function () {
     $logoutUrl = config('shibboleth.logout_url');
     $returnUrl = url('/login');
 
-    return redirect($logoutUrl . '?return=' . urlencode($returnUrl));
+    return redirect($logoutUrl.'?return='.urlencode($returnUrl));
 })->name('logout');
 
 /*
@@ -53,7 +54,9 @@ Route::middleware('shibboleth')->group(function () {
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])->name('projects.destroy');
 
     Route::post('/server-actions', [ServerActionController::class, 'store'])->name('server-actions.store');
+    Route::put('/servers/{server}/server-actions', [ServerActionController::class, 'updateForServer'])->name('server-actions.update-for-server');
     Route::delete('/servers/{server}/server-actions', [ServerActionController::class, 'destroyForServer'])->name('server-actions.destroy-for-server');
+    Route::post('/servers/{server}/server-actions/toggle', [ServerActionController::class, 'toggleForServer'])->name('server-actions.toggle-for-server');
     Route::patch('/servers/{server}/label', [ProjectServerController::class, 'updateLabel'])->name('servers.label');
 
     Route::post('/servers/{server}/start', [ProjectServerController::class, 'start'])->name('servers.start');

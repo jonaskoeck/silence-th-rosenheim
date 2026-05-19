@@ -21,4 +21,11 @@ interface ServerActionServiceInterface
     public function create(array $attributes): ServerAction;
 
     public function deleteAllForServer(Server $server): void;
+
+    /**
+     * @param  array<int, array<string, mixed>>  $groupedAttributes
+     */
+    public function replaceAllForServer(Server $server, array $groupedAttributes): void;
+
+    public function toggleScheduleActive(Server $server): bool;
 }
