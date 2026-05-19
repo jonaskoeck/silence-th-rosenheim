@@ -1,4 +1,5 @@
 services:
+
   database:
     image: mariadb:12
     container_name: silence-db
@@ -9,9 +10,13 @@ services:
       MARIADB_PASSWORD: ${DB_LARAVEL_PASSWORD}
     volumes:
       - silence-db-data:/var/lib/mysql
+    networks:
+      - silence-internal
+    labels:
+      - "traefik.enable=false"
     ports:
       - "127.0.0.1:3306:3306"
-    restart: on-failure:5
+    restart: unless-stopped
     healthcheck:
       test:
         [
@@ -24,5 +29,43 @@ services:
       timeout: 5s
       retries: 10
 
+  application:
+    build: ./backend
+    container_name: silence-app
+    env_file:
+      - .env
+    networks:
+      - silence-internal
+      - web
+    ports:
+      - "8080:80"
+    labels:
+      - "traefik.enable=false"
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+
+  scheduler:
+    build: ./backend
+    container_name: silence-scheduler
+    command: php artisan schedule:work
+    env_file:
+      - .env
+    networks:
+      - silence-internal
+    labels:
+      - "traefik.enable=false"
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   silence-db-data:
+
+networks:
+  silence-internal:
+    driver: bridge
+  web:
+    external: true
