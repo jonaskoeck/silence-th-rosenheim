@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\ShibbolethAuth;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -11,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Shibboleth-Middleware als Alias registrieren, damit sie in den Routen
+        // per 'shibboleth' angesprochen werden kann
+        $middleware->alias([
+            'shibboleth' => ShibbolethAuth::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
