@@ -252,10 +252,14 @@
     content: url('/assets/logo-dark.png');
 }
 
-/* Tabellen-Header leicht abgesetzt vom Card-Hintergrund für bessere Abgrenzung */
+/* Tabellen-Header leicht abgesetzt vom Card-Hintergrund für bessere Abgrenzung.
+   Bootstrap 5 färbt Tabellenzellen über die Variable --bs-table-bg und einen
+   box-shadow-inset-Trick. Deshalb reicht background-color nicht, wir müssen
+   die Bootstrap-Variablen direkt überschreiben. */
 [data-bs-theme="dark"] .table-light,
-[data-bs-theme="dark"] thead.table-light th {
-    background-color: #343a40 !important;
+[data-bs-theme="dark"] thead.table-light {
+    --bs-table-bg: #343a40;
+    --bs-table-color: #9ca3ab;
     color: #9ca3ab !important;
 }
 
@@ -359,4 +363,91 @@
     background-color: #2b2f33 !important;
     color: #dee2e6 !important;
     border-color: #3d4147 !important;
+}
+
+/* ============================================================
+   Zeitplan-Events: Farben über CSS-Klassen statt Inline-Styles.
+   So lassen sie sich auch im Farbblindenmodus umfärben (vorher
+   wurden die Farben per JS als Inline-Style gesetzt, was der
+   Farbblindenmodus nicht erreichen konnte).
+   ============================================================ */
+.schedule-event-start { background-color: #198754; }
+.schedule-event-stop  { background-color: #dc3545; }
+
+/* ============================================================
+   Farbblindenmodus (Rot-Grün-Schwäche / Deuteranopie)
+   Ersetzt Grün durch Blau (#0d6efd) und Rot durch Orange
+   (#fd7e14), damit die Zustände auch bei einer Rot-Grün-
+   Schwäche klar unterscheidbar bleiben. Funktioniert sowohl
+   im hellen als auch im dunklen Design.
+   ============================================================ */
+
+/* Zeitplan-Events */
+[data-colorblind="true"] .schedule-event-start { background-color: #0d6efd !important; }
+[data-colorblind="true"] .schedule-event-stop  { background-color: #fd7e14 !important; }
+
+/* Grün wird zu Blau */
+[data-colorblind="true"] .text-bg-success,
+[data-colorblind="true"] .bg-success,
+[data-colorblind="true"] .progress-bar.bg-success {
+    background-color: #0d6efd !important;
+}
+
+[data-colorblind="true"] .text-success {
+    color: #0d6efd !important;
+}
+
+[data-colorblind="true"] .btn-outline-success {
+    color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+
+[data-colorblind="true"] .btn-outline-success:hover {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+}
+
+[data-colorblind="true"] .status-dot.running {
+    background-color: #0d6efd;
+    animation: pulse-blue 2s infinite;
+}
+
+@keyframes pulse-blue {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.4; }
+}
+
+/* Rot wird zu Orange */
+[data-colorblind="true"] .text-bg-danger,
+[data-colorblind="true"] .bg-danger {
+    background-color: #fd7e14 !important;
+}
+
+[data-colorblind="true"] .text-danger {
+    color: #fd7e14 !important;
+}
+
+[data-colorblind="true"] .btn-danger {
+    background-color: #fd7e14 !important;
+    border-color: #fd7e14 !important;
+}
+
+[data-colorblind="true"] .btn-outline-danger {
+    color: #fd7e14 !important;
+    border-color: #fd7e14 !important;
+}
+
+[data-colorblind="true"] .btn-outline-danger:hover {
+    background-color: #fd7e14 !important;
+    color: #fff !important;
+}
+
+[data-colorblind="true"] .status-dot.error {
+    background-color: #fd7e14;
+}
+
+/* Dark Mode + Farbblindenmodus kombiniert: grüne Kennzahl auf dem
+   Dashboard ebenfalls auf Blau umstellen */
+[data-bs-theme="dark"][data-colorblind="true"] .text-success {
+    color: #0d6efd !important;
 }

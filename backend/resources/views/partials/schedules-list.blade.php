@@ -63,8 +63,8 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                             <div class="d-flex flex-column gap-1">
                                 @foreach ($sch['events'] ?? [] as $ev)
                                     @if ($ev['day'] === $day)
-                                    <div class="rounded px-2 py-1 text-white"
-                                         style="font-size:0.72rem; background:{{ $ev['type'] === 'start' ? '#198754' : '#dc3545' }}">
+                                    <div class="rounded px-2 py-1 text-white {{ $ev['type'] === 'start' ? 'schedule-event-start' : 'schedule-event-stop' }}"
+                                         style="font-size:0.72rem">
                                         {{ $ev['time'] }} {{ $ev['type'] === 'start' ? 'Starten' : 'Stoppen' }}
                                     </div>
                                     @endif
