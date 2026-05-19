@@ -8,7 +8,6 @@ use App\Enums\Weekday;
 use App\Http\Requests\StoreServerActionRequest;
 use App\Models\Server;
 use App\Services\Contracts\ServerActionServiceInterface;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -66,6 +65,7 @@ class ServerActionController extends Controller
                         ];
                     }
                 }
+
                 return [
                     'id' => $serverId,
                     'server_name' => $group->first()->server?->name ?? '—',

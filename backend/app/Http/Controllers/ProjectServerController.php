@@ -28,7 +28,7 @@ class ProjectServerController extends Controller
 
         if ($search = $request->input('search', '')) {
             $projectModels = $projectModels->filter(
-                fn($p) => str_contains(
+                fn ($p) => str_contains(
                     strtolower(preg_replace('/[^a-z0-9]/i', '', $p->name)),
                     strtolower(preg_replace('/[^a-z0-9]/i', '', $search))
                 )
@@ -88,6 +88,7 @@ class ProjectServerController extends Controller
                     json_encode(['toast' => ['message' => "Server \"{$server->name}\" konnte nicht gestartet werden.", 'type' => 'danger']])
                 );
             }
+
             return back()->with('server_action_error', "Server \"{$server->name}\" konnte nicht gestartet werden.");
         }
 
@@ -127,6 +128,7 @@ class ProjectServerController extends Controller
                     json_encode(['toast' => ['message' => "Server \"{$server->name}\" konnte nicht gestoppt werden.", 'type' => 'danger']])
                 );
             }
+
             return back()->with('server_action_error', "Server \"{$server->name}\" konnte nicht gestoppt werden.");
         }
 
@@ -144,7 +146,7 @@ class ProjectServerController extends Controller
         return back()->with('status', "Server \"{$server->name}\" wurde gestoppt.");
     }
 
-    private function projectsPartial(string $toastMessage, string $toastType = 'success'): \Illuminate\Http\Response
+    private function projectsPartial(string $toastMessage, string $toastType = 'success'): Response
     {
         $projectModels = $this->projects->getAll()->load('servers');
         $projects = $projectModels->map(fn ($p) => [

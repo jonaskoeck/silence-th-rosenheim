@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\ServerLabel;
 use App\Models\InventoryRun;
 use App\Services\Contracts\InventoryServiceInterface;
 use App\Services\Contracts\ProjectServiceInterface;
@@ -25,7 +26,7 @@ class InventoryController extends Controller
 
         return view('inventory', [
             'projects' => $projects,
-            'runs'     => $runs,
+            'runs' => $runs,
         ]);
     }
 
@@ -43,14 +44,16 @@ class InventoryController extends Controller
                     'name' => $s->name,
                     'open_stack_server_id' => $s->open_stack_server_id,
                     'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
-                    'label' => strtolower($s->label instanceof \App\Enums\ServerLabel ? $s->label->value : $s->label),
+                    'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
                 ])->all(),
             ])->all();
+
             return view('partials.projects-list', compact('projects'));
         }
 
         if ($request->header('HX-Request')) {
             $runs = InventoryRun::latest()->with('discoveredServers')->get();
+
             return view('partials.inventory-runs', compact('runs'));
         }
 
@@ -71,9 +74,10 @@ class InventoryController extends Controller
                     'name' => $s->name,
                     'open_stack_server_id' => $s->open_stack_server_id,
                     'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
-                    'label' => strtolower($s->label instanceof \App\Enums\ServerLabel ? $s->label->value : $s->label),
+                    'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
                 ])->all(),
             ])->all();
+
             return view('partials.projects-list', compact('projects'));
         }
 

@@ -25,6 +25,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                         data-schedule-id="{{ $sch['id'] }}"
                         data-schedule-name="{{ $sch['name'] }}"
                         data-schedule-server="{{ $sch['server_name'] }}"
+                        data-server-label="{{ $sch['server_label'] ?? 'NONE' }}"
                         data-schedule-events="{{ json_encode($sch['events'] ?? []) }}">
                     <i class="bi bi-pencil me-1"></i>Bearbeiten
                 </button>

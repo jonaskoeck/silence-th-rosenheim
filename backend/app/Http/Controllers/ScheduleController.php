@@ -27,7 +27,7 @@ class ScheduleController extends Controller
 
     public function index(Request $request): View
     {
-        $allServers = Server::orderBy('name')->get(['id', 'name']);
+        $allServers = Server::orderBy('name')->get(['id', 'name', 'label']);
         $filterServer = $request->get('server', '');
         $search = $request->input('search', '');
 
@@ -41,6 +41,7 @@ class ScheduleController extends Controller
             ->map(fn ($group, $serverId) => [
                 'id' => $serverId,
                 'server_name' => $group->first()->server?->name ?? '—',
+                'server_label' => $group->first()->server?->label?->value ?? 'NONE',
                 'name' => 'Zeitplan',
                 'events' => $this->buildEvents($group),
             ])
@@ -57,6 +58,7 @@ class ScheduleController extends Controller
                         '',
                         ($sch['server_name'] ?? '').' '.($sch['name'] ?? '')
                     ));
+
                     return str_contains($haystack, $needle);
                 }
             ));
@@ -66,7 +68,7 @@ class ScheduleController extends Controller
             return view('partials.schedules-list', compact('schedules'));
         }
 
-        $editSchedule = ($request->boolean('edit') && !empty($schedules)) ? $schedules[0] : null;
+        $editSchedule = ($request->boolean('edit') && ! empty($schedules)) ? $schedules[0] : null;
 
         return view('schedules', compact(
             'schedules', 'allServers', 'filterServer', 'editSchedule'
