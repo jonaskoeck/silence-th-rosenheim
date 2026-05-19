@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Auth\ShibbolethGuard;
 use App\Services\Contracts\InventoryServiceInterface;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\Contracts\ProjectServiceInterface;
@@ -10,6 +11,7 @@ use App\Services\InventoryService;
 use App\Services\OpenStack\OpenStackClient;
 use App\Services\ProjectService;
 use App\Services\ServerActionService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -34,6 +36,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Auth::extend('shibboleth', fn () => new ShibbolethGuard);
     }
 }

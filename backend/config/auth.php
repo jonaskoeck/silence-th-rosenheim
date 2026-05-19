@@ -19,7 +19,7 @@ return [
 
     'guards' => [
         'web' => [
-            'driver' => 'session',
+            'driver' => 'shibboleth',
         ],
     ],
 
