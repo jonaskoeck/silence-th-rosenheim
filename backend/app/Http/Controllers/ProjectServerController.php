@@ -6,8 +6,8 @@ namespace App\Http\Controllers;
 
 use App\Enums\ServerLabel;
 use App\Models\Server;
-use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\Contracts\ProjectServiceInterface;
+use App\Services\Contracts\ServerControlServiceInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use App\Services\OpenStack\Exceptions\OpenStackServerActionException;
 use Illuminate\Contracts\View\View;
@@ -19,7 +19,7 @@ class ProjectServerController extends Controller
 {
     public function __construct(
         private ProjectServiceInterface $projects,
-        private OpenStackClientInterface $openStack,
+        private ServerControlServiceInterface $control,
     ) {}
 
     public function index(Request $request): View
@@ -68,20 +68,9 @@ class ProjectServerController extends Controller
 
     public function start(Request $request, Server $server): RedirectResponse|View|Response
     {
-        $project = $server->project;
-
         try {
-            $auth = $this->openStack->authenticate(
-                $project->app_credential_id,
-                $project->app_credential_secret,
-            );
-
-            $this->openStack->startServer(
-                $auth->token,
-                $auth->computeEndpoint,
-                $server->open_stack_server_id,
-            );
-        } catch (InvalidOpenStackCredentialsException|OpenStackServerActionException $e) {
+            $this->control->start($server);
+        } catch (InvalidOpenStackCredentialsException|OpenStackServerActionException) {
             if ($request->header('HX-Request')) {
                 return response()->noContent(422)->header(
                     'HX-Trigger',
@@ -90,13 +79,6 @@ class ProjectServerController extends Controller
             }
 
             return back()->with('server_action_error', "Server \"{$server->name}\" konnte nicht gestartet werden.");
-        }
-
-        try {
-            $fresh = $this->openStack->getServer($auth->token, $auth->computeEndpoint, $server->open_stack_server_id);
-            $server->update(['status' => $fresh['status'] ?? null]);
-        } catch (OpenStackServerActionException) {
-            $server->update(['status' => 'ACTIVE']);
         }
 
         if ($request->header('HX-Request')) {
@@ -108,20 +90,9 @@ class ProjectServerController extends Controller
 
     public function stop(Request $request, Server $server): RedirectResponse|View|Response
     {
-        $project = $server->project;
-
         try {
-            $auth = $this->openStack->authenticate(
-                $project->app_credential_id,
-                $project->app_credential_secret,
-            );
-
-            $this->openStack->stopServer(
-                $auth->token,
-                $auth->computeEndpoint,
-                $server->open_stack_server_id,
-            );
-        } catch (InvalidOpenStackCredentialsException|OpenStackServerActionException $e) {
+            $this->control->stop($server);
+        } catch (InvalidOpenStackCredentialsException|OpenStackServerActionException) {
             if ($request->header('HX-Request')) {
                 return response()->noContent(422)->header(
                     'HX-Trigger',
@@ -130,13 +101,6 @@ class ProjectServerController extends Controller
             }
 
             return back()->with('server_action_error', "Server \"{$server->name}\" konnte nicht gestoppt werden.");
-        }
-
-        try {
-            $fresh = $this->openStack->getServer($auth->token, $auth->computeEndpoint, $server->open_stack_server_id);
-            $server->update(['status' => $fresh['status'] ?? null]);
-        } catch (OpenStackServerActionException) {
-            $server->update(['status' => 'SHUTOFF']);
         }
 
         if ($request->header('HX-Request')) {

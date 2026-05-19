@@ -5,6 +5,7 @@
 @section('content')
 @php
 $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+$timeStep = max(1, (int) config('scheduler.poll_interval_minutes', 5)) * 60;
 @endphp
 
 <div class="container-fluid">
@@ -86,7 +87,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                                         <option value="STOP">Stoppen</option>
                                     </select>
                                     <input type="time" class="form-control form-control-sm mb-1"
-                                           id="edit-time-{{ $day }}" value="08:00">
+                                           id="edit-time-{{ $day }}" value="08:00" step="{{ $timeStep }}">
                                     <div class="d-flex gap-1">
                                         <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                 onclick="addEditEvent('{{ $day }}')">OK</button>
@@ -181,7 +182,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                                             <option value="STOP">Stoppen</option>
                                         </select>
                                         <input type="time" class="form-control form-control-sm mb-1"
-                                               id="time-{{ $day }}" value="08:00">
+                                               id="time-{{ $day }}" value="08:00" step="{{ $timeStep }}">
                                         <div class="d-flex gap-1">
                                             <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                     onclick="addEvent('{{ $day }}')">OK</button>
@@ -372,11 +373,30 @@ document.getElementById('confirm-production-submit').addEventListener('click', (
 
 document.getElementById('newScheduleModal').addEventListener('hidden.bs.modal', () => {
     document.getElementById('confirmed-production').value = '0';
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('edit') || url.searchParams.has('server')) {
+        url.searchParams.delete('edit');
+        url.searchParams.delete('server');
+        history.replaceState({}, '', url.toString());
+    }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    new TomSelect('#new-server', { maxOptions: 10 });
-});
+@if ($preselectServerId)
+(function() {
+    function openCreateModal() {
+        const select = document.getElementById('new-server');
+        if (select) {
+            select.value = '{{ $preselectServerId }}';
+        }
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('newScheduleModal')).show();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', openCreateModal);
+    } else {
+        openCreateModal();
+    }
+})();
+@endif
 
 @if ($editSchedule)
 (function() {
