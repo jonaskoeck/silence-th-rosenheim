@@ -22,6 +22,7 @@ class Server extends Model
         'label',
         'status',
         'schedule_active',
+        'schedule_name',
         'discovered_by_run_id',
     ];
 

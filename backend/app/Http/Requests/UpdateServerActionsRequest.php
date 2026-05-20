@@ -31,6 +31,7 @@ class UpdateServerActionsRequest extends FormRequest
         $weekdayNames = array_map(fn (Weekday $w): string => $w->name, Weekday::cases());
 
         return [
+            'name' => ['nullable', 'string', 'max:120'],
             'actions' => ['required', 'array', 'min:1'],
             'actions.*.type' => ['required', Rule::enum(ActionType::class)],
             'actions.*.time' => ['required', 'date_format:H:i'],
