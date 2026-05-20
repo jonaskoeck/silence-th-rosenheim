@@ -201,4 +201,21 @@ class UpdateServerActionsTest extends TestCase
         $this->assertNotNull($response->headers->get('HX-Trigger'));
         $this->assertStringContainsString('aktualisiert', $response->headers->get('HX-Trigger'));
     }
+
+    public function test_htmx_partial_exposes_server_label_for_production_so_edit_button_can_trigger_confirmation(): void
+    {
+        $server = Server::factory()->create(['label' => ServerLabel::PRODUCTION]);
+        $this->makeAction($server, 'START', '08:00', 1);
+
+        $response = $this->withHeaders(['HX-Request' => 'true'])
+            ->put(route('server-actions.update-for-server', $server), [
+                'confirmed_production' => '1',
+                'actions' => [
+                    ['type' => 'START', 'time' => '09:30', 'days' => ['TUESDAY']],
+                ],
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('data-server-label="PRODUCTION"', false);
+    }
 }
