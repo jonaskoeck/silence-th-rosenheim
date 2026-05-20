@@ -87,13 +87,22 @@
 
         <div class="px-4 py-3 border-bottom">
             <p class="text-muted small fw-semibold text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:.05em">Darstellung</p>
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex justify-content-between align-items-center mb-3">
                 <div>
                     <div class="small fw-semibold">Dark Mode</div>
                     <div class="text-muted" style="font-size:0.75rem">Dunkles Farbschema aktivieren</div>
                 </div>
                 <div class="form-check form-switch mb-0">
                     <input class="form-check-input settings-toggle" type="checkbox" id="darkModeToggle" role="switch" style="width:2.5em;height:1.3em;cursor:pointer">
+                </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="small fw-semibold">Farbblindenmodus</div>
+                    <div class="text-muted" style="font-size:0.75rem">Farben für Rot-Grün-Schwäche anpassen</div>
+                </div>
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input settings-toggle" type="checkbox" id="colorBlindToggle" role="switch" style="width:2.5em;height:1.3em;cursor:pointer">
                 </div>
             </div>
         </div>
@@ -122,6 +131,7 @@
 
 @stack('scripts')
 <script>
+    // Dark Mode: gespeicherten Zustand aus localStorage wiederherstellen
     const toggle = document.getElementById('darkModeToggle');
     const saved = localStorage.getItem('theme') || 'light';
     document.body.setAttribute('data-bs-theme', saved);
@@ -137,6 +147,23 @@
             next === 'dark' ? 'bg-dark' : 'bg-light'
         );
         localStorage.setItem('theme', next);
+    });
+
+    // Farbblindenmodus: setzt ein data-Attribut auf dem body, das per CSS
+    // die schwer unterscheidbaren Rot/Grün-Töne durch Blau/Orange ersetzt.
+    // Wird ebenfalls in localStorage gespeichert und bleibt so erhalten.
+    const cbToggle = document.getElementById('colorBlindToggle');
+    if (localStorage.getItem('colorblind') === 'true') {
+        document.body.setAttribute('data-colorblind', 'true');
+        cbToggle.checked = true;
+    }
+    cbToggle.addEventListener('change', () => {
+        if (cbToggle.checked) {
+            document.body.setAttribute('data-colorblind', 'true');
+        } else {
+            document.body.removeAttribute('data-colorblind');
+        }
+        localStorage.setItem('colorblind', cbToggle.checked);
     });
 </script>
 </body>

@@ -272,12 +272,12 @@ function addEvent(day) {
     scheduleEvents[day].push({ type, time });
 
     const container = document.getElementById('events-' + day);
-    const bg = type === 'START' ? '#198754' : '#dc3545';
+    const eventClass = type === 'START' ? 'schedule-event-start' : 'schedule-event-stop';
     const label = type === 'START' ? 'Starten' : 'Stoppen';
 
     const el = document.createElement('div');
-    el.className = 'rounded px-2 py-1 text-white d-flex justify-content-between align-items-center w-100';
-    el.style.cssText = `background:${bg}; font-size:0.72rem`;
+    el.className = `rounded px-2 py-1 text-white d-flex justify-content-between align-items-center w-100 ${eventClass}`;
+    el.style.cssText = 'font-size:0.72rem';
     el.innerHTML = `<span>${time} ${label}</span><span style="cursor:pointer" onclick="removeEvent('${day}', ${index}, this)">×</span>`;
     container.appendChild(el);
 
@@ -472,11 +472,12 @@ function removeEditEvent(day, index, el) {
 function renderEditEvent(day, index, type, time) {
     const container = document.getElementById('edit-events-' + day);
     if (!container) return;
-    const bg = type === 'START' || type === 'start' ? '#198754' : '#dc3545';
-    const label = (type === 'START' || type === 'start') ? 'Starten' : 'Stoppen';
+    const isStart = type === 'START' || type === 'start';
+    const eventClass = isStart ? 'schedule-event-start' : 'schedule-event-stop';
+    const label = isStart ? 'Starten' : 'Stoppen';
     const el = document.createElement('div');
-    el.className = 'rounded px-2 py-1 text-white d-flex justify-content-between align-items-center w-100';
-    el.style.cssText = `background:${bg}; font-size:0.72rem`;
+    el.className = `rounded px-2 py-1 text-white d-flex justify-content-between align-items-center w-100 ${eventClass}`;
+    el.style.cssText = 'font-size:0.72rem';
     el.innerHTML = `<span>${time} ${label}</span><span style="cursor:pointer" onclick="removeEditEvent('${day}', ${index}, this)">×</span>`;
     container.appendChild(el);
 }
