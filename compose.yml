@@ -1,5 +1,27 @@
 services:
 
+  traefik:
+    image: traefik:v3.6
+    container_name: silence-traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/certs.yml"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/certs.yml:/etc/traefik/certs.yml:ro
+      - /home/student/certificates/web:/certs:ro
+    networks:
+      - web
+    restart: unless-stopped
+
   database:
     image: mariadb:12
     container_name: silence-db
@@ -17,8 +39,6 @@ services:
     ports:
       - "127.0.0.1:3306:3306"
     restart: unless-stopped
-    security_opt:
-      - no-new-privileges
     healthcheck:
       test:
         [
@@ -54,7 +74,6 @@ services:
       - "traefik.http.routers.silence.rule=Host(`silence.th-rosenheim.de`)"
       - "traefik.http.routers.silence.entrypoints=websecure"
       - "traefik.http.routers.silence.tls=true"
-      - "traefik.http.routers.silence.tls.certResolver=throdevpki"
       - "traefik.http.services.silence.loadbalancer.server.port=8080"
       - "traefik.docker.network=web"
     depends_on:
@@ -63,8 +82,6 @@ services:
       application:
         condition: service_started
     restart: unless-stopped
-    security_opt:
-      - no-new-privileges
 
   application:
     build: ./backend
@@ -81,8 +98,6 @@ services:
       database:
         condition: service_healthy
     restart: unless-stopped
-    security_opt:
-      - no-new-privileges
 
   scheduler:
     build: ./backend
@@ -100,14 +115,12 @@ services:
       database:
         condition: service_healthy
     restart: unless-stopped
-    security_opt:
-      - no-new-privileges
 
 volumes:
   silence-db-data:
 
 networks:
   silence-internal:
-    internal: true
+    driver: bridge
   web:
     external: true
