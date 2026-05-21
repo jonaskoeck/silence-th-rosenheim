@@ -201,4 +201,85 @@ class UpdateServerActionsTest extends TestCase
         $this->assertNotNull($response->headers->get('HX-Trigger'));
         $this->assertStringContainsString('aktualisiert', $response->headers->get('HX-Trigger'));
     }
+
+    public function test_update_persists_schedule_name_on_server(): void
+    {
+        $server = Server::factory()->create(['schedule_name' => null]);
+        $this->makeAction($server, 'START', '08:00', 1);
+
+        $response = $this->put(route('server-actions.update-for-server', $server), [
+            'name' => '  Tagschicht  ',
+            'actions' => [
+                ['type' => 'START', 'time' => '09:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertSame('Tagschicht', $server->fresh()->schedule_name);
+    }
+
+    public function test_update_without_name_clears_schedule_name(): void
+    {
+        $server = Server::factory()->create(['schedule_name' => 'Alt']);
+        $this->makeAction($server, 'START', '08:00', 1);
+
+        $response = $this->put(route('server-actions.update-for-server', $server), [
+            'actions' => [
+                ['type' => 'START', 'time' => '09:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertNull($server->fresh()->schedule_name);
+    }
+
+    public function test_update_rejects_name_longer_than_120_chars(): void
+    {
+        $server = Server::factory()->create(['schedule_name' => 'Original']);
+        $this->makeAction($server, 'START', '08:00', 1);
+
+        $response = $this->put(route('server-actions.update-for-server', $server), [
+            'name' => str_repeat('a', 121),
+            'actions' => [
+                ['type' => 'START', 'time' => '09:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('name');
+        $this->assertSame('Original', $server->fresh()->schedule_name);
+    }
+
+    public function test_htmx_partial_renders_persisted_schedule_name(): void
+    {
+        $server = Server::factory()->create();
+        $this->makeAction($server, 'START', '08:00', 1);
+
+        $response = $this->withHeaders(['HX-Request' => 'true'])
+            ->put(route('server-actions.update-for-server', $server), [
+                'name' => 'Wochenende',
+                'actions' => [
+                    ['type' => 'START', 'time' => '09:00', 'days' => ['MONDAY']],
+                ],
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('Wochenende');
+    }
+
+    public function test_htmx_partial_exposes_server_label_for_production_so_edit_button_can_trigger_confirmation(): void
+    {
+        $server = Server::factory()->create(['label' => ServerLabel::PRODUCTION]);
+        $this->makeAction($server, 'START', '08:00', 1);
+
+        $response = $this->withHeaders(['HX-Request' => 'true'])
+            ->put(route('server-actions.update-for-server', $server), [
+                'confirmed_production' => '1',
+                'actions' => [
+                    ['type' => 'START', 'time' => '09:30', 'days' => ['TUESDAY']],
+                ],
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('data-server-label="PRODUCTION"', false);
+    }
 }

@@ -208,4 +208,51 @@ class StoreServerActionTest extends TestCase
         $response->assertSessionHasNoErrors();
         $this->assertSame(1, ServerAction::where('server_id', $server->id)->count());
     }
+
+    public function test_store_persists_schedule_name_on_server(): void
+    {
+        $server = Server::factory()->create(['schedule_name' => null]);
+
+        $response = $this->post(route('server-actions.store'), [
+            'server_id' => $server->id,
+            'name' => '  Nachtbetrieb  ',
+            'actions' => [
+                ['type' => 'START', 'time' => '08:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertSame('Nachtbetrieb', $server->fresh()->schedule_name);
+    }
+
+    public function test_store_without_name_stores_null_schedule_name(): void
+    {
+        $server = Server::factory()->create(['schedule_name' => 'Vorher gesetzt']);
+
+        $response = $this->post(route('server-actions.store'), [
+            'server_id' => $server->id,
+            'actions' => [
+                ['type' => 'START', 'time' => '08:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertNull($server->fresh()->schedule_name);
+    }
+
+    public function test_store_rejects_name_longer_than_120_chars(): void
+    {
+        $server = Server::factory()->create();
+
+        $response = $this->post(route('server-actions.store'), [
+            'server_id' => $server->id,
+            'name' => str_repeat('a', 121),
+            'actions' => [
+                ['type' => 'START', 'time' => '08:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('name');
+        $this->assertSame(0, ServerAction::where('server_id', $server->id)->count());
+    }
 }

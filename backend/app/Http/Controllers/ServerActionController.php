@@ -24,6 +24,12 @@ class ServerActionController extends Controller
             foreach ($request->groupedAttributes() as $attributes) {
                 $this->serverActions->create($attributes);
             }
+
+            $server = Server::find((int) $request->validated('server_id'));
+            if ($server !== null) {
+                $server->schedule_name = $this->normalizeScheduleName($request->validated('name'));
+                $server->save();
+            }
         });
 
         if ($request->header('HX-Request')) {
@@ -37,11 +43,21 @@ class ServerActionController extends Controller
     {
         $this->serverActions->replaceAllForServer($server, $request->groupedAttributes());
 
+        $server->schedule_name = $this->normalizeScheduleName($request->validated('name'));
+        $server->save();
+
         if ($request->header('HX-Request')) {
             return $this->schedulesPartial('Zeitplan wurde aktualisiert.');
         }
 
         return redirect()->route('schedules');
+    }
+
+    private function normalizeScheduleName(?string $name): ?string
+    {
+        $trimmed = trim((string) $name);
+
+        return $trimmed === '' ? null : $trimmed;
     }
 
     public function destroyForServer(Request $request, Server $server): RedirectResponse|Response
@@ -92,7 +108,8 @@ class ServerActionController extends Controller
                 return [
                     'id' => $serverId,
                     'server_name' => $group->first()->server?->name ?? '—',
-                    'name' => 'Zeitplan',
+                    'server_label' => $group->first()->server?->label?->value ?? 'NONE',
+                    'name' => $group->first()->server?->schedule_name ?: 'Zeitplan',
                     'active' => (bool) ($group->first()->server?->schedule_active ?? true),
                     'events' => $events,
                 ];

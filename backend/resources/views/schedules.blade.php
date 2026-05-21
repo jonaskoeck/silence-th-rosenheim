@@ -62,7 +62,7 @@ $timeStep = max(1, (int) config('scheduler.poll_interval_minutes', 5)) * 60;
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Name</label>
-                        <input type="text" class="form-control" id="edit-schedule-name">
+                        <input type="text" class="form-control" id="edit-schedule-name" name="name" maxlength="120">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Server</label>
@@ -150,7 +150,7 @@ $timeStep = max(1, (int) config('scheduler.poll_interval_minutes', 5)) * 60;
                 <div class="row g-3 mb-4">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Name</label>
-                        <input type="text" class="form-control" id="new-name">
+                        <input type="text" class="form-control" id="new-name" name="name" maxlength="120">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Server <span class="text-danger">*</span></label>
@@ -545,6 +545,7 @@ document.getElementById('edit-schedule-submit').addEventListener('click', functi
     const values = {
         _token: document.querySelector('meta[name="csrf-token"]')?.content ?? '',
         confirmed_production: editConfirmedProduction,
+        name: document.getElementById('edit-schedule-name').value,
     };
     groupList.forEach((group, i) => {
         values[`actions[${i}][type]`] = group.type;
