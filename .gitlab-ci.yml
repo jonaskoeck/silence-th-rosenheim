@@ -2,10 +2,12 @@ workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_COMMIT_BRANCH == "develop"
 
 stages:
   - build
   - test
+  - deploy
 
 build-assets:
   stage: build
@@ -61,3 +63,27 @@ test:
     - php artisan key:generate
     - php artisan migrate --force
     - php artisan test
+
+deploy-dev:
+  stage: deploy
+  image: alpine:latest
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop"
+  needs:
+    - build-assets
+    - test
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan axm-sep-silence-01.th-rosenheim.de >> ~/.ssh/known_hosts
+  script:
+    - ssh student@axm-sep-silence-01.th-rosenheim.de "
+        cd /home/student/silence &&
+        git pull origin develop &&
+        docker compose up --build -d --remove-orphans
+      "
+  environment:
+    name: development
+    url: https://silence.th-rosenheim.de
