@@ -1,5 +1,27 @@
 services:
 
+  traefik:
+    image: traefik:v3.6
+    container_name: silence-traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.filename=/etc/traefik/certs.yml"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/certs.yml:/etc/traefik/certs.yml:ro
+      - /home/student/certificates/web:/certs:ro
+    networks:
+      - web
+    restart: unless-stopped
+
   database:
     image: mariadb:12
     container_name: silence-db
@@ -29,6 +51,38 @@ services:
       timeout: 5s
       retries: 10
 
+  server:
+    image: gitlab.th-rosenheim.de:5005/docker1/shibd3-apache2:latest
+    container_name: silence-server
+    env_file:
+      - .env
+    environment:
+      TZ: Europe/Berlin
+      PHP_FPM_SERVER: silence-app
+      APP_FQDN: silence.th-rosenheim.de
+      APP_PORT: 443
+    volumes:
+      - ./backend:/web:ro
+      - /home/student/certificates/shibboleth-sp/silence-sp.crt:/etc/ssl/shibboleth/sp.crt:ro
+      - /home/student/certificates/shibboleth-sp/silence-sp.key:/etc/ssl/shibboleth/sp.key:ro
+      - /home/student/configurations/shibboleth2.xml:/etc/shibboleth/shibboleth2.xml:ro
+    networks:
+      - silence-internal
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.silence.rule=Host(`silence.th-rosenheim.de`)"
+      - "traefik.http.routers.silence.entrypoints=websecure"
+      - "traefik.http.routers.silence.tls=true"
+      - "traefik.http.services.silence.loadbalancer.server.port=8080"
+      - "traefik.docker.network=web"
+    depends_on:
+      database:
+        condition: service_healthy
+      application:
+        condition: service_started
+    restart: unless-stopped
+
   application:
     build: ./backend
     container_name: silence-app
@@ -38,9 +92,6 @@ services:
       DB_HOST: database
     networks:
       - silence-internal
-      - web
-    ports:
-      - "8080:80"
     labels:
       - "traefik.enable=false"
     depends_on:
