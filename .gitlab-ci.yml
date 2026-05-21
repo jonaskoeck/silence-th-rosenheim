@@ -83,7 +83,8 @@ deploy-dev:
   script:
     - ssh student@axm-sep-silence-01.th-rosenheim.de "
         cd /home/student/silence &&
-        git pull origin develop &&
+        git fetch origin &&
+        git reset --hard origin/develop &&
         docker compose up --build -d --remove-orphans
       "
   environment:
