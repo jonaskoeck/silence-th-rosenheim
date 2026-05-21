@@ -17,6 +17,8 @@ services:
     ports:
       - "127.0.0.1:3306:3306"
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges
     healthcheck:
       test:
         [
@@ -61,6 +63,8 @@ services:
       application:
         condition: service_started
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges
 
   application:
     build: ./backend
@@ -77,6 +81,8 @@ services:
       database:
         condition: service_healthy
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges
 
   scheduler:
     build: ./backend
@@ -94,12 +100,14 @@ services:
       database:
         condition: service_healthy
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges
 
 volumes:
   silence-db-data:
 
 networks:
   silence-internal:
-    driver: bridge
+    internal: true
   web:
     external: true
