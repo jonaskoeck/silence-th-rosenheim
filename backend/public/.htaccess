@@ -4,6 +4,8 @@
     </IfModule>
 
     RewriteEngine On
+    # Ignore Shibboleth routes
+    RewriteRule ^(Shibboleth.*)/ - [L]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .

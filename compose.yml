@@ -66,6 +66,7 @@ services:
       - /home/student/certificates/shibboleth-sp/silence-sp.crt:/etc/ssl/shibboleth/sp.crt:ro
       - /home/student/certificates/shibboleth-sp/silence-sp.key:/etc/ssl/shibboleth/sp.key:ro
       - /home/student/configurations/shibboleth2.xml:/etc/shibboleth/shibboleth2.xml:ro
+      - ./apache/forwarded-proto.conf:/etc/apache2/conf-enabled/forwarded-proto.conf:ro
     networks:
       - silence-internal
       - web
@@ -76,6 +77,10 @@ services:
       - "traefik.http.routers.silence.tls=true"
       - "traefik.http.services.silence.loadbalancer.server.port=8080"
       - "traefik.docker.network=web"
+      - "traefik.http.middlewares.silence-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.silence-headers.headers.customrequestheaders.X-Forwarded-Port=443"
+      - "traefik.http.middlewares.silence-headers.headers.customrequestheaders.X-Forwarded-Ssl=on"
+      - "traefik.http.routers.silence.middlewares=silence-headers"
     depends_on:
       database:
         condition: service_healthy

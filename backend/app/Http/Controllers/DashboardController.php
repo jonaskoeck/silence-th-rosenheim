@@ -57,7 +57,7 @@ class DashboardController extends Controller
             'lastInventory' => $lastInventory,
         ];
 
-        if ($request->header('HX-Target') === 'dashboard-content') {
+        if ($request->header('HX-Request')) {
             return view('partials.dashboard-content', $data);
         }
 
