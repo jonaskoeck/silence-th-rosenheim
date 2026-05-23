@@ -5,7 +5,7 @@
 @section('content')
 @php
 $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-$timeStep = max(1, (int) config('scheduler.poll_interval_minutes', 5)) * 60;
+$timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
 @endphp
 
 <div class="container-fluid">

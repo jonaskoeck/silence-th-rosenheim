@@ -8,6 +8,7 @@ use App\Enums\Weekday;
 use App\Jobs\TriggerServerActionsJob;
 use App\Models\Server;
 use App\Models\ServerAction;
+use App\Models\Setting;
 use App\Services\Contracts\ServerControlServiceInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -193,9 +194,9 @@ class TriggerServerActionsJobTest extends TestCase
             ->once();
     }
 
-    public function test_env_override_changes_slot_size(): void
+    public function test_setting_override_changes_slot_size(): void
     {
-        config(['scheduler.poll_interval_minutes' => 10]);
+        Setting::set(Setting::KEY_SCHEDULE_POLL_INTERVAL_MINUTES, '10');
 
         $this->freezeMonday('08:00:30');
         $server = Server::factory()->create(['schedule_active' => true]);

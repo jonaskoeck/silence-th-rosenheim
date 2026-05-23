@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Enums\ActionType;
 use App\Enums\Weekday;
 use App\Models\ServerAction;
+use App\Models\Setting;
 use App\Services\Contracts\ServerControlServiceInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +17,7 @@ class TriggerServerActionsJob
 {
     public function handle(ServerControlServiceInterface $control): void
     {
-        $interval = max(1, (int) config('scheduler.poll_interval_minutes', 5));
+        $interval = Setting::schedulePollIntervalMinutes();
         $now = CarbonImmutable::now(config('app.display_timezone'));
 
         $slotMinute = intdiv($now->minute, $interval) * $interval;
