@@ -7,7 +7,9 @@ namespace App\Http\Controllers;
 use App\Enums\ServerLabel;
 use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
+use App\Jobs\RunProjectInventoryJob;
 use App\Models\Project;
+use App\Services\Contracts\InventoryServiceInterface;
 use App\Services\Contracts\ProjectServiceInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,11 +17,16 @@ use Illuminate\Http\Response;
 
 class ProjectController extends Controller
 {
-    public function __construct(private ProjectServiceInterface $projects) {}
+    public function __construct(
+        private ProjectServiceInterface $projects,
+        private InventoryServiceInterface $inventory,
+    ) {}
 
     public function store(StoreProjectRequest $request): RedirectResponse|Response
     {
-        $this->projects->create($request->projectAttributes());
+        $project = $this->projects->create($request->projectAttributes());
+
+        dispatch(new RunProjectInventoryJob($project->id));
 
         if ($request->header('HX-Request')) {
             return $this->projectsPartial('Projekt wurde erstellt.');
