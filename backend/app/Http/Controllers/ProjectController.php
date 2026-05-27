@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use App\Enums\ServerLabel;
 use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
-use App\Jobs\RunProjectInventoryJob;
 use App\Models\Project;
 use App\Services\Contracts\InventoryServiceInterface;
 use App\Services\Contracts\ProjectServiceInterface;
@@ -26,7 +25,7 @@ class ProjectController extends Controller
     {
         $project = $this->projects->create($request->projectAttributes());
 
-        dispatch(new RunProjectInventoryJob($project->id));
+        $this->inventory->runForProject($project->id);
 
         if ($request->header('HX-Request')) {
             return $this->projectsPartial('Projekt wurde erstellt.');
