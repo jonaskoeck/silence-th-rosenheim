@@ -108,14 +108,31 @@
         </div>
 
         <div class="px-4 py-3 border-bottom">
-            <p class="text-muted small fw-semibold text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:.05em">Server Status</p>
+            <p class="text-muted small fw-semibold text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:.05em">System (Backend-Cron)</p>
+            <div class="alert alert-warning py-2 px-2 mb-3" style="font-size:0.72rem">
+                <i class="bi bi-exclamation-triangle me-1"></i>
+                Änderungen greifen erst nach Neustart des Scheduler-Containers.
+            </div>
             <div class="mb-3">
-                <label class="form-label small fw-semibold">Polling-Intervall</label>
-                <select class="form-select form-select-sm mt-2" disabled>
-                    <option>Kein Polling</option>
-                    <option>Alle 10 Sekunden</option>
-                    <option>Alle 30 Sekunden</option>
-                    <option>Alle 60 Sekunden</option>
+                <label class="form-label small fw-semibold" for="schedulePollIntervalSelect">Zeitplan-Auslösung</label>
+                <select class="form-select form-select-sm mt-2" id="schedulePollIntervalSelect"
+                        data-url="{{ route('settings.schedule-poll-interval') }}">
+                    @foreach ($allowedSchedulePollIntervals as $minutes)
+                        <option value="{{ $minutes }}" @selected($schedulePollIntervalMinutes === $minutes)>
+                            Alle {{ $minutes }} Minute{{ $minutes === 1 ? '' : 'n' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="mb-0">
+                <label class="form-label small fw-semibold" for="inventoryIntervalSelect">Inventarisierung</label>
+                <select class="form-select form-select-sm mt-2" id="inventoryIntervalSelect"
+                        data-url="{{ route('settings.inventory-interval') }}">
+                    @foreach ($allowedInventoryIntervals as $minutes)
+                        <option value="{{ $minutes }}" @selected($inventoryIntervalMinutes === $minutes)>
+                            Alle {{ $minutes }} Minuten
+                        </option>
+                    @endforeach
                 </select>
             </div>
         </div>
@@ -165,6 +182,46 @@
         }
         localStorage.setItem('colorblind', cbToggle.checked);
     });
+
+    // Settings-Dropdowns: schicken den gewählten Wert per PUT an die jeweilige Route.
+    // payloadKey bestimmt den Body-Key (seconds oder minutes) und onSuccess kann den
+    // globalen Meta-Tag aktualisieren bzw. ein Event feuern.
+    async function persistSetting(select, payloadKey, errorLabel, onSuccess) {
+        const value = parseInt(select.value, 10);
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+        try {
+            const response = await fetch(select.dataset.url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ [payloadKey]: value }),
+            });
+            if (!response.ok) throw new Error('Speichern fehlgeschlagen');
+            if (typeof onSuccess === 'function') onSuccess(value);
+        } catch (e) {
+            if (typeof showToast === 'function') {
+                showToast(errorLabel + ' konnte nicht gespeichert werden.', 'danger');
+            }
+        }
+    }
+
+    const scheduleSelect = document.getElementById('schedulePollIntervalSelect');
+    if (scheduleSelect) {
+        scheduleSelect.addEventListener('change', () => persistSetting(
+            scheduleSelect, 'minutes', 'Zeitplan-Intervall',
+        ));
+    }
+
+    const inventorySelect = document.getElementById('inventoryIntervalSelect');
+    if (inventorySelect) {
+        inventorySelect.addEventListener('change', () => persistSetting(
+            inventorySelect, 'minutes', 'Inventory-Intervall',
+        ));
+    }
 </script>
 </body>
 </html>

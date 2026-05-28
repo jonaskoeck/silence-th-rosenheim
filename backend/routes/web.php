@@ -6,6 +6,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectServerController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServerActionController;
+use App\Http\Controllers\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -61,4 +62,9 @@ Route::middleware('shibboleth')->group(function () {
 
     Route::post('/servers/{server}/start', [ProjectServerController::class, 'start'])->name('servers.start');
     Route::post('/servers/{server}/stop', [ProjectServerController::class, 'stop'])->name('servers.stop');
+
+    Route::put('/settings/schedule-poll-interval', [SettingsController::class, 'updateSchedulePollInterval'])
+        ->name('settings.schedule-poll-interval');
+    Route::put('/settings/inventory-interval', [SettingsController::class, 'updateInventoryInterval'])
+        ->name('settings.inventory-interval');
 });
