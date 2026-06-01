@@ -1,3 +1,23 @@
+* {
+    cursor: default !important;
+    user-select: none;
+}
+
+a, button, [role="button"], label, select,
+.btn, .nav-link, .sidebar-icon-link, [hx-get], [hx-post] {
+    cursor: pointer !important;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="number"],
+textarea {
+    cursor: text !important;
+    user-select: text;
+}
+
 :root {
     --bs-primary:        #F29400;
     --bs-primary-rgb:    242, 148, 0;

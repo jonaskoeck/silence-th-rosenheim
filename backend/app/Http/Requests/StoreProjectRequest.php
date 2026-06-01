@@ -44,19 +44,15 @@ class StoreProjectRequest extends FormRequest
 
             if (Project::where('open_stack_project_id', $result->projectId)->exists()) {
                 throw ValidationException::withMessages([
-                    'app_credential_id' => 'Für dieses OpenStack-Projekt existiert bereits ein Eintrag.',
+                    'app_credential_id' => 'Ein Projekt mit dieser OpenStack-Projekt-ID existiert bereits.',
                 ]);
             }
 
             $this->resolvedOpenStackProjectId = $result->projectId;
         } catch (InvalidOpenStackCredentialsException) {
-            session()->flash('store_project_error', true);
-            throw ValidationException::withMessages([
-                'app_credential_secret' => 'Ungültige OpenStack-Zugangsdaten.',
-            ]);
+            $this->throwHtmxOrFlash('Ungültige OpenStack-Zugangsdaten.', 'app_credential_secret');
         } catch (ValidationException $e) {
-            session()->flash('store_project_error', true);
-            throw $e;
+            $this->throwHtmxOrFlash($e->validator->errors()->first(), 'app_credential_id');
         }
     }
 
@@ -72,6 +68,21 @@ class StoreProjectRequest extends FormRequest
         }
         session()->flash('store_project_error', true);
         parent::failedValidation($validator);
+    }
+
+    private function throwHtmxOrFlash(string $message, string $field): never
+    {
+        if ($this->header('HX-Request')) {
+            throw new HttpResponseException(
+                response()->noContent(422)->header(
+                    'HX-Trigger',
+                    json_encode(['toast' => ['message' => $message, 'type' => 'danger']])
+                )
+            );
+        }
+
+        session()->flash('store_project_error', true);
+        throw ValidationException::withMessages([$field => $message]);
     }
 
     /**
