@@ -29,9 +29,9 @@ class ServerControlServiceTest extends TestCase
         );
     }
 
-    public function test_start_calls_openstack_and_persists_status(): void
+    public function test_start_calls_openstack_start_action(): void
     {
-        $server = Server::factory()->create(['status' => 'SHUTOFF']);
+        $server = Server::factory()->create();
 
         $openStack = Mockery::mock(OpenStackClientInterface::class);
         $openStack->shouldReceive('authenticate')
@@ -41,32 +41,14 @@ class ServerControlServiceTest extends TestCase
         $openStack->shouldReceive('startServer')
             ->once()
             ->with('tok', 'https://compute.example/v2', $server->open_stack_server_id);
-        $openStack->shouldReceive('getServer')
-            ->once()
-            ->andReturn(['status' => 'ACTIVE']);
+        $openStack->shouldNotReceive('getServer');
 
         (new ServerControlService($openStack))->start($server);
-
-        $this->assertSame('ACTIVE', $server->fresh()->status);
-    }
-
-    public function test_start_falls_back_to_active_when_get_server_throws(): void
-    {
-        $server = Server::factory()->create(['status' => 'SHUTOFF']);
-
-        $openStack = Mockery::mock(OpenStackClientInterface::class);
-        $openStack->shouldReceive('authenticate')->andReturn($this->authDto());
-        $openStack->shouldReceive('startServer')->once();
-        $openStack->shouldReceive('getServer')->andThrow(new OpenStackServerActionException('refresh failed'));
-
-        (new ServerControlService($openStack))->start($server);
-
-        $this->assertSame('ACTIVE', $server->fresh()->status);
     }
 
     public function test_start_propagates_invalid_credentials_exception(): void
     {
-        $server = Server::factory()->create(['status' => 'SHUTOFF']);
+        $server = Server::factory()->create();
 
         $openStack = Mockery::mock(OpenStackClientInterface::class);
         $openStack->shouldReceive('authenticate')
@@ -75,13 +57,11 @@ class ServerControlServiceTest extends TestCase
 
         $this->expectException(InvalidOpenStackCredentialsException::class);
         (new ServerControlService($openStack))->start($server);
-
-        $this->assertSame('SHUTOFF', $server->fresh()->status);
     }
 
     public function test_start_propagates_server_action_exception_from_start_call(): void
     {
-        $server = Server::factory()->create(['status' => 'SHUTOFF']);
+        $server = Server::factory()->create();
 
         $openStack = Mockery::mock(OpenStackClientInterface::class);
         $openStack->shouldReceive('authenticate')->andReturn($this->authDto());
@@ -93,33 +73,17 @@ class ServerControlServiceTest extends TestCase
         (new ServerControlService($openStack))->start($server);
     }
 
-    public function test_stop_calls_openstack_and_persists_status(): void
+    public function test_stop_calls_openstack_stop_action(): void
     {
-        $server = Server::factory()->create(['status' => 'ACTIVE']);
+        $server = Server::factory()->create();
 
         $openStack = Mockery::mock(OpenStackClientInterface::class);
         $openStack->shouldReceive('authenticate')->andReturn($this->authDto());
         $openStack->shouldReceive('stopServer')
             ->once()
             ->with('tok', 'https://compute.example/v2', $server->open_stack_server_id);
-        $openStack->shouldReceive('getServer')->andReturn(['status' => 'SHUTOFF']);
+        $openStack->shouldNotReceive('getServer');
 
         (new ServerControlService($openStack))->stop($server);
-
-        $this->assertSame('SHUTOFF', $server->fresh()->status);
-    }
-
-    public function test_stop_falls_back_to_shutoff_when_get_server_throws(): void
-    {
-        $server = Server::factory()->create(['status' => 'ACTIVE']);
-
-        $openStack = Mockery::mock(OpenStackClientInterface::class);
-        $openStack->shouldReceive('authenticate')->andReturn($this->authDto());
-        $openStack->shouldReceive('stopServer')->once();
-        $openStack->shouldReceive('getServer')->andThrow(new OpenStackServerActionException('refresh failed'));
-
-        (new ServerControlService($openStack))->stop($server);
-
-        $this->assertSame('SHUTOFF', $server->fresh()->status);
     }
 }

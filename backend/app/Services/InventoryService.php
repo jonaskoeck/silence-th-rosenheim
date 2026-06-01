@@ -59,7 +59,6 @@ class InventoryService implements InventoryServiceInterface
                     }
 
                     $server->name = $osServer['name'];
-                    $server->status = $osServer['status'] ?? null;
                     $server->save();
                 }
 
@@ -125,7 +124,6 @@ class InventoryService implements InventoryServiceInterface
                 }
 
                 $server->name = $osServer['name'];
-                $server->status = $osServer['status'] ?? null;
                 $server->save();
             }
 

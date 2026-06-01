@@ -7,7 +7,6 @@ namespace App\Services;
 use App\Models\Server;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\Contracts\ServerControlServiceInterface;
-use App\Services\OpenStack\Exceptions\OpenStackServerActionException;
 
 class ServerControlService implements ServerControlServiceInterface
 {
@@ -25,17 +24,6 @@ class ServerControlService implements ServerControlServiceInterface
             $auth->computeEndpoint,
             $server->open_stack_server_id,
         );
-
-        try {
-            $fresh = $this->openStack->getServer(
-                $auth->token,
-                $auth->computeEndpoint,
-                $server->open_stack_server_id,
-            );
-            $server->update(['status' => $fresh['status'] ?? null]);
-        } catch (OpenStackServerActionException) {
-            $server->update(['status' => 'ACTIVE']);
-        }
     }
 
     public function stop(Server $server): void
@@ -50,16 +38,5 @@ class ServerControlService implements ServerControlServiceInterface
             $auth->computeEndpoint,
             $server->open_stack_server_id,
         );
-
-        try {
-            $fresh = $this->openStack->getServer(
-                $auth->token,
-                $auth->computeEndpoint,
-                $server->open_stack_server_id,
-            );
-            $server->update(['status' => $fresh['status'] ?? null]);
-        } catch (OpenStackServerActionException) {
-            $server->update(['status' => 'SHUTOFF']);
-        }
     }
 }

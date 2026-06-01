@@ -62,6 +62,7 @@ Route::middleware('shibboleth')->group(function () {
 
     Route::post('/servers/{server}/start', [ProjectServerController::class, 'start'])->name('servers.start');
     Route::post('/servers/{server}/stop', [ProjectServerController::class, 'stop'])->name('servers.stop');
+    Route::get('/servers/{server}/status', [ProjectServerController::class, 'status'])->name('servers.status');
 
     Route::put('/settings/schedule-poll-interval', [SettingsController::class, 'updateSchedulePollInterval'])
         ->name('settings.schedule-poll-interval');

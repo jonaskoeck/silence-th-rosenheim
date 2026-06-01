@@ -7,16 +7,21 @@ namespace App\Http\Controllers;
 use App\Enums\ServerLabel;
 use App\Models\InventoryRun;
 use App\Services\Contracts\InventoryServiceInterface;
+use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ProjectServiceInterface;
+use App\Services\Contracts\ServerStatusServiceInterface;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class InventoryController extends Controller
 {
     public function __construct(
         private InventoryServiceInterface $inventory,
         private ProjectServiceInterface $projects,
+        private ServerStatusServiceInterface $serverStatus,
+        private PendingActionTrackerInterface $pendingActions,
     ) {}
 
     public function index(): View
@@ -30,25 +35,12 @@ class InventoryController extends Controller
         ]);
     }
 
-    public function run(Request $request): RedirectResponse|View
+    public function run(Request $request): RedirectResponse|View|Response
     {
         $this->inventory->runForAllProjects();
 
         if ($request->header('HX-Target') === 'projects-container') {
-            $projectModels = $this->projects->getAll()->load('servers');
-            $projects = $projectModels->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'servers' => $p->servers->map(fn ($s) => [
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'open_stack_server_id' => $s->open_stack_server_id,
-                    'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
-                    'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
-                ])->all(),
-            ])->all();
-
-            return view('partials.projects-list', compact('projects'));
+            return $this->projectsListResponse();
         }
 
         if ($request->header('HX-Request')) {
@@ -60,27 +52,45 @@ class InventoryController extends Controller
         return redirect()->back();
     }
 
-    public function runForProject(Request $request, int $project): RedirectResponse|View
+    public function runForProject(Request $request, int $project): RedirectResponse|View|Response
     {
         $this->inventory->runForProject($project);
 
         if ($request->header('HX-Request')) {
-            $projectModels = $this->projects->getAll()->load('servers');
-            $projects = $projectModels->map(fn ($p) => [
-                'id' => $p->id,
-                'name' => $p->name,
-                'servers' => $p->servers->map(fn ($s) => [
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'open_stack_server_id' => $s->open_stack_server_id,
-                    'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
-                    'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
-                ])->all(),
-            ])->all();
-
-            return view('partials.projects-list', compact('projects'));
+            return $this->projectsListResponse();
         }
 
         return redirect()->back();
+    }
+
+    private function projectsListResponse(): Response
+    {
+        $projectModels = $this->projects->getAll()->load('servers');
+        $statuses = $this->serverStatus->statusesForProjects($projectModels);
+
+        $projects = $projectModels->map(fn ($p) => [
+            'id' => $p->id,
+            'name' => $p->name,
+            'servers' => $p->servers->map(function ($s) use ($statuses) {
+                $rawStatus = $statuses->statusFor($s->open_stack_server_id);
+
+                return [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'open_stack_server_id' => $s->open_stack_server_id,
+                    'raw_status' => $rawStatus,
+                    'expecting' => $this->pendingActions->expectationFor($s->id, $rawStatus),
+                    'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
+                ];
+            })->all(),
+        ])->all();
+
+        $response = response(view('partials.projects-list', compact('projects')));
+
+        if ($payload = $statuses->toastTriggerPayload()) {
+            $response->header('HX-Trigger', $payload);
+        }
+
+        return $response;
     }
 }

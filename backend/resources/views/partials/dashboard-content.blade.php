@@ -62,20 +62,12 @@
                         </thead>
                         <tbody>
                             @forelse ($project['servers'] as $srv)
-                            @php
-                                [$sc, $sl] = match($srv['status']) {
-                                    'running' => ['success', 'Laufend'],
-                                    default   => ['secondary', 'Gestoppt'],
-                                };
-                            @endphp
                             <tr>
                                 <td>
                                     <div class="fw-semibold small">{{ $srv['name'] }}</div>
                                 </td>
                                 <td>
-                                    <span class="badge text-bg-{{ $sc }} rounded-pill">
-                                        {{ $sl }}
-                                    </span>
+                                    @include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])
                                 </td>
                                 <td>
                                     @if ($srv['label'] === 'production')

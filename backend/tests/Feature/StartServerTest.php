@@ -18,7 +18,7 @@ class StartServerTest extends TestCase
 
     private const OS_SERVER_ID = 'os-server-uuid-1234';
 
-    private function fakeOpenStack(string $serverStatusAfterStart = 'ACTIVE'): void
+    private function fakeOpenStack(string $listedStatus = 'ACTIVE'): void
     {
         config(['services.openstack.auth_url' => 'https://openstack.test']);
 
@@ -41,14 +41,22 @@ class StartServerTest extends TestCase
                 headers: ['X-Subject-Token' => 'fake-token'],
             ),
             'compute.test/servers/'.self::OS_SERVER_ID.'/action' => Http::response(status: 202),
+            'compute.test/servers/detail' => Http::response(
+                body: ['servers' => [[
+                    'id' => self::OS_SERVER_ID,
+                    'name' => 'web-01',
+                    'status' => $listedStatus,
+                ]]],
+                status: 200,
+            ),
             'compute.test/servers/'.self::OS_SERVER_ID => Http::response(
-                body: ['server' => ['id' => self::OS_SERVER_ID, 'status' => $serverStatusAfterStart]],
+                body: ['server' => ['id' => self::OS_SERVER_ID, 'status' => $listedStatus]],
                 status: 200,
             ),
         ]);
     }
 
-    private function makeProjectWithServer(string $initialStatus = 'SHUTOFF'): Server
+    private function makeProjectWithServer(): Server
     {
         $project = Project::create([
             'name' => 'Demo',
@@ -61,22 +69,18 @@ class StartServerTest extends TestCase
             'project_id' => $project->id,
             'open_stack_server_id' => self::OS_SERVER_ID,
             'name' => 'web-01',
-            'status' => $initialStatus,
         ]);
     }
 
-    public function test_start_endpoint_calls_openstack_and_updates_server_status(): void
+    public function test_start_endpoint_calls_openstack_start_action(): void
     {
-        $server = $this->makeProjectWithServer('SHUTOFF');
-        $this->fakeOpenStack(serverStatusAfterStart: 'ACTIVE');
+        $server = $this->makeProjectWithServer();
+        $this->fakeOpenStack(listedStatus: 'ACTIVE');
 
         $response = $this->post(route('servers.start', $server));
 
         $response->assertSessionHasNoErrors();
         $response->assertRedirect();
-
-        $server->refresh();
-        $this->assertSame('ACTIVE', $server->status);
 
         Http::assertSent(fn ($request) => str_ends_with($request->url(), '/servers/'.self::OS_SERVER_ID.'/action')
             && $request['os-start'] === null);
@@ -84,7 +88,8 @@ class StartServerTest extends TestCase
 
     public function test_servers_page_shows_running_badge_for_active_server(): void
     {
-        $this->makeProjectWithServer('ACTIVE');
+        $this->makeProjectWithServer();
+        $this->fakeOpenStack(listedStatus: 'ACTIVE');
 
         $response = $this->get(route('servers'));
 
@@ -94,7 +99,8 @@ class StartServerTest extends TestCase
 
     public function test_servers_page_shows_stopped_badge_for_shutoff_server(): void
     {
-        $this->makeProjectWithServer('SHUTOFF');
+        $this->makeProjectWithServer();
+        $this->fakeOpenStack(listedStatus: 'SHUTOFF');
 
         $response = $this->get(route('servers'));
 
@@ -102,9 +108,24 @@ class StartServerTest extends TestCase
         $response->assertSee('Gestoppt');
     }
 
-    public function test_start_failure_does_not_change_status(): void
+    public function test_servers_page_renders_unknown_badge_when_openstack_unreachable(): void
     {
-        $server = $this->makeProjectWithServer('SHUTOFF');
+        $this->makeProjectWithServer();
+
+        config(['services.openstack.auth_url' => 'https://openstack.test']);
+        Http::fake([
+            'openstack.test/v3/auth/tokens' => Http::response(status: 401),
+        ]);
+
+        $response = $this->get(route('servers'));
+
+        $response->assertOk();
+        $response->assertSee('Unbekannt');
+    }
+
+    public function test_start_failure_does_not_call_action_endpoint(): void
+    {
+        $server = $this->makeProjectWithServer();
 
         config(['services.openstack.auth_url' => 'https://openstack.test']);
         Http::fake([
@@ -115,7 +136,79 @@ class StartServerTest extends TestCase
 
         $response->assertRedirect();
 
-        $server->refresh();
-        $this->assertSame('SHUTOFF', $server->status);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), '/action'));
+    }
+
+    public function test_status_endpoint_renders_starting_badge_for_build_state(): void
+    {
+        $server = $this->makeProjectWithServer();
+        $this->fakeOpenStack(listedStatus: 'BUILD');
+
+        $response = $this->get(route('servers.status', $server));
+
+        $response->assertOk();
+        $response->assertSee('hx-trigger="every 2s"', escape: false);
+        $response->assertSee('Startet', escape: false);
+    }
+
+    public function test_status_endpoint_renders_stopping_badge_when_expecting_shutoff(): void
+    {
+        $server = $this->makeProjectWithServer();
+        $this->fakeOpenStack(listedStatus: 'ACTIVE');
+
+        $response = $this->get(route('servers.status', $server).'?expecting=SHUTOFF');
+
+        $response->assertOk();
+        $response->assertSee('hx-trigger="every 2s"', escape: false);
+        $response->assertSee('Stoppt', escape: false);
+    }
+
+    public function test_status_endpoint_returns_static_badge_when_stable(): void
+    {
+        $server = $this->makeProjectWithServer();
+        $this->fakeOpenStack(listedStatus: 'ACTIVE');
+
+        $response = $this->get(route('servers.status', $server));
+
+        $response->assertOk();
+        $response->assertSee('Laufend');
+        $response->assertDontSee('hx-trigger', escape: false);
+    }
+
+    public function test_status_endpoint_keeps_polling_when_actual_status_does_not_match_expected(): void
+    {
+        $server = $this->makeProjectWithServer();
+        $this->fakeOpenStack(listedStatus: 'SHUTOFF');
+
+        $response = $this->get(route('servers.status', $server).'?expecting=ACTIVE');
+
+        $response->assertOk();
+        $response->assertSee('hx-trigger="every 2s"', escape: false);
+        $response->assertSee('expecting=ACTIVE', escape: false);
+    }
+
+    public function test_status_endpoint_stops_polling_when_actual_status_matches_expected(): void
+    {
+        $server = $this->makeProjectWithServer();
+        $this->fakeOpenStack(listedStatus: 'ACTIVE');
+
+        $response = $this->get(route('servers.status', $server).'?expecting=ACTIVE');
+
+        $response->assertOk();
+        $response->assertSee('Laufend');
+        $response->assertDontSee('hx-trigger', escape: false);
+    }
+
+    public function test_status_endpoint_includes_oob_toggle_button(): void
+    {
+        $server = $this->makeProjectWithServer();
+        $this->fakeOpenStack(listedStatus: 'ACTIVE');
+
+        $response = $this->get(route('servers.status', $server));
+
+        $response->assertOk();
+        $response->assertSee('id="server-toggle-'.$server->id.'"', escape: false);
+        $response->assertSee('hx-swap-oob="true"', escape: false);
+        $response->assertSee(route('servers.stop', $server), escape: false);
     }
 }

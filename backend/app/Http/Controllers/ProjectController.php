@@ -9,7 +9,9 @@ use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
 use App\Models\Project;
 use App\Services\Contracts\InventoryServiceInterface;
+use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ProjectServiceInterface;
+use App\Services\Contracts\ServerStatusServiceInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -19,6 +21,8 @@ class ProjectController extends Controller
     public function __construct(
         private ProjectServiceInterface $projects,
         private InventoryServiceInterface $inventory,
+        private ServerStatusServiceInterface $serverStatus,
+        private PendingActionTrackerInterface $pendingActions,
     ) {}
 
     public function store(StoreProjectRequest $request): RedirectResponse|Response
@@ -62,16 +66,24 @@ class ProjectController extends Controller
 
     private function projectsPartial(string $toastMessage, string $toastType = 'success'): Response
     {
-        $projects = $this->projects->getAll()->load('servers')->map(fn ($p) => [
+        $projectModels = $this->projects->getAll()->load('servers');
+        $statuses = $this->serverStatus->statusesForProjects($projectModels);
+
+        $projects = $projectModels->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
-            'servers' => $p->servers->map(fn ($s) => [
-                'id' => $s->id,
-                'name' => $s->name,
-                'open_stack_server_id' => $s->open_stack_server_id,
-                'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
-                'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
-            ])->all(),
+            'servers' => $p->servers->map(function ($s) use ($statuses) {
+                $rawStatus = $statuses->statusFor($s->open_stack_server_id);
+
+                return [
+                    'id' => $s->id,
+                    'name' => $s->name,
+                    'open_stack_server_id' => $s->open_stack_server_id,
+                    'raw_status' => $rawStatus,
+                    'expecting' => $this->pendingActions->expectationFor($s->id, $rawStatus),
+                    'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
+                ];
+            })->all(),
         ])->all();
 
         return response(view('partials.projects-list', compact('projects')))
