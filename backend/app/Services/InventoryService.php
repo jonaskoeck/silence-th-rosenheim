@@ -58,8 +58,10 @@ class InventoryService implements InventoryServiceInterface
                         $foundNew = true;
                     }
 
-                    $server->name = $osServer['name'];
+                    $flavorId       = $osServer['flavor']['id'] ?? null;
+                    $server->name   = $osServer['name'];
                     $server->status = $osServer['status'] ?? null;
+                    $server->flavor = $flavorId ? $this->client->getFlavorName($auth->token, $auth->computeEndpoint, $flavorId) : null;
                     $server->save();
                 }
 
@@ -124,8 +126,10 @@ class InventoryService implements InventoryServiceInterface
                     $foundNew = true;
                 }
 
-                $server->name = $osServer['name'];
+                $flavorId       = $osServer['flavor']['id'] ?? null;
+                $server->name   = $osServer['name'];
                 $server->status = $osServer['status'] ?? null;
+                $server->flavor = $flavorId ? $this->client->getFlavorName($auth->token, $auth->computeEndpoint, $flavorId) : null;
                 $server->save();
             }
 
@@ -151,5 +155,18 @@ class InventoryService implements InventoryServiceInterface
             'had_errors' => $hadErrors,
             'found_new_servers' => $foundNew,
         ]);
+    }
+
+    private function resolveFlavorName(string $token, string $endpoint, ?string $flavorId, array &$cache): ?string
+    {
+        if (!$flavorId) {
+            return null;
+        }
+
+        if (!array_key_exists($flavorId, $cache)) {
+            $cache[$flavorId] = $this->client->getFlavorName($token, $endpoint, $flavorId);
+        }
+
+        return $cache[$flavorId];
     }
 }

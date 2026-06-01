@@ -21,6 +21,7 @@ class Server extends Model
         'name',
         'label',
         'status',
+        'flavor',
         'schedule_active',
         'schedule_name',
         'discovered_by_run_id',
