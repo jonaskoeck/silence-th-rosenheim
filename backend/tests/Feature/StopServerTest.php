@@ -102,6 +102,42 @@ class StopServerTest extends TestCase
         Http::assertNotSent(fn ($request) => str_contains($request->url(), '/action'));
     }
 
+    public function test_stop_swallows_409_when_action_already_in_progress(): void
+    {
+        $server = $this->makeProjectWithServer();
+
+        config(['services.openstack.auth_url' => 'https://openstack.test']);
+        Http::fake([
+            'openstack.test/v3/auth/tokens' => Http::response(
+                body: [
+                    'token' => [
+                        'expires_at' => '2099-01-01T00:00:00Z',
+                        'project' => ['id' => self::OS_PROJECT_ID, 'name' => 'demo'],
+                        'catalog' => [[
+                            'type' => 'compute',
+                            'endpoints' => [[
+                                'interface' => 'public',
+                                'url' => 'https://compute.test',
+                            ]],
+                        ]],
+                    ],
+                ],
+                status: 201,
+                headers: ['X-Subject-Token' => 'fake-token'],
+            ),
+            'compute.test/servers/'.self::OS_SERVER_ID.'/action' => Http::response(
+                body: ['conflictingRequest' => ['code' => 409, 'message' => 'Cannot os-stop: already stopped']],
+                status: 409,
+            ),
+        ]);
+
+        $response = $this->post(route('servers.stop', $server));
+
+        $response->assertRedirect();
+        $response->assertSessionMissing('server_action_error');
+        $response->assertSessionHas('status');
+    }
+
     public function test_polling_stops_after_max_attempts(): void
     {
         $server = $this->makeProjectWithServer();

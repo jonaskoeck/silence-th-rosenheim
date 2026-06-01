@@ -118,6 +118,12 @@ class OpenStackClient implements OpenStackClientInterface
 
         Log::debug('OpenStack start server response', ['status' => $response->status()]);
 
+        if ($response->status() === 409) {
+            Log::info('OpenStack start ignored: action already in progress or already settled', ['server_id' => $serverId]);
+
+            return;
+        }
+
         if ($response->failed()) {
             throw OpenStackServerActionException::fromUnexpectedStatus('start', $response->status());
         }
@@ -139,6 +145,12 @@ class OpenStackClient implements OpenStackClientInterface
         }
 
         Log::debug('OpenStack stop server response', ['status' => $response->status()]);
+
+        if ($response->status() === 409) {
+            Log::info('OpenStack stop ignored: action already in progress or already settled', ['server_id' => $serverId]);
+
+            return;
+        }
 
         if ($response->failed()) {
             throw OpenStackServerActionException::fromUnexpectedStatus('stop', $response->status());
