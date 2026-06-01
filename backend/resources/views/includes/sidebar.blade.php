@@ -2,8 +2,8 @@
 $navItems = [
     ['route' => 'dashboard',  'icon' => 'speedometer2',  'label' => 'Dashboard'],
     ['route' => 'servers',    'icon' => 'server',         'label' => 'Projekte & Server'],
-    ['route' => 'inventory',  'icon' => 'arrow-repeat',   'label' => 'Inventarisierungsläufe'],
     ['route' => 'schedules',  'icon' => 'clock-history',  'label' => 'Zeitpläne'],
+    ['route' => 'inventory',  'icon' => 'arrow-repeat',   'label' => 'Inventarisierungsläufe'],
 ];
 @endphp
 <ul class="nav flex-column gap-1 align-items-center w-100">
