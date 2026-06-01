@@ -59,8 +59,10 @@ class InventoryService implements InventoryServiceInterface
                         $foundNew = true;
                     }
 
-                    $server->name = $osServer['name'];
+                    $flavorId       = $osServer['flavor']['id'] ?? null;
+                    $server->name   = $osServer['name'];
                     $server->status = $osServer['status'] ?? null;
+                    $server->flavor = $flavorId ? $this->client->getFlavorName($auth->token, $auth->computeEndpoint, $flavorId) : null;
                     $server->save();
                 }
 
@@ -130,8 +132,10 @@ class InventoryService implements InventoryServiceInterface
                     $foundNew = true;
                 }
 
-                $server->name = $osServer['name'];
+                $flavorId       = $osServer['flavor']['id'] ?? null;
+                $server->name   = $osServer['name'];
                 $server->status = $osServer['status'] ?? null;
+                $server->flavor = $flavorId ? $this->client->getFlavorName($auth->token, $auth->computeEndpoint, $flavorId) : null;
                 $server->save();
             }
 
@@ -162,4 +166,5 @@ class InventoryService implements InventoryServiceInterface
             'deleted_servers' => $deletedServers,
         ]);
     }
+
 }
