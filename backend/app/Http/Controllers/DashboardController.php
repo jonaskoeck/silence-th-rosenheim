@@ -65,24 +65,22 @@ class DashboardController extends Controller
     {
         $total = 0.0;
 
-        foreach ($projects as $project) {
-            foreach ($project->servers as $server) {
-                if ($server->actions->isEmpty()) {
-                    continue;
-                }
-
-                if (!$server->schedule_active) {
-                    continue;
-                }
-
-                if (!$server->flavor) {
-                    continue;
-                }
-
-                $rate           = FlavorParser::hourlyCost($server->flavor);
-                $stoppedPerWeek = $this->weeklyStoppedHours($server->actions);
-                $total         += $stoppedPerWeek * 4 * $rate;
+        foreach ($projects->flatMap(fn ($p) => $p->servers) as $server) {
+            if ($server->actions->isEmpty()) {
+                continue;
             }
+
+            if (!$server->schedule_active) {
+                continue;
+            }
+
+            if (!$server->flavor) {
+                continue;
+            }
+
+            $rate           = FlavorParser::hourlyCost($server->flavor);
+            $stoppedPerWeek = $this->weeklyStoppedHours($server->actions);
+            $total         += $stoppedPerWeek * 4 * $rate;
         }
 
         return $total;
