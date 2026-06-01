@@ -23,4 +23,8 @@ interface OpenStackClientInterface
      * @return array<string, mixed>
      */
     public function getServer(string $token, string $computeEndpoint, string $serverId): array;
+
+    public function getFlavorName(string $token, string $computeEndpoint, string $flavorId): ?string;
+
+
 }
