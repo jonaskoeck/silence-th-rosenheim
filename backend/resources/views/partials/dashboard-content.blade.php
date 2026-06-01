@@ -177,7 +177,7 @@
                 <p class="text-muted small mb-1">Durch Zeitpläne diesen Monat gespart (geschätzt)</p>
                 <h3 class="fw-bold mb-0">€ {{ number_format($monthlySavings, 2, ',', '.') }}</h3>
                 <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">
-                    Basiert auf aktiven Zeitplänen aller Server · {{ now()->locale('de')->isoFormat('MMMM YYYY') }}
+                    Basiert auf aktiven Zeitplänen aller Server
                 </p>
             </div>
         </div>

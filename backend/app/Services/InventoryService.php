@@ -167,16 +167,4 @@ class InventoryService implements InventoryServiceInterface
         ]);
     }
 
-    private function resolveFlavorName(string $token, string $endpoint, ?string $flavorId, array &$cache): ?string
-    {
-        if (!$flavorId) {
-            return null;
-        }
-
-        if (!array_key_exists($flavorId, $cache)) {
-            $cache[$flavorId] = $this->client->getFlavorName($token, $endpoint, $flavorId);
-        }
-
-        return $cache[$flavorId];
-    }
 }

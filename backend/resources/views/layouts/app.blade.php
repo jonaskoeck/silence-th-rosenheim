@@ -109,10 +109,6 @@
 
         <div class="px-4 py-3 border-bottom">
             <p class="text-muted small fw-semibold text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:.05em">System (Backend-Cron)</p>
-            <div class="alert alert-warning py-2 px-2 mb-3" style="font-size:0.72rem">
-                <i class="bi bi-exclamation-triangle me-1"></i>
-                Änderungen greifen erst nach Neustart des Scheduler-Containers.
-            </div>
             <div class="mb-3">
                 <label class="form-label small fw-semibold" for="schedulePollIntervalSelect">Zeitplan-Auslösung</label>
                 <select class="form-select form-select-sm mt-2" id="schedulePollIntervalSelect"
