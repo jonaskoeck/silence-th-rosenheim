@@ -4,7 +4,8 @@
         <div class="d-flex align-items-center flex-grow-1 py-3" style="cursor:pointer"
              data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}"
              data-project-name="{{ $project['name'] }}">
-            <i class="bi bi-chevron-down me-2 text-muted" style="font-size:0.85rem"></i>
+            <i class="bi bi-chevron-right me-2 text-muted collapse-icon-closed" style="font-size:0.85rem"></i>
+            <i class="bi bi-chevron-down me-2 text-muted collapse-icon-open" style="font-size:0.85rem"></i>
             <span class="fw-semibold">{{ $project['name'] }}</span>
         </div>
         <div class="d-flex gap-1 align-items-center py-3">
