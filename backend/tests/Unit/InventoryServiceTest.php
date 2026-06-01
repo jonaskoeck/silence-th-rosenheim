@@ -141,6 +141,36 @@ class InventoryServiceTest extends TestCase
     }
 
     /**
+     * Prüft: Wenn ein Server gelöscht wird, wird sein Name im Lauf unter
+     * `deleted_servers` festgehalten – als Snapshot vor der Löschung. So
+     * bleibt in der Übersicht nachvollziehbar, welche Server ein Lauf
+     * entfernt hat.
+     */
+    public function test_run_for_all_projects_records_deleted_server_names(): void
+    {
+        $project = Project::factory()->create();
+
+        Server::factory()->create([
+            'project_id'           => $project->id,
+            'open_stack_server_id' => 'old-os-id',
+            'name'                 => 'Alter Server',
+        ]);
+
+        $this->projects->shouldReceive('getAll')->andReturn(new Collection([$project]));
+
+        $this->client->shouldReceive('authenticate')->andReturn(
+            new AuthenticationResultDto('fake-token', $project->open_stack_project_id, 'https://nova.test/v2.1')
+        );
+
+        $this->client->shouldReceive('listServers')->andReturn([]);
+
+        $this->service->runForAllProjects();
+
+        $run = InventoryRun::latest()->first();
+        $this->assertSame(['Alter Server'], $run->deleted_servers);
+    }
+
+    /**
      * Prüft: Wenn die Authentifizierung bei OpenStack fehlschlägt, wird
      * der InventoryRun mit `had_errors = true` markiert. Eine Exception
      * darf den gesamten Lauf NICHT abbrechen – andere Projekte müssten

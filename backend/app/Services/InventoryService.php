@@ -33,6 +33,7 @@ class InventoryService implements InventoryServiceInterface
 
         $hadErrors = false;
         $foundNew = false;
+        $deletedServers = [];
 
         foreach ($this->projects->getAll() as $project) {
             try {
@@ -68,9 +69,12 @@ class InventoryService implements InventoryServiceInterface
                 // Server die nicht mehr in OpenStack existieren aus der DB löschen
                 $fetchedIds = array_column($osServers, 'id');
 
-                $project->servers()
-                    ->whereNotIn('open_stack_server_id', $fetchedIds)
-                    ->delete();
+                $toDelete = $project->servers()
+                    ->whereNotIn('open_stack_server_id', $fetchedIds);
+
+                $deletedServers = array_merge($deletedServers, $toDelete->pluck('name')->all());
+
+                $toDelete->delete();
 
                 $project->update(['last_inventory_run_id' => $run->id]);
 
@@ -89,6 +93,7 @@ class InventoryService implements InventoryServiceInterface
             'end_time' => now(),
             'had_errors' => $hadErrors,
             'found_new_servers' => $foundNew,
+            'deleted_servers' => $deletedServers,
         ]);
     }
 
@@ -105,6 +110,7 @@ class InventoryService implements InventoryServiceInterface
 
         $hadErrors = false;
         $foundNew = false;
+        $deletedServers = [];
 
         try {
             $auth = $this->client->authenticate(
@@ -135,9 +141,12 @@ class InventoryService implements InventoryServiceInterface
 
             $fetchedIds = array_column($osServers, 'id');
 
-            $project->servers()
-                ->whereNotIn('open_stack_server_id', $fetchedIds)
-                ->delete();
+            $toDelete = $project->servers()
+                ->whereNotIn('open_stack_server_id', $fetchedIds);
+
+            $deletedServers = $toDelete->pluck('name')->all();
+
+            $toDelete->delete();
 
             // Beim Projekt speichern welcher Run der letzte war
             $project->update(['last_inventory_run_id' => $run->id]);
@@ -154,6 +163,7 @@ class InventoryService implements InventoryServiceInterface
             'end_time' => now(),
             'had_errors' => $hadErrors,
             'found_new_servers' => $foundNew,
+            'deleted_servers' => $deletedServers,
         ]);
     }
 

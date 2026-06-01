@@ -19,6 +19,7 @@ class InventoryRun extends Model
         'triggered_automatically',
         'had_errors',
         'found_new_servers',
+        'deleted_servers',
     ];
 
     protected function casts(): array
@@ -29,6 +30,7 @@ class InventoryRun extends Model
             'triggered_automatically' => 'boolean',
             'had_errors' => 'boolean',
             'found_new_servers' => 'boolean',
+            'deleted_servers' => 'array',
         ];
     }
 
