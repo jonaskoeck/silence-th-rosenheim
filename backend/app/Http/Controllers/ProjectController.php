@@ -29,7 +29,7 @@ class ProjectController extends Controller
     {
         $project = $this->projects->create($request->projectAttributes());
 
-        $this->inventory->runForProject($project->id);
+        $this->inventory->runForProject($project->id, triggeredAutomatically: true);
 
         if ($request->header('HX-Request')) {
             return $this->projectsPartial('Projekt wurde erstellt.');

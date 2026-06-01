@@ -22,16 +22,18 @@ class InventoryServiceTest extends TestCase
     use DatabaseTransactions;
 
     private OpenStackClientInterface $client;
+
     private ProjectServiceInterface $projects;
+
     private InventoryService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->client   = Mockery::mock(OpenStackClientInterface::class);
+        $this->client = Mockery::mock(OpenStackClientInterface::class);
         $this->projects = Mockery::mock(ProjectServiceInterface::class);
-        $this->service  = new InventoryService($this->client, $this->projects);
+        $this->service = new InventoryService($this->client, $this->projects);
     }
 
     /**
@@ -54,7 +56,7 @@ class InventoryServiceTest extends TestCase
 
         $this->assertDatabaseHas('inventory_runs', [
             'triggered_automatically' => false,
-            'had_errors'              => false,
+            'had_errors' => false,
         ]);
     }
 
@@ -108,7 +110,7 @@ class InventoryServiceTest extends TestCase
 
         $this->assertDatabaseHas('servers', [
             'open_stack_server_id' => 'os-id-1',
-            'label'                => ServerLabel::NONE->value,
+            'label' => ServerLabel::NONE->value,
         ]);
     }
 
@@ -122,7 +124,7 @@ class InventoryServiceTest extends TestCase
         $project = Project::factory()->create();
 
         $server = Server::factory()->create([
-            'project_id'           => $project->id,
+            'project_id' => $project->id,
             'open_stack_server_id' => 'old-os-id',
         ]);
 
@@ -173,6 +175,20 @@ class InventoryServiceTest extends TestCase
         $this->assertDatabaseHas('inventory_runs', ['triggered_automatically' => true]);
     }
 
+    public function test_run_for_project_sets_triggered_automatically_when_flag_is_passed(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->client->shouldReceive('authenticate')->andReturn(
+            new AuthenticationResultDto('fake-token', $project->open_stack_project_id, 'https://nova.test/v2.1')
+        );
+        $this->client->shouldReceive('listServers')->andReturn([]);
+
+        $this->service->runForProject($project->id, triggeredAutomatically: true);
+
+        $this->assertDatabaseHas('inventory_runs', ['triggered_automatically' => true]);
+    }
+
     /**
      * Prüft: Nach einem erfolgreichen Lauf wird auf dem Projekt das Feld
      * `last_inventory_run_id` auf den aktuellen Run gesetzt. Damit kann
@@ -195,7 +211,7 @@ class InventoryServiceTest extends TestCase
 
         $run = InventoryRun::latest()->first();
         $this->assertDatabaseHas('projects', [
-            'id'                    => $project->id,
+            'id' => $project->id,
             'last_inventory_run_id' => $run->id,
         ]);
     }
@@ -241,7 +257,7 @@ class InventoryServiceTest extends TestCase
 
         $this->assertDatabaseHas('servers', [
             'open_stack_server_id' => 'os-id-1',
-            'project_id'           => $project->id,
+            'project_id' => $project->id,
         ]);
     }
 }

@@ -89,13 +89,13 @@ class InventoryService implements InventoryServiceInterface
         ]);
     }
 
-    public function runForProject(int $projectId): void
+    public function runForProject(int $projectId, bool $triggeredAutomatically = false): void
     {
         $project = Project::findOrFail($projectId);
 
         $run = InventoryRun::create([
             'start_time' => now(),
-            'triggered_automatically' => false,
+            'triggered_automatically' => $triggeredAutomatically,
             'had_errors' => false,
             'found_new_servers' => false,
         ]);

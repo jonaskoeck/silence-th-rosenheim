@@ -147,14 +147,15 @@ class StoreProjectTest extends TestCase
         $mock = Mockery::mock(InventoryServiceInterface::class);
         $mock->shouldReceive('runForProject')
             ->once()
-            ->withArgs(fn (int $id) => Project::where('id', $id)
-                ->where('open_stack_project_id', self::RESOLVED_PROJECT_ID)
-                ->exists());
+            ->withArgs(fn (int $id, bool $triggeredAutomatically) => $triggeredAutomatically === true
+                && Project::where('id', $id)
+                    ->where('open_stack_project_id', self::RESOLVED_PROJECT_ID)
+                    ->exists());
         $this->app->instance(InventoryServiceInterface::class, $mock);
 
         $this->post(route('projects.store'), [
-            'name'                 => 'Acme Production',
-            'app_credential_id'    => 'cred-id-123',
+            'name' => 'Acme Production',
+            'app_credential_id' => 'cred-id-123',
             'app_credential_secret' => 'cred-secret-xyz',
         ]);
     }
@@ -176,8 +177,8 @@ class StoreProjectTest extends TestCase
         $this->app->instance(InventoryServiceInterface::class, $mock);
 
         $this->post(route('projects.store'), [
-            'name'                 => 'Acme Production',
-            'app_credential_id'    => 'wrong-id',
+            'name' => 'Acme Production',
+            'app_credential_id' => 'wrong-id',
             'app_credential_secret' => 'wrong-secret',
         ]);
     }
