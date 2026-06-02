@@ -20,6 +20,7 @@ class Server extends Model
         'open_stack_server_id',
         'name',
         'label',
+        'flavor',
         'schedule_active',
         'schedule_name',
         'discovered_by_run_id',

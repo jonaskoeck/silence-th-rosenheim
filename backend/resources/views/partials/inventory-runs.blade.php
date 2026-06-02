@@ -7,6 +7,7 @@
             <th>Auslöser</th>
             <th>Fehler</th>
             <th>Neue Server</th>
+            <th>Gelöschte Server</th>
         </tr>
     </thead>
     <tbody>
@@ -40,10 +41,21 @@
                     <span class="text-muted small">—</span>
                 @endif
             </td>
+            <td>
+                @if (!empty($run->deleted_servers))
+                    <div class="d-flex flex-wrap gap-1">
+                        @foreach ($run->deleted_servers as $name)
+                            <span class="badge text-bg-danger rounded-pill">{{ $name }}</span>
+                        @endforeach
+                    </div>
+                @else
+                    <span class="text-muted small">—</span>
+                @endif
+            </td>
         </tr>
         @empty
         <tr>
-            <td colspan="6" class="text-center text-muted small py-4">
+            <td colspan="7" class="text-center text-muted small py-4">
                 Keine Inventarisierungen vorhanden.
             </td>
         </tr>

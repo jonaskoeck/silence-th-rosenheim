@@ -88,6 +88,7 @@ class OpenStackClient implements OpenStackClientInterface
 
         try {
             $response = Http::withHeader('X-Auth-Token', $token)
+                ->withHeader('X-OpenStack-Nova-Microversion', '2.47')
                 ->acceptJson()
                 ->get($url);
         } catch (ConnectionException $e) {
@@ -184,6 +185,29 @@ class OpenStackClient implements OpenStackClientInterface
         ]);
 
         return $response->json('server') ?? [];
+    }
+
+    public function getFlavorName(string $token, string $computeEndpoint, string $flavorId): ?string
+    {
+        $url = $computeEndpoint.'/flavors/'.$flavorId;
+
+        try {
+            $response = Http::withHeader('X-Auth-Token', $token)
+                ->acceptJson()
+                ->get($url);
+        } catch (ConnectionException $e) {
+            Log::warning('OpenStack flavor lookup failed', ['flavor_id' => $flavorId, 'message' => $e->getMessage()]);
+
+            return null;
+        }
+
+        if ($response->failed()) {
+            Log::warning('OpenStack flavor lookup returned error', ['flavor_id' => $flavorId, 'status' => $response->status()]);
+
+            return null;
+        }
+
+        return $response->json('flavor.name');
     }
 
     /**

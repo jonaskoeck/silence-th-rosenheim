@@ -39,14 +39,16 @@ class InventoryController extends Controller
     {
         $this->inventory->runForAllProjects();
 
+        $toast = $this->inventoryToast();
+
         if ($request->header('HX-Target') === 'projects-container') {
-            return $this->projectsListResponse();
+            return $this->projectsListResponse($toast);
         }
 
         if ($request->header('HX-Request')) {
             $runs = InventoryRun::latest()->with('discoveredServers')->get();
 
-            return view('partials.inventory-runs', compact('runs'));
+            return response(view('partials.inventory-runs', compact('runs')))->header('HX-Trigger', $toast);
         }
 
         return redirect()->back();
@@ -57,13 +59,23 @@ class InventoryController extends Controller
         $this->inventory->runForProject($project);
 
         if ($request->header('HX-Request')) {
-            return $this->projectsListResponse();
+            return $this->projectsListResponse($this->inventoryToast());
         }
 
         return redirect()->back();
     }
 
-    private function projectsListResponse(): Response
+    private function inventoryToast(): string
+    {
+        $run = InventoryRun::latest()->first();
+
+        return json_encode(['toast' => [
+            'message' => $run?->had_errors ? 'Inventarisierung fehlgeschlagen.' : 'Inventarisierung abgeschlossen.',
+            'type' => $run?->had_errors ? 'danger' : 'success',
+        ]]);
+    }
+
+    private function projectsListResponse(string $toast): Response
     {
         $projectModels = $this->projects->getAll()->load('servers');
         $statuses = $this->serverStatus->statusesForProjects($projectModels);
@@ -89,12 +101,6 @@ class InventoryController extends Controller
             ])->all(),
         ])->all();
 
-        $response = response(view('partials.projects-list', compact('projects')));
-
-        if ($payload = $statuses->toastTriggerPayload()) {
-            $response->header('HX-Trigger', $payload);
-        }
-
-        return $response;
+        return response(view('partials.projects-list', compact('projects')))->header('HX-Trigger', $toast);
     }
 }

@@ -50,6 +50,7 @@ document.addEventListener('htmx:configRequest', e => {
 
 document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
     new bootstrap.Tooltip(el);
+    el.addEventListener('click', () => bootstrap.Tooltip.getInstance(el)?.hide());
 });
 
 document.addEventListener('htmx:afterSwap', () => {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Enums\ActionType;
 use App\Enums\ServerLabel;
 use App\Enums\Weekday;
 use App\Models\InventoryRun;
@@ -11,7 +12,9 @@ use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ProjectServiceInterface;
 use App\Services\Contracts\ServerActionServiceInterface;
 use App\Services\Contracts\ServerStatusServiceInterface;
+use App\Support\FlavorParser;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
@@ -26,9 +29,7 @@ class DashboardController extends Controller
 
     public function index(Request $request): View|Response
     {
-        $projectModels = $this->projects->getAll()->load('servers')
-            ->sortByDesc('created_at')
-            ->take(3);
+        $projectModels = $this->projects->getAll()->load('servers.actions');
 
         $statuses = $this->serverStatus->statusesForProjects($projectModels);
 
@@ -40,7 +41,7 @@ class DashboardController extends Controller
         }
         $expectations = $this->pendingActions->expectationsFor($rawStatusByServerId);
 
-        $projects = $projectModels->map(fn ($p) => [
+        $projects = $projectModels->sortByDesc('created_at')->take(3)->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
             'open_stack_project_id' => $p->open_stack_project_id,
@@ -50,7 +51,6 @@ class DashboardController extends Controller
                 'raw_status' => $rawStatusByServerId[$s->id],
                 'expecting' => $expectations[$s->id] ?? null,
                 'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
-                'online_since' => null,
             ])->all(),
         ])->all();
 
@@ -63,18 +63,17 @@ class DashboardController extends Controller
 
         $lastInventory = InventoryRun::latest()->first();
 
-        $nextEvents = $this->calculateNextEvents();
-
         $data = [
             'projects' => $projects,
             'schedules' => collect(),
-            'nextEvents' => $nextEvents,
+            'nextEvents' => $this->calculateNextEvents(),
             'activity' => [],
             'total' => $total,
             'running' => $running,
             'stopped' => $total - $running,
             'activeSchedules' => 0,
             'lastInventory' => $lastInventory,
+            'monthlySavings' => $this->calculateMonthlySavings($projectModels),
         ];
 
         if ($request->header('HX-Request')) {
@@ -88,6 +87,80 @@ class DashboardController extends Controller
         }
 
         return view('dashboard', $data);
+    }
+
+    private function calculateMonthlySavings(\Illuminate\Support\Collection $projects): float
+    {
+        $total = 0.0;
+
+        foreach ($projects->flatMap(fn ($p) => $p->servers) as $server) {
+            if ($server->actions->isEmpty()) {
+                continue;
+            }
+
+            if (! $server->schedule_active) {
+                continue;
+            }
+
+            if (! $server->flavor) {
+                continue;
+            }
+
+            $rate = FlavorParser::hourlyCost($server->flavor);
+            $stoppedPerWeek = $this->weeklyStoppedHours($server->actions);
+            $total += $stoppedPerWeek * 4 * $rate;
+        }
+
+        return $total;
+    }
+
+    private function weeklyStoppedHours(Collection $actions): float
+    {
+        $dayOffset = [
+            Weekday::MONDAY->name => 0,
+            Weekday::TUESDAY->name => 1440,
+            Weekday::WEDNESDAY->name => 2880,
+            Weekday::THURSDAY->name => 4320,
+            Weekday::FRIDAY->name => 5760,
+            Weekday::SATURDAY->name => 7200,
+            Weekday::SUNDAY->name => 8640,
+        ];
+
+        $starts = [];
+        $stops = [];
+
+        foreach ($actions as $action) {
+            [$h, $m] = explode(':', $action->time);
+            $timeMin = (int) $h * 60 + (int) $m;
+
+            foreach (Weekday::unpack($action->weekday) as $day) {
+                $abs = $dayOffset[$day->name] + $timeMin;
+                if ($action->type === ActionType::START) {
+                    $starts[] = $abs;
+                } else {
+                    $stops[] = $abs;
+                }
+            }
+        }
+
+        if (empty($starts) || empty($stops)) {
+            return 0.0;
+        }
+
+        sort($starts);
+        sort($stops);
+
+        $runningMinutes = 0;
+        foreach ($starts as $start) {
+            foreach ($stops as $stop) {
+                if ($stop > $start) {
+                    $runningMinutes += $stop - $start;
+                    break;
+                }
+            }
+        }
+
+        return max(0.0, 168.0 - ($runningMinutes / 60));
     }
 
     private function calculateNextEvents(int $limit = 7): array
