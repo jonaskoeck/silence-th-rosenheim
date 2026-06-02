@@ -68,21 +68,25 @@ class InventoryController extends Controller
         $projectModels = $this->projects->getAll()->load('servers');
         $statuses = $this->serverStatus->statusesForProjects($projectModels);
 
+        $rawStatusByServerId = [];
+        foreach ($projectModels as $p) {
+            foreach ($p->servers as $s) {
+                $rawStatusByServerId[$s->id] = $statuses->statusFor($s->open_stack_server_id);
+            }
+        }
+        $expectations = $this->pendingActions->expectationsFor($rawStatusByServerId);
+
         $projects = $projectModels->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
-            'servers' => $p->servers->map(function ($s) use ($statuses) {
-                $rawStatus = $statuses->statusFor($s->open_stack_server_id);
-
-                return [
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'open_stack_server_id' => $s->open_stack_server_id,
-                    'raw_status' => $rawStatus,
-                    'expecting' => $this->pendingActions->expectationFor($s->id, $rawStatus),
-                    'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
-                ];
-            })->all(),
+            'servers' => $p->servers->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'open_stack_server_id' => $s->open_stack_server_id,
+                'raw_status' => $rawStatusByServerId[$s->id],
+                'expecting' => $expectations[$s->id] ?? null,
+                'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
+            ])->all(),
         ])->all();
 
         $response = response(view('partials.projects-list', compact('projects')));

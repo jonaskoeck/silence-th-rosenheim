@@ -7,6 +7,7 @@ namespace Tests\Feature;
 use App\Models\Project;
 use App\Models\Server;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -17,6 +18,12 @@ class StopServerTest extends TestCase
     private const OS_PROJECT_ID = 'a4d3f1c2b5e64d7a8c9b0e1f2a3b4c5d';
 
     private const OS_SERVER_ID = 'os-server-uuid-1234';
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Cache::flush();
+    }
 
     private function fakeOpenStack(string $listedStatus = 'SHUTOFF'): void
     {

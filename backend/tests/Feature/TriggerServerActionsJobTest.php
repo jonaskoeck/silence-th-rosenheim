@@ -9,9 +9,11 @@ use App\Jobs\TriggerServerActionsJob;
 use App\Models\Server;
 use App\Models\ServerAction;
 use App\Models\Setting;
+use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ServerControlServiceInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -23,10 +25,21 @@ class TriggerServerActionsJobTest extends TestCase
     use DatabaseTransactions;
     use MockeryPHPUnitIntegration;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Cache::flush();
+    }
+
     protected function tearDown(): void
     {
         CarbonImmutable::setTestNow();
         parent::tearDown();
+    }
+
+    private function tracker(): PendingActionTrackerInterface
+    {
+        return app(PendingActionTrackerInterface::class);
     }
 
     /** 2024-01-01 = Montag, 2024-01-02 = Dienstag */
@@ -67,7 +80,7 @@ class TriggerServerActionsJobTest extends TestCase
             ->once()
             ->withArgs(fn (Server $s) => $s->id === $server->id);
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_action_mid_slot_is_triggered(): void
@@ -79,7 +92,7 @@ class TriggerServerActionsJobTest extends TestCase
         $mock = Mockery::mock(ServerControlServiceInterface::class);
         $mock->shouldReceive('start')->once();
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_action_at_slot_end_is_not_triggered(): void
@@ -92,7 +105,7 @@ class TriggerServerActionsJobTest extends TestCase
         $mock->shouldNotReceive('start');
         $mock->shouldNotReceive('stop');
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_action_in_previous_slot_is_not_triggered(): void
@@ -104,7 +117,7 @@ class TriggerServerActionsJobTest extends TestCase
         $mock = Mockery::mock(ServerControlServiceInterface::class);
         $mock->shouldNotReceive('start');
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_floor_is_robust_against_cron_jitter(): void
@@ -116,7 +129,7 @@ class TriggerServerActionsJobTest extends TestCase
         $mock = Mockery::mock(ServerControlServiceInterface::class);
         $mock->shouldReceive('start')->once();
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_bitmask_match_skips_wrong_weekday(): void
@@ -128,7 +141,7 @@ class TriggerServerActionsJobTest extends TestCase
         $mock = Mockery::mock(ServerControlServiceInterface::class);
         $mock->shouldNotReceive('start');
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_bitmask_match_triggers_on_matching_weekday(): void
@@ -140,7 +153,7 @@ class TriggerServerActionsJobTest extends TestCase
         $mock = Mockery::mock(ServerControlServiceInterface::class);
         $mock->shouldReceive('start')->once();
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_schedule_inactive_servers_are_skipped(): void
@@ -152,7 +165,7 @@ class TriggerServerActionsJobTest extends TestCase
         $mock = Mockery::mock(ServerControlServiceInterface::class);
         $mock->shouldNotReceive('start');
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_action_type_stop_calls_stop(): void
@@ -165,7 +178,7 @@ class TriggerServerActionsJobTest extends TestCase
         $mock->shouldReceive('stop')->once();
         $mock->shouldNotReceive('start');
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_error_in_one_server_does_not_abort_job(): void
@@ -187,7 +200,7 @@ class TriggerServerActionsJobTest extends TestCase
                 }
             });
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
 
         Log::shouldHaveReceived('error')
             ->withArgs(fn ($msg, $ctx) => $msg === 'ServerAction trigger failed' && ($ctx['error'] ?? null) === 'boom')
@@ -206,7 +219,7 @@ class TriggerServerActionsJobTest extends TestCase
         $mock = Mockery::mock(ServerControlServiceInterface::class);
         $mock->shouldReceive('start')->once();
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_slot_wrapping_midnight_still_matches(): void
@@ -219,6 +232,49 @@ class TriggerServerActionsJobTest extends TestCase
         $mock = Mockery::mock(ServerControlServiceInterface::class);
         $mock->shouldReceive('stop')->twice();
 
-        (new TriggerServerActionsJob)->handle($mock);
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+    }
+
+    public function test_successful_start_records_active_expectation(): void
+    {
+        $this->freezeMonday('08:00:30');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->once();
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+
+        $this->assertSame('ACTIVE', $this->tracker()->expectationFor($server->id, 'SHUTOFF'));
+    }
+
+    public function test_successful_stop_records_shutoff_expectation(): void
+    {
+        $this->freezeMonday('18:00:30');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $this->makeAction($server, 'STOP', '18:00', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('stop')->once();
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+
+        $this->assertSame('SHUTOFF', $this->tracker()->expectationFor($server->id, 'ACTIVE'));
+    }
+
+    public function test_failed_action_does_not_record_expectation(): void
+    {
+        Log::spy();
+        $this->freezeMonday('08:00:30');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->once()->andThrow(new RuntimeException('boom'));
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+
+        $this->assertNull($this->tracker()->expectationFor($server->id, 'SHUTOFF'));
     }
 }

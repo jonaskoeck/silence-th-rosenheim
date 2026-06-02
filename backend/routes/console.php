@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Jobs\RunInventoryJob;
 use App\Jobs\TriggerServerActionsJob;
 use App\Models\Setting;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schedule;
 use Illuminate\Support\Facades\Schema;
 
@@ -34,3 +35,8 @@ $serverActionIntervalMinutes = $tableReady
 Schedule::job(new TriggerServerActionsJob)
     ->cron("*/{$serverActionIntervalMinutes} * * * *")
     ->withoutOverlapping();
+
+Schedule::call(fn () => DB::table('cache')->where('expiration', '<', time())->delete())
+    ->daily()
+    ->name('prune-stale-cache')
+    ->onOneServer();

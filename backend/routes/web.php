@@ -7,6 +7,7 @@ use App\Http\Controllers\ProjectServerController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServerActionController;
 use App\Http\Controllers\SettingsController;
+use App\Services\Contracts\PendingActionTrackerInterface;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -63,6 +64,9 @@ Route::middleware('shibboleth')->group(function () {
     Route::post('/servers/{server}/start', [ProjectServerController::class, 'start'])->name('servers.start');
     Route::post('/servers/{server}/stop', [ProjectServerController::class, 'stop'])->name('servers.stop');
     Route::get('/servers/{server}/status', [ProjectServerController::class, 'status'])->name('servers.status');
+
+    Route::get('/pending-actions/check', fn (PendingActionTrackerInterface $tracker) => response()->json($tracker->pendingServerIds()))
+        ->name('pending-actions.check');
 
     Route::put('/settings/schedule-poll-interval', [SettingsController::class, 'updateSchedulePollInterval'])
         ->name('settings.schedule-poll-interval');

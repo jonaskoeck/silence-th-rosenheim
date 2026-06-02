@@ -6,16 +6,18 @@ namespace App\Services\Contracts;
 
 interface PendingActionTrackerInterface
 {
-    /**
-     * Record that a start/stop action was fired for the given server, expecting
-     * the given OpenStack status ('ACTIVE' or 'SHUTOFF') as the settled result.
-     */
     public function record(int $serverId, string $expectedStatus): void;
 
-    /**
-     * Return the expected status for the given server if an unsettled expectation
-     * exists, else null. Clears the entry when the actual status matches the
-     * expectation or when the TTL has expired.
-     */
     public function expectationFor(int $serverId, ?string $actualStatus): ?string;
+
+    /**
+     * @param  array<int, ?string>  $actualStatusByServerId  Map server_id => current raw OpenStack status
+     * @return array<int, ?string> Map server_id => expected status (or null if no expectation)
+     */
+    public function expectationsFor(array $actualStatusByServerId): array;
+
+    /**
+     * @return array<int, int> IDs of servers that currently have an active expectation.
+     */
+    public function pendingServerIds(): array;
 }

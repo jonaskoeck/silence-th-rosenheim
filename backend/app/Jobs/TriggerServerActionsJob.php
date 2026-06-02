@@ -8,6 +8,7 @@ use App\Enums\ActionType;
 use App\Enums\Weekday;
 use App\Models\ServerAction;
 use App\Models\Setting;
+use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ServerControlServiceInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +16,7 @@ use Throwable;
 
 class TriggerServerActionsJob
 {
-    public function handle(ServerControlServiceInterface $control): void
+    public function handle(ServerControlServiceInterface $control, PendingActionTrackerInterface $tracker): void
     {
         $interval = Setting::schedulePollIntervalMinutes();
         $now = CarbonImmutable::now(config('app.display_timezone'));
@@ -45,6 +46,11 @@ class TriggerServerActionsJob
                     ActionType::START => $control->start($action->server),
                     ActionType::STOP => $control->stop($action->server),
                 };
+
+                $tracker->record(
+                    $action->server_id,
+                    $action->type === ActionType::START ? 'ACTIVE' : 'SHUTOFF',
+                );
             } catch (Throwable $e) {
                 Log::error('ServerAction trigger failed', [
                     'server_action_id' => $action->id,

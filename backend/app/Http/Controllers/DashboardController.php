@@ -32,22 +32,26 @@ class DashboardController extends Controller
 
         $statuses = $this->serverStatus->statusesForProjects($projectModels);
 
+        $rawStatusByServerId = [];
+        foreach ($projectModels as $p) {
+            foreach ($p->servers as $s) {
+                $rawStatusByServerId[$s->id] = $statuses->statusFor($s->open_stack_server_id);
+            }
+        }
+        $expectations = $this->pendingActions->expectationsFor($rawStatusByServerId);
+
         $projects = $projectModels->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
             'open_stack_project_id' => $p->open_stack_project_id,
-            'servers' => $p->servers->map(function ($s) use ($statuses) {
-                $rawStatus = $statuses->statusFor($s->open_stack_server_id);
-
-                return [
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'raw_status' => $rawStatus,
-                    'expecting' => $this->pendingActions->expectationFor($s->id, $rawStatus),
-                    'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
-                    'online_since' => null,
-                ];
-            })->all(),
+            'servers' => $p->servers->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'raw_status' => $rawStatusByServerId[$s->id],
+                'expecting' => $expectations[$s->id] ?? null,
+                'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
+                'online_since' => null,
+            ])->all(),
         ])->all();
 
         $total = $projectModels->sum(fn ($p) => $p->servers->count());

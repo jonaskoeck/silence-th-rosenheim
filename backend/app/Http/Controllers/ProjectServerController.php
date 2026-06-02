@@ -146,21 +146,25 @@ class ProjectServerController extends Controller
      */
     private function mapProjects($projects, ServerStatusesDto $statuses): array
     {
+        $rawStatusByServerId = [];
+        foreach ($projects as $p) {
+            foreach ($p->servers as $s) {
+                $rawStatusByServerId[$s->id] = $statuses->statusFor($s->open_stack_server_id);
+            }
+        }
+        $expectations = $this->pendingActions->expectationsFor($rawStatusByServerId);
+
         return $projects->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
-            'servers' => $p->servers->map(function ($s) use ($statuses) {
-                $rawStatus = $statuses->statusFor($s->open_stack_server_id);
-
-                return [
-                    'id' => $s->id,
-                    'name' => $s->name,
-                    'open_stack_server_id' => $s->open_stack_server_id,
-                    'raw_status' => $rawStatus,
-                    'expecting' => $this->pendingActions->expectationFor($s->id, $rawStatus),
-                    'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
-                ];
-            })->all(),
+            'servers' => $p->servers->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'open_stack_server_id' => $s->open_stack_server_id,
+                'raw_status' => $rawStatusByServerId[$s->id],
+                'expecting' => $expectations[$s->id] ?? null,
+                'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
+            ])->all(),
         ])->all();
     }
 
