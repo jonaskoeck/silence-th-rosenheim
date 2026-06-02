@@ -69,7 +69,7 @@ class TriggerServerActionsJobTest extends TestCase
         ]);
     }
 
-    public function test_action_at_slot_start_is_triggered(): void
+    public function test_action_fires_when_time_has_just_passed(): void
     {
         $this->freezeMonday('08:00:30');
         $server = Server::factory()->create(['schedule_active' => true]);
@@ -83,46 +83,21 @@ class TriggerServerActionsJobTest extends TestCase
         (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
-    public function test_action_mid_slot_is_triggered(): void
+    public function test_action_does_not_fire_before_its_time(): void
     {
         $this->freezeMonday('08:00:30');
         $server = Server::factory()->create(['schedule_active' => true]);
         $this->makeAction($server, 'START', '08:03', Weekday::MONDAY->value);
 
         $mock = Mockery::mock(ServerControlServiceInterface::class);
-        $mock->shouldReceive('start')->once();
-
-        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
-    }
-
-    public function test_action_at_slot_end_is_not_triggered(): void
-    {
-        $this->freezeMonday('08:00:30');
-        $server = Server::factory()->create(['schedule_active' => true]);
-        $this->makeAction($server, 'START', '08:05', Weekday::MONDAY->value);
-
-        $mock = Mockery::mock(ServerControlServiceInterface::class);
-        $mock->shouldNotReceive('start');
-        $mock->shouldNotReceive('stop');
-
-        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
-    }
-
-    public function test_action_in_previous_slot_is_not_triggered(): void
-    {
-        $this->freezeMonday('08:00:30');
-        $server = Server::factory()->create(['schedule_active' => true]);
-        $this->makeAction($server, 'START', '07:55', Weekday::MONDAY->value);
-
-        $mock = Mockery::mock(ServerControlServiceInterface::class);
         $mock->shouldNotReceive('start');
 
         (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
-    public function test_floor_is_robust_against_cron_jitter(): void
+    public function test_past_action_within_catchup_window_is_caught_up(): void
     {
-        $this->freezeMonday('08:00:42');
+        $this->freezeMonday('08:10:00');
         $server = Server::factory()->create(['schedule_active' => true]);
         $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
 
@@ -130,6 +105,80 @@ class TriggerServerActionsJobTest extends TestCase
         $mock->shouldReceive('start')->once();
 
         (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+    }
+
+    public function test_past_action_outside_catchup_window_is_skipped(): void
+    {
+        // 30 min spaeter — ausserhalb des 15-min Fensters
+        $this->freezeMonday('08:30:00');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $action = $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldNotReceive('start');
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+
+        $this->assertNull($action->fresh()->last_triggered_at);
+    }
+
+    public function test_action_does_not_fire_twice_within_same_day(): void
+    {
+        $this->freezeMonday('08:00:30');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->once();
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+        // Zweiter Lauf in der gleichen Minute — sollte nicht erneut feuern
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+    }
+
+    public function test_action_fires_again_on_next_day(): void
+    {
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $action = $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value | Weekday::TUESDAY->value);
+
+        $this->freezeMonday('08:00:30');
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->twice();
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+
+        $this->freezeTuesday('08:00:30');
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+
+        $this->assertNotNull($action->fresh()->last_triggered_at);
+    }
+
+    public function test_last_triggered_at_is_updated_after_successful_trigger(): void
+    {
+        $this->freezeMonday('08:00:30');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $action = $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->once();
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+
+        $this->assertNotNull($action->fresh()->last_triggered_at);
+    }
+
+    public function test_last_triggered_at_is_not_updated_on_failure(): void
+    {
+        Log::spy();
+        $this->freezeMonday('08:00:30');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $action = $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->once()->andThrow(new RuntimeException('boom'));
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+
+        $this->assertNull($action->fresh()->last_triggered_at);
     }
 
     public function test_bitmask_match_skips_wrong_weekday(): void
@@ -185,7 +234,7 @@ class TriggerServerActionsJobTest extends TestCase
     {
         Log::spy();
 
-        $this->freezeMonday('08:00:30');
+        $this->freezeMonday('08:01:30');
         $failingServer = Server::factory()->create(['schedule_active' => true]);
         $okServer = Server::factory()->create(['schedule_active' => true]);
         $this->makeAction($failingServer, 'START', '08:00', Weekday::MONDAY->value);
@@ -205,34 +254,6 @@ class TriggerServerActionsJobTest extends TestCase
         Log::shouldHaveReceived('error')
             ->withArgs(fn ($msg, $ctx) => $msg === 'ServerAction trigger failed' && ($ctx['error'] ?? null) === 'boom')
             ->once();
-    }
-
-    public function test_setting_override_changes_slot_size(): void
-    {
-        Setting::set(Setting::KEY_SCHEDULE_POLL_INTERVAL_MINUTES, '10');
-
-        $this->freezeMonday('08:00:30');
-        $server = Server::factory()->create(['schedule_active' => true]);
-        // 08:07 fällt in den 10er-Slot [08:00, 08:10) — würde mit Default 5 NICHT matchen.
-        $this->makeAction($server, 'START', '08:07', Weekday::MONDAY->value);
-
-        $mock = Mockery::mock(ServerControlServiceInterface::class);
-        $mock->shouldReceive('start')->once();
-
-        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
-    }
-
-    public function test_slot_wrapping_midnight_still_matches(): void
-    {
-        $this->freezeMonday('23:55:10');
-        $server = Server::factory()->create(['schedule_active' => true]);
-        $this->makeAction($server, 'STOP', '23:55', Weekday::MONDAY->value);
-        $this->makeAction($server, 'STOP', '23:59', Weekday::MONDAY->value);
-
-        $mock = Mockery::mock(ServerControlServiceInterface::class);
-        $mock->shouldReceive('stop')->twice();
-
-        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
     public function test_successful_start_records_active_expectation(): void
@@ -276,5 +297,57 @@ class TriggerServerActionsJobTest extends TestCase
         (new TriggerServerActionsJob)->handle($mock, $this->tracker());
 
         $this->assertNull($this->tracker()->expectationFor($server->id, 'SHUTOFF'));
+    }
+
+    public function test_only_latest_action_fires_when_multiple_are_due_within_window(): void
+    {
+        // Drei Aktionen knapp hintereinander, alle innerhalb des Catch-Up-Fensters
+        $this->freezeMonday('14:10:00');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $a1 = $this->makeAction($server, 'START', '14:00', Weekday::MONDAY->value);
+        $a2 = $this->makeAction($server, 'STOP', '14:05', Weekday::MONDAY->value);
+        $a3 = $this->makeAction($server, 'START', '14:08', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->once();
+        $mock->shouldNotReceive('stop');
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+
+        $this->assertNotNull($a1->fresh()->last_triggered_at);
+        $this->assertNotNull($a2->fresh()->last_triggered_at);
+        $this->assertNotNull($a3->fresh()->last_triggered_at);
+    }
+
+    public function test_different_servers_are_processed_independently(): void
+    {
+        $this->freezeMonday('14:10:00');
+        $serverA = Server::factory()->create(['schedule_active' => true]);
+        $serverB = Server::factory()->create(['schedule_active' => true]);
+        $this->makeAction($serverA, 'STOP', '14:00', Weekday::MONDAY->value);
+        $this->makeAction($serverB, 'START', '14:05', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('stop')->once()->withArgs(fn (Server $s) => $s->id === $serverA->id);
+        $mock->shouldReceive('start')->once()->withArgs(fn (Server $s) => $s->id === $serverB->id);
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+    }
+
+    public function test_interval_setting_does_not_affect_trigger_behaviour(): void
+    {
+        // Egal welches Schedule-Poll-Setting gesetzt ist — der Job feuert
+        // Aktionen wenn ihre Zeit erreicht ist und sie heute noch nicht
+        // ausgeloest wurden. Das ehemalige Interval-Gating ist weg.
+        Setting::set(Setting::KEY_SCHEDULE_POLL_INTERVAL_MINUTES, '60');
+
+        $this->freezeMonday('08:07:30');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $this->makeAction($server, 'START', '08:07', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->once();
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 }
