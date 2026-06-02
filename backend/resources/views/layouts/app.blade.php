@@ -115,7 +115,7 @@
                         data-url="{{ route('settings.schedule-poll-interval') }}">
                     @foreach ($allowedSchedulePollIntervals as $minutes)
                         <option value="{{ $minutes }}" @selected($schedulePollIntervalMinutes === $minutes)>
-                            Alle {{ $minutes }} Minute{{ $minutes === 1 ? '' : 'n' }}
+                            {{ \App\Models\Setting::intervalLabel($minutes) }}
                         </option>
                     @endforeach
                 </select>
@@ -126,7 +126,7 @@
                         data-url="{{ route('settings.inventory-interval') }}">
                     @foreach ($allowedInventoryIntervals as $minutes)
                         <option value="{{ $minutes }}" @selected($inventoryIntervalMinutes === $minutes)>
-                            Alle {{ $minutes }} Minuten
+                            {{ \App\Models\Setting::intervalLabel($minutes) }}
                         </option>
                     @endforeach
                 </select>

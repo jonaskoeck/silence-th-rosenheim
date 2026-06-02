@@ -20,7 +20,6 @@ class ServerFactory extends Factory
             'open_stack_server_id' => $this->faker->uuid(),
             'name' => $this->faker->word(),
             'label' => ServerLabel::NONE,
-            'status' => 'SHUTOFF',
             'discovered_by_run_id' => null,
         ];
     }

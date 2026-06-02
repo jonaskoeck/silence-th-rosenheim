@@ -7,7 +7,7 @@ namespace App\Jobs;
 use App\Enums\ActionType;
 use App\Enums\Weekday;
 use App\Models\ServerAction;
-use App\Models\Setting;
+use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ServerControlServiceInterface;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
@@ -15,42 +15,78 @@ use Throwable;
 
 class TriggerServerActionsJob
 {
-    public function handle(ServerControlServiceInterface $control): void
+    private const CATCHUP_WINDOW_MINUTES = 15;
+
+    public function handle(ServerControlServiceInterface $control, PendingActionTrackerInterface $tracker): void
     {
-        $interval = Setting::schedulePollIntervalMinutes();
-        $now = CarbonImmutable::now(config('app.display_timezone'));
+        $displayTz = config('app.display_timezone');
+        $now = CarbonImmutable::now($displayTz);
+        $weekday = self::weekdayFromIso($now->dayOfWeekIso);
+        $catchupCutoff = $now->subMinutes(self::CATCHUP_WINDOW_MINUTES);
 
-        $slotMinute = intdiv($now->minute, $interval) * $interval;
-        $slotStart = $now->setTime($now->hour, $slotMinute, 0);
-        $slotEnd = $slotStart->addMinutes($interval);
-
-        $weekday = self::weekdayFromIso($slotStart->dayOfWeekIso);
-
-        $query = ServerAction::query()
+        $candidates = ServerAction::query()
             ->whereHas('server', fn ($q) => $q->where('schedule_active', true))
             ->whereRaw('(weekday & ?) > 0', [$weekday->value])
-            ->where('time', '>=', $slotStart->format('H:i'));
+            ->where('time', '<=', $now->format('H:i'))
+            ->with('server.project')
+            ->get();
 
-        // Slot-Wrap über Mitternacht: HH:mm kann nicht > 23:59 sein, daher
-        // ist eine offene obere Schranke korrekt. Sonst halb-offenes Intervall.
-        if ($slotEnd->toDateString() === $slotStart->toDateString()) {
-            $query->where('time', '<', $slotEnd->format('H:i'));
+        $due = $candidates->filter(function (ServerAction $action) use ($now, $catchupCutoff) {
+            $todayScheduled = $now->setTimeFromTimeString($action->time);
+
+            if ($now->lt($todayScheduled)) {
+                return false;
+            }
+
+            if ($todayScheduled->lt($catchupCutoff)) {
+                return false;
+            }
+
+            if ($action->last_triggered_at === null) {
+                return true;
+            }
+
+            return $action->last_triggered_at->lt($todayScheduled);
+        });
+
+        if ($due->isEmpty()) {
+            return;
         }
 
-        $actions = $query->with('server.project')->get();
+        foreach ($due->groupBy('server_id') as $actionsForServer) {
+            $sorted = $actionsForServer->sortBy('time')->values();
+            $latest = $sorted->last();
+            $superseded = $sorted->slice(0, -1);
 
-        foreach ($actions as $action) {
             try {
-                match ($action->type) {
-                    ActionType::START => $control->start($action->server),
-                    ActionType::STOP => $control->stop($action->server),
+                match ($latest->type) {
+                    ActionType::START => $control->start($latest->server),
+                    ActionType::STOP => $control->stop($latest->server),
                 };
+
+                $tracker->record(
+                    $latest->server_id,
+                    $latest->type === ActionType::START ? 'ACTIVE' : 'SHUTOFF',
+                );
+
+                $latest->forceFill(['last_triggered_at' => $now])->save();
+
+                foreach ($superseded as $skipped) {
+                    $skipped->forceFill(['last_triggered_at' => $now])->save();
+                }
+
+                $message = "Server '{$latest->server->name}' (#{$latest->server_id}) → {$latest->type->value} um {$latest->time} ausgelöst";
+                if ($superseded->isNotEmpty()) {
+                    $obsolete = $superseded->map(fn (ServerAction $a) => "{$a->type->value}@{$a->time}")->implode(', ');
+                    $message .= " (überholt: {$obsolete})";
+                }
+                Log::info($message);
             } catch (Throwable $e) {
                 Log::error('ServerAction trigger failed', [
-                    'server_action_id' => $action->id,
-                    'server_id' => $action->server_id,
-                    'type' => $action->type->value,
-                    'time' => $action->time,
+                    'server_action_id' => $latest->id,
+                    'server_id' => $latest->server_id,
+                    'type' => $latest->type->value,
+                    'time' => $latest->time,
                     'error' => $e->getMessage(),
                 ]);
             }

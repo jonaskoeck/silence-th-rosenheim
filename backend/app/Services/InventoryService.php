@@ -59,9 +59,8 @@ class InventoryService implements InventoryServiceInterface
                         $foundNew = true;
                     }
 
-                    $flavorId       = $osServer['flavor']['id'] ?? null;
-                    $server->name   = $osServer['name'];
-                    $server->status = $osServer['status'] ?? null;
+                    $flavorId = $osServer['flavor']['id'] ?? null;
+                    $server->name = $osServer['name'];
                     $server->flavor = $flavorId ? $this->client->getFlavorName($auth->token, $auth->computeEndpoint, $flavorId) : null;
                     $server->save();
                 }
@@ -97,13 +96,13 @@ class InventoryService implements InventoryServiceInterface
         ]);
     }
 
-    public function runForProject(int $projectId): void
+    public function runForProject(int $projectId, bool $triggeredAutomatically = false): void
     {
         $project = Project::findOrFail($projectId);
 
         $run = InventoryRun::create([
             'start_time' => now(),
-            'triggered_automatically' => false,
+            'triggered_automatically' => $triggeredAutomatically,
             'had_errors' => false,
             'found_new_servers' => false,
         ]);
@@ -132,9 +131,8 @@ class InventoryService implements InventoryServiceInterface
                     $foundNew = true;
                 }
 
-                $flavorId       = $osServer['flavor']['id'] ?? null;
-                $server->name   = $osServer['name'];
-                $server->status = $osServer['status'] ?? null;
+                $flavorId = $osServer['flavor']['id'] ?? null;
+                $server->name = $osServer['name'];
                 $server->flavor = $flavorId ? $this->client->getFlavorName($auth->token, $auth->computeEndpoint, $flavorId) : null;
                 $server->save();
             }
@@ -166,5 +164,4 @@ class InventoryService implements InventoryServiceInterface
             'deleted_servers' => $deletedServers,
         ]);
     }
-
 }

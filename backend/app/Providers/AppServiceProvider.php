@@ -6,14 +6,18 @@ use App\Auth\ShibbolethGuard;
 use App\Models\Setting;
 use App\Services\Contracts\InventoryServiceInterface;
 use App\Services\Contracts\OpenStackClientInterface;
+use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ProjectServiceInterface;
 use App\Services\Contracts\ServerActionServiceInterface;
 use App\Services\Contracts\ServerControlServiceInterface;
+use App\Services\Contracts\ServerStatusServiceInterface;
 use App\Services\InventoryService;
 use App\Services\OpenStack\OpenStackClient;
+use App\Services\PendingActionTracker;
 use App\Services\ProjectService;
 use App\Services\ServerActionService;
 use App\Services\ServerControlService;
+use App\Services\ServerStatusService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
@@ -31,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(OpenStackClientInterface::class, OpenStackClient::class);
         $this->app->bind(InventoryServiceInterface::class, InventoryService::class);
         $this->app->bind(ServerControlServiceInterface::class, ServerControlService::class);
+        $this->app->bind(ServerStatusServiceInterface::class, ServerStatusService::class);
+        $this->app->bind(PendingActionTrackerInterface::class, PendingActionTracker::class);
 
         $this->app->singleton(OpenStackClient::class, fn ($app) => new OpenStackClient(
             (string) $app['config']->get('services.openstack.auth_url'),

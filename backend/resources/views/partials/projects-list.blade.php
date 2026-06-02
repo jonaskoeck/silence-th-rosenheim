@@ -4,7 +4,8 @@
         <div class="d-flex align-items-center flex-grow-1 py-3" style="cursor:pointer"
              data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}"
              data-project-name="{{ $project['name'] }}">
-            <i class="bi bi-chevron-down me-2 text-muted" style="font-size:0.85rem"></i>
+            <i class="bi bi-chevron-right me-2 text-muted collapse-icon-closed" style="font-size:0.85rem"></i>
+            <i class="bi bi-chevron-down me-2 text-muted collapse-icon-open" style="font-size:0.85rem"></i>
             <span class="fw-semibold">{{ $project['name'] }}</span>
         </div>
         <div class="d-flex gap-1 align-items-center py-3">
@@ -51,16 +52,10 @@
                 </thead>
                 <tbody>
                     @forelse ($project['servers'] as $srv)
-                    @php
-                        [$sc, $sl] = match($srv['status']) {
-                            'running' => ['success', 'Laufend'],
-                            default   => ['secondary', 'Gestoppt'],
-                        };
-                    @endphp
                     <tr>
                         <td><div class="fw-semibold small">{{ $srv['name'] }}</div></td>
                         <td class="text-muted font-monospace small">{{ $srv['open_stack_server_id'] ?? '—' }}</td>
-                        <td><span class="badge text-bg-{{ $sc }} rounded-pill">{{ $sl }}</span></td>
+                        <td>@include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])</td>
                         <td>
                             @if ($srv['label'] === 'production')
                             <span class="badge text-bg-danger rounded-pill badge-label">Produktiv</span>
@@ -74,23 +69,7 @@
                         </td>
                         <td class="text-end">
                             <div class="btn-group">
-                                @if ($srv['status'] === 'running')
-                                <button class="btn btn-sm btn-outline-danger" title="Stoppen"
-                                        hx-post="{{ route('servers.stop', $srv['id']) }}"
-                                        hx-target="#projects-container"
-                                        hx-swap="innerHTML"
-                                        hx-on::before-request="window._collapseRestoreAfterSwap=[...document.querySelectorAll('.collapse.show')].map(el=>el.id)">
-                                    <i class="bi bi-stop-fill"></i>
-                                </button>
-                                @else
-                                <button class="btn btn-sm btn-outline-success" title="Starten"
-                                        hx-post="{{ route('servers.start', $srv['id']) }}"
-                                        hx-target="#projects-container"
-                                        hx-swap="innerHTML"
-                                        hx-on::before-request="window._collapseRestoreAfterSwap=[...document.querySelectorAll('.collapse.show')].map(el=>el.id)">
-                                    <i class="bi bi-play-fill"></i>
-                                </button>
-                                @endif
+                                @include('partials.server-toggle-button', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])
                                 <a href="{{ route('schedules', ['server' => $srv['id'], 'edit' => 1]) }}"
                                    class="btn btn-sm btn-outline-secondary" title="Zeitpläne"
                                    hx-get="{{ route('schedules', ['server' => $srv['id'], 'edit' => 1]) }}"

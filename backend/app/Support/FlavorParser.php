@@ -10,7 +10,7 @@ class FlavorParser
 {
     public static function hourlyCost(string $flavor): float
     {
-        if (!preg_match('/^SCS-(\d+)[VL]-(\d+)(?:-\d+s)?$/i', $flavor, $m)) {
+        if (! preg_match('/^SCS-(\d+)[VL]-(\d+)(?:-\d+s)?$/i', $flavor, $m)) {
             Log::warning("FlavorParser: Unbekannter Flavor '{$flavor}' — wird bei Kostenberechnung übersprungen.");
 
             return 0.0;

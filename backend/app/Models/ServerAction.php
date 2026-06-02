@@ -19,6 +19,7 @@ class ServerAction extends Model
         'weekday',
         'time',
         'type',
+        'last_triggered_at',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class ServerAction extends Model
         return [
             'weekday' => 'integer',
             'type' => ActionType::class,
+            'last_triggered_at' => 'datetime',
         ];
     }
 

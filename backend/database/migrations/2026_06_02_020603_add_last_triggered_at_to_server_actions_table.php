@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -10,15 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('servers', function (Blueprint $table) {
-            $table->string('flavor')->nullable()->after('label');
+        Schema::table('server_actions', function (Blueprint $table) {
+            $table->dateTime('last_triggered_at')->nullable()->after('type');
         });
     }
 
     public function down(): void
     {
-        Schema::table('servers', function (Blueprint $table) {
-            $table->dropColumn('flavor');
+        Schema::table('server_actions', function (Blueprint $table) {
+            $table->dropColumn('last_triggered_at');
         });
     }
 };

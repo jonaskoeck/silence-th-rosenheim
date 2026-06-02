@@ -9,7 +9,9 @@ use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
 use App\Models\Project;
 use App\Services\Contracts\InventoryServiceInterface;
+use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ProjectServiceInterface;
+use App\Services\Contracts\ServerStatusServiceInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -19,13 +21,15 @@ class ProjectController extends Controller
     public function __construct(
         private ProjectServiceInterface $projects,
         private InventoryServiceInterface $inventory,
+        private ServerStatusServiceInterface $serverStatus,
+        private PendingActionTrackerInterface $pendingActions,
     ) {}
 
     public function store(StoreProjectRequest $request): RedirectResponse|Response
     {
         $project = $this->projects->create($request->projectAttributes());
 
-        $this->inventory->runForProject($project->id);
+        $this->inventory->runForProject($project->id, triggeredAutomatically: true);
 
         if ($request->header('HX-Request')) {
             return $this->projectsPartial('Projekt wurde erstellt.');
@@ -62,14 +66,26 @@ class ProjectController extends Controller
 
     private function projectsPartial(string $toastMessage, string $toastType = 'success'): Response
     {
-        $projects = $this->projects->getAll()->load('servers')->map(fn ($p) => [
+        $projectModels = $this->projects->getAll()->load('servers');
+        $statuses = $this->serverStatus->statusesForProjects($projectModels);
+
+        $rawStatusByServerId = [];
+        foreach ($projectModels as $p) {
+            foreach ($p->servers as $s) {
+                $rawStatusByServerId[$s->id] = $statuses->statusFor($s->open_stack_server_id);
+            }
+        }
+        $expectations = $this->pendingActions->expectationsFor($rawStatusByServerId);
+
+        $projects = $projectModels->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
             'servers' => $p->servers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
                 'open_stack_server_id' => $s->open_stack_server_id,
-                'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
+                'raw_status' => $rawStatusByServerId[$s->id],
+                'expecting' => $expectations[$s->id] ?? null,
                 'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
             ])->all(),
         ])->all();

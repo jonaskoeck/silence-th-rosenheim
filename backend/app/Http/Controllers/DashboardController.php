@@ -8,36 +8,58 @@ use App\Enums\ActionType;
 use App\Enums\ServerLabel;
 use App\Enums\Weekday;
 use App\Models\InventoryRun;
+use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ProjectServiceInterface;
 use App\Services\Contracts\ServerActionServiceInterface;
+use App\Services\Contracts\ServerStatusServiceInterface;
 use App\Support\FlavorParser;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 
 class DashboardController extends Controller
 {
     public function __construct(
         private ProjectServiceInterface $projects,
         private ServerActionServiceInterface $serverActions,
+        private ServerStatusServiceInterface $serverStatus,
+        private PendingActionTrackerInterface $pendingActions,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|Response
     {
         $projectModels = $this->projects->getAll()->load('servers.actions');
 
+        $statuses = $this->serverStatus->statusesForProjects($projectModels);
+
+        $rawStatusByServerId = [];
+        foreach ($projectModels as $p) {
+            foreach ($p->servers as $s) {
+                $rawStatusByServerId[$s->id] = $statuses->statusFor($s->open_stack_server_id);
+            }
+        }
+        $expectations = $this->pendingActions->expectationsFor($rawStatusByServerId);
+
         $projects = $projectModels->sortByDesc('created_at')->take(3)->map(fn ($p) => [
+            'id' => $p->id,
             'name' => $p->name,
             'open_stack_project_id' => $p->open_stack_project_id,
             'servers' => $p->servers->map(fn ($s) => [
+                'id' => $s->id,
                 'name' => $s->name,
-                'status' => $s->status === 'ACTIVE' ? 'running' : 'stopped',
+                'raw_status' => $rawStatusByServerId[$s->id],
+                'expecting' => $expectations[$s->id] ?? null,
                 'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
             ])->all(),
         ])->all();
 
         $total = $projectModels->sum(fn ($p) => $p->servers->count());
-        $running = $projectModels->sum(fn ($p) => $p->servers->where('status', 'ACTIVE')->count());
+        $running = $projectModels->sum(
+            fn ($p) => $p->servers->filter(
+                fn ($s) => $statuses->statusFor($s->open_stack_server_id) === 'ACTIVE'
+            )->count()
+        );
 
         $lastInventory = InventoryRun::latest()->first();
 
@@ -55,7 +77,13 @@ class DashboardController extends Controller
         ];
 
         if ($request->header('HX-Request')) {
-            return view('partials.dashboard-content', $data);
+            $response = response(view('partials.dashboard-content', $data));
+
+            if ($payload = $statuses->toastTriggerPayload()) {
+                $response->header('HX-Trigger', $payload);
+            }
+
+            return $response;
         }
 
         return view('dashboard', $data);
@@ -70,40 +98,40 @@ class DashboardController extends Controller
                 continue;
             }
 
-            if (!$server->schedule_active) {
+            if (! $server->schedule_active) {
                 continue;
             }
 
-            if (!$server->flavor) {
+            if (! $server->flavor) {
                 continue;
             }
 
-            $rate           = FlavorParser::hourlyCost($server->flavor);
+            $rate = FlavorParser::hourlyCost($server->flavor);
             $stoppedPerWeek = $this->weeklyStoppedHours($server->actions);
-            $total         += $stoppedPerWeek * 4 * $rate;
+            $total += $stoppedPerWeek * 4 * $rate;
         }
 
         return $total;
     }
 
-    private function weeklyStoppedHours(\Illuminate\Database\Eloquent\Collection $actions): float
+    private function weeklyStoppedHours(Collection $actions): float
     {
         $dayOffset = [
-            Weekday::MONDAY->name    =>    0,
-            Weekday::TUESDAY->name   => 1440,
+            Weekday::MONDAY->name => 0,
+            Weekday::TUESDAY->name => 1440,
             Weekday::WEDNESDAY->name => 2880,
-            Weekday::THURSDAY->name  => 4320,
-            Weekday::FRIDAY->name    => 5760,
-            Weekday::SATURDAY->name  => 7200,
-            Weekday::SUNDAY->name    => 8640,
+            Weekday::THURSDAY->name => 4320,
+            Weekday::FRIDAY->name => 5760,
+            Weekday::SATURDAY->name => 7200,
+            Weekday::SUNDAY->name => 8640,
         ];
 
         $starts = [];
-        $stops  = [];
+        $stops = [];
 
         foreach ($actions as $action) {
-            [$h, $m]  = explode(':', $action->time);
-            $timeMin  = (int) $h * 60 + (int) $m;
+            [$h, $m] = explode(':', $action->time);
+            $timeMin = (int) $h * 60 + (int) $m;
 
             foreach (Weekday::unpack($action->weekday) as $day) {
                 $abs = $dayOffset[$day->name] + $timeMin;
@@ -141,13 +169,13 @@ class DashboardController extends Controller
         $events = [];
 
         $weekdayNumber = [
-            Weekday::MONDAY->name    => 1,
-            Weekday::TUESDAY->name   => 2,
+            Weekday::MONDAY->name => 1,
+            Weekday::TUESDAY->name => 2,
             Weekday::WEDNESDAY->name => 3,
-            Weekday::THURSDAY->name  => 4,
-            Weekday::FRIDAY->name    => 5,
-            Weekday::SATURDAY->name  => 6,
-            Weekday::SUNDAY->name    => 7,
+            Weekday::THURSDAY->name => 4,
+            Weekday::FRIDAY->name => 5,
+            Weekday::SATURDAY->name => 6,
+            Weekday::SUNDAY->name => 7,
         ];
 
         $dayLabel = [1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa', 7 => 'So'];
@@ -161,7 +189,7 @@ class DashboardController extends Controller
                 $daysUntil = ($targetDay - $currentDay + 7) % 7;
 
                 [$h, $m] = explode(':', $action->time);
-                $actionMinutes = (int)$h * 60 + (int)$m;
+                $actionMinutes = (int) $h * 60 + (int) $m;
                 $nowMinutes = $now->hour * 60 + $now->minute;
 
                 if ($daysUntil === 0 && $actionMinutes <= $nowMinutes) {
@@ -177,10 +205,10 @@ class DashboardController extends Controller
                 };
 
                 $events[] = [
-                    'server'   => $serverName,
-                    'type'     => $action->type,
-                    'time'     => $action->time,
-                    'day'      => $label,
+                    'server' => $serverName,
+                    'type' => $action->type,
+                    'time' => $action->time,
+                    'day' => $label,
                     'occursAt' => $occursAt,
                 ];
             }

@@ -72,3 +72,30 @@ document.addEventListener('htmx:afterSettle', () => {
         });
     }
 });
+
+const PENDING_ACTION_PATHS = ['/servers', '/dashboard'];
+let pendingActionIds = null;
+
+async function checkPendingActions() {
+    if (!PENDING_ACTION_PATHS.includes(window.location.pathname)) {
+        pendingActionIds = null;
+        return;
+    }
+    try {
+        const res = await fetch('/pending-actions/check', { headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return;
+        const ids = await res.json();
+        if (pendingActionIds === null) {
+            pendingActionIds = new Set(ids);
+            return;
+        }
+        const hasNew = ids.some(id => !pendingActionIds.has(id));
+        pendingActionIds = new Set(ids);
+        if (hasNew) {
+            window._collapseRestoreAfterSwap = [...document.querySelectorAll('.collapse.show')].map(el => el.id);
+            htmx.ajax('GET', window.location.pathname, { target: '#main-content', swap: 'innerHTML' });
+        }
+    } catch {}
+}
+
+setInterval(checkPendingActions, 5000);

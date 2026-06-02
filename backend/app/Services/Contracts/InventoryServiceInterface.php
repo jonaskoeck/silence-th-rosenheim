@@ -8,5 +8,5 @@ interface InventoryServiceInterface
 {
     public function runForAllProjects(bool $triggeredAutomatically = false): void;
 
-    public function runForProject(int $projectId): void;
+    public function runForProject(int $projectId, bool $triggeredAutomatically = false): void;
 }
