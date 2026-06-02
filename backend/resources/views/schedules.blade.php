@@ -157,7 +157,8 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
                         <select class="form-select" id="new-server" name="server_id" required>
                             <option value="">Server wählen</option>
                             @foreach ($allServers as $srv)
-                            <option value="{{ $srv->id }}" data-label="{{ $srv->label->value }}">{{ $srv->name }}</option>
+                            <option value="{{ $srv->id }}" data-label="{{ $srv->label->value }}"
+                                    @selected(($preselectServerId ?? null) === $srv->id)>{{ $srv->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -398,6 +399,12 @@ document.getElementById('newScheduleModal').addEventListener('hidden.bs.modal', 
 })();
 @endif
 
+var editScheduleEvents = {};
+var currentEditScheduleId = null;
+var currentEditServerLabel = null;
+var currentEditServerName = null;
+var editConfirmedProduction = '0';
+
 @if ($editSchedule)
 (function() {
     const sch = @json($editSchedule);
@@ -442,12 +449,6 @@ document.getElementById('editScheduleModal').addEventListener('hidden.bs.modal',
         htmx.ajax('GET', url.toString(), { target: '#schedules-container', swap: 'innerHTML', headers: { 'HX-Target': 'schedules-container' } });
     }
 });
-
-var editScheduleEvents = {};
-var currentEditScheduleId = null;
-var currentEditServerLabel = null;
-var currentEditServerName = null;
-var editConfirmedProduction = '0';
 
 function showEditAddEvent(day) {
     document.getElementById('edit-form-' + day).classList.remove('d-none');

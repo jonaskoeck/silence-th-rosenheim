@@ -158,18 +158,32 @@
 
 @if (session('edit_project_id'))
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const projectId = {{ session('edit_project_id') }};
-            document.getElementById('editProjectForm').action = '/projects/' + projectId;
-            document.getElementById('edit-project-id').value = projectId;
-            new bootstrap.Modal(document.getElementById('editProjectModal')).show();
-        });
+        (function () {
+            function openEditProjectModal() {
+                const projectId = {{ session('edit_project_id') }};
+                document.getElementById('editProjectForm').action = '/projects/' + projectId;
+                document.getElementById('edit-project-id').value = projectId;
+                new bootstrap.Modal(document.getElementById('editProjectModal')).show();
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', openEditProjectModal);
+            } else {
+                openEditProjectModal();
+            }
+        })();
     </script>
 @elseif (session('store_project_error'))
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            new bootstrap.Modal(document.getElementById('createProjectModal')).show();
-        });
+        (function () {
+            function openCreateProjectModal() {
+                new bootstrap.Modal(document.getElementById('createProjectModal')).show();
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', openCreateProjectModal);
+            } else {
+                openCreateProjectModal();
+            }
+        })();
     </script>
 @endif
 
@@ -223,7 +237,7 @@
 
 @push('scripts')
 <script>
-let pendingServerId = '';
+var pendingServerId = '';
 
 
 document.getElementById('projectSearch').addEventListener('input', function () {
