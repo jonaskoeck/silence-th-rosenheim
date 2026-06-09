@@ -181,6 +181,10 @@ class DashboardController extends Controller
         $dayLabel = [1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa', 7 => 'So'];
 
         foreach ($this->serverActions->getAll() as $action) {
+            if ($action->server !== null && ! $action->server->schedule_active) {
+                continue;
+            }
+
             $serverName = $action->server?->name ?? '—';
 
             foreach ($action->weekdays() as $weekday) {
