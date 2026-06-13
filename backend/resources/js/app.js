@@ -27,6 +27,45 @@ function showToast(message, type = 'success') {
 
 window.showToast = showToast;
 
+document.addEventListener('htmx:beforeSwap', e => {
+    if (e.detail.target?.id !== 'projects-container') return;
+
+    const target = e.detail.target;
+    const newHtml = e.detail.serverResponse;
+
+    e.detail.shouldSwap = false;
+
+    if (!window._collapseRestoreAfterSwap) {
+        window._collapseRestoreAfterSwap = [...target.querySelectorAll('.collapse.show')].map(el => el.id);
+    }
+
+    target.style.transition = 'opacity 0.2s ease';
+    target.style.opacity = '0';
+
+    setTimeout(() => {
+        target.innerHTML = newHtml;
+        htmx.process(target);
+
+        if (window._collapseRestoreAfterSwap) {
+            const saved = window._collapseRestoreAfterSwap;
+            window._collapseRestoreAfterSwap = null;
+            saved.forEach(collapseId => {
+                const el = document.getElementById(collapseId);
+                if (el) {
+                    el.classList.add('show');
+                    const trigger = target.querySelector(`[data-bs-target="#${collapseId}"]`);
+                    if (trigger) trigger.classList.remove('collapsed');
+                }
+            });
+        }
+
+        requestAnimationFrame(() => {
+            target.style.transition = 'opacity 0.3s ease';
+            target.style.opacity = '1';
+        });
+    }, 200);
+});
+
 document.addEventListener('htmx:afterRequest', e => {
     const trigger = e.detail.xhr?.getResponseHeader('HX-Trigger');
     if (!trigger) return;

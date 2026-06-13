@@ -31,6 +31,38 @@ class DashboardController extends Controller
     {
         $projectModels = $this->projects->getAll()->load('servers.actions');
 
+        $total        = $projectModels->sum(fn ($p) => $p->servers->count());
+        $savings      = $this->calculateMonthlySavings($projectModels);
+        $monthlySavings  = $savings['savings'];
+        $savingsHours    = $savings['hours'];
+        $savingsAvgRate  = $savings['avgRate'];
+        $nextEvents   = $this->calculateNextEvents();
+        $lastInventory = InventoryRun::latest()->first();
+
+        $projects = $projectModels->sortByDesc('created_at')->take(3)->map(fn ($p) => [
+            'id'                    => $p->id,
+            'name'                  => $p->name,
+            'open_stack_project_id' => $p->open_stack_project_id,
+            'servers'               => $p->servers->map(fn ($s) => [
+                'id'    => $s->id,
+                'name'  => $s->name,
+                'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
+            ])->all(),
+        ])->all();
+
+        $view = view('dashboard', compact('lastInventory', 'total', 'monthlySavings', 'savingsHours', 'savingsAvgRate', 'nextEvents', 'projects'));
+
+        if ($request->header('HX-Request')) {
+            return response($view);
+        }
+
+        return $view;
+    }
+
+    public function data(): Response
+    {
+        $projectModels = $this->projects->getAll()->load('servers.actions');
+
         $statuses = $this->serverStatus->statusesForProjects($projectModels);
 
         $rawStatusByServerId = [];
@@ -73,45 +105,48 @@ class DashboardController extends Controller
             'stopped' => $total - $running,
             'activeSchedules' => 0,
             'lastInventory' => $lastInventory,
-            'monthlySavings' => $this->calculateMonthlySavings($projectModels),
+            'monthlySavings'  => ($s = $this->calculateMonthlySavings($projectModels))['savings'],
+            'savingsHours'    => $s['hours'],
+            'savingsAvgRate'  => $s['avgRate'],
         ];
 
-        if ($request->header('HX-Request')) {
-            $response = response(view('partials.dashboard-content', $data));
+        $response = response(view('partials.dashboard-content', $data));
 
-            if ($payload = $statuses->toastTriggerPayload()) {
-                $response->header('HX-Trigger', $payload);
-            }
-
-            return $response;
+        if ($payload = $statuses->toastTriggerPayload()) {
+            $response->header('HX-Trigger', $payload);
         }
 
-        return view('dashboard', $data);
+        return $response;
     }
 
-    private function calculateMonthlySavings(\Illuminate\Support\Collection $projects): float
+    /** @return array{savings: float, hours: float, avgRate: float} */
+    private function calculateMonthlySavings(\Illuminate\Support\Collection $projects): array
     {
-        $total = 0.0;
+        $totalSavings = 0.0;
+        $totalHours   = 0.0;
+        $rateSum      = 0.0;
+        $rateCount    = 0;
 
         foreach ($projects->flatMap(fn ($p) => $p->servers) as $server) {
-            if ($server->actions->isEmpty()) {
+            if ($server->actions->isEmpty() || ! $server->schedule_active || ! $server->flavor) {
                 continue;
             }
 
-            if (! $server->schedule_active) {
-                continue;
-            }
-
-            if (! $server->flavor) {
-                continue;
-            }
-
-            $rate = FlavorParser::hourlyCost($server->flavor);
+            $rate           = FlavorParser::hourlyCost($server->flavor);
             $stoppedPerWeek = $this->weeklyStoppedHours($server->actions);
-            $total += $stoppedPerWeek * 4 * $rate;
+            $monthlyHours   = $stoppedPerWeek * 4;
+
+            $totalSavings += $monthlyHours * $rate;
+            $totalHours   += $monthlyHours;
+            $rateSum      += $rate;
+            $rateCount++;
         }
 
-        return $total;
+        return [
+            'savings' => $totalSavings,
+            'hours'   => $totalHours,
+            'avgRate' => $totalHours > 0 ? $totalSavings / $totalHours : 0.0,
+        ];
     }
 
     private function weeklyStoppedHours(Collection $actions): float

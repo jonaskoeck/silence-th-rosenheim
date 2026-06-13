@@ -1,7 +1,7 @@
 @forelse ($projects as $index => $project)
 <div class="card shadow-sm border-0 mb-3">
     <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
-        <div class="d-flex align-items-center flex-grow-1 py-3" style="cursor:pointer"
+        <div class="d-flex align-items-center flex-grow-1 py-3 collapsed" style="cursor:pointer"
              data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}"
              data-project-name="{{ $project['name'] }}">
             <i class="bi bi-chevron-right me-2 text-muted collapse-icon-closed" style="font-size:0.85rem"></i>
@@ -40,7 +40,8 @@
     </div>
     <div class="collapse" id="project-{{ $index }}">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" style="table-layout:fixed">
+                <colgroup><col style="width:20%"><col style="width:28%"><col style="width:12%"><col style="width:15%"><col style="width:25%"></colgroup>
                 <thead class="table-light">
                     <tr>
                         <th>Name</th>
@@ -54,8 +55,8 @@
                     @forelse ($project['servers'] as $srv)
                     <tr>
                         <td><div class="fw-semibold small">{{ $srv['name'] }}</div></td>
-                        <td class="text-muted font-monospace small">{{ $srv['open_stack_server_id'] ?? '—' }}</td>
-                        <td>@include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])</td>
+                        <td class="text-muted font-monospace small" style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ $srv['open_stack_server_id'] ?? '—' }}</td>
+                        <td><span id="srv-status-{{ $srv['id'] }}">@include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])</span></td>
                         <td>
                             @if ($srv['label'] === 'production')
                             <span class="badge text-bg-danger rounded-pill badge-label">Produktiv</span>
@@ -102,5 +103,7 @@
     </div>
 </div>
 @empty
-<div class="text-center text-muted py-5">Keine Projekte vorhanden.</div>
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5 text-muted">Keine Projekte vorhanden.</div>
+</div>
 @endforelse

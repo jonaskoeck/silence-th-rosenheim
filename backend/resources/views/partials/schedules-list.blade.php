@@ -14,9 +14,12 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     @php($isActive = $sch['active'] ?? true)
     <div class="card border-0 shadow-sm {{ $isActive ? '' : 'opacity-50' }}">
         <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
-            <div class="d-flex align-items-center gap-2 flex-grow-1 py-3" style="cursor:pointer"
-                 data-bs-toggle="collapse" data-bs-target="#schedule-{{ $sch['id'] }}">
-                <i class="bi bi-chevron-down text-muted" style="font-size:0.85rem"></i>
+            <div class="d-flex align-items-center gap-2 flex-grow-1 py-3 collapsed" style="cursor:pointer"
+                 data-bs-toggle="collapse" data-bs-target="#schedule-{{ $sch['id'] }}"
+                 data-server-name="{{ $sch['server_name'] }}"
+                 data-schedule-name="{{ $sch['name'] }}">
+                <i class="bi bi-chevron-right text-muted collapse-icon-closed" style="font-size:0.85rem"></i>
+                <i class="bi bi-chevron-down text-muted collapse-icon-open" style="font-size:0.85rem"></i>
                 <span class="fw-semibold">{{ $sch['server_name'] }}</span>
                 <span class="text-muted small">— {{ $sch['name'] }}</span>
                 @unless ($isActive)

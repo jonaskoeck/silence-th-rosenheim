@@ -21,9 +21,7 @@
         class="btn btn-sm btn-outline-danger"
         title="Stoppen"
         hx-post="{{ route('servers.stop', $serverId) }}"
-        hx-target="#projects-container"
-        hx-swap="innerHTML"
-        hx-on::before-request="window._collapseRestoreAfterSwap=[...document.querySelectorAll('.collapse.show')].map(el=>el.id)"
+        hx-swap="none"
         @if ($oob) hx-swap-oob="true" @endif>
     <i class="bi bi-stop-fill"></i>
 </button>
@@ -32,9 +30,7 @@
         class="btn btn-sm btn-outline-success"
         title="Starten"
         hx-post="{{ route('servers.start', $serverId) }}"
-        hx-target="#projects-container"
-        hx-swap="innerHTML"
-        hx-on::before-request="window._collapseRestoreAfterSwap=[...document.querySelectorAll('.collapse.show')].map(el=>el.id)"
+        hx-swap="none"
         @if ($oob) hx-swap-oob="true" @endif>
     <i class="bi bi-play-fill"></i>
 </button>
@@ -44,6 +40,6 @@
         disabled
         title="{{ $state === 'unknown' ? 'Status nicht verfügbar' : 'Aktion läuft…' }}"
         @if ($oob) hx-swap-oob="true" @endif>
-    <span class="spinner-border spinner-border-sm" style="width:0.75em;height:0.75em"></span>
+    <span class="spinner-border spinner-border-sm"></span>
 </button>
 @endif

@@ -12,7 +12,7 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
 
     <div class="d-flex justify-content-between align-items-center page-header">
         <div>
-            <h1 class="h4 fw-bold mb-0">Zeitpläne</h1>
+            <h1 class="h4 fw-bold mb-0 page-title">Zeitpläne</h1>
         </div>
         <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newScheduleModal">
             <i class="bi bi-plus-lg me-1"></i>Neuer Zeitplan
@@ -243,6 +243,19 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
 
 @push('scripts')
 <script>
+document.getElementById('scheduleSearch').addEventListener('input', function () {
+    const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const q = norm(this.value);
+    document.querySelectorAll('#schedules-container .card').forEach(card => {
+        const el = card.querySelector('[data-server-name]');
+        if (!el) return;
+        const matches = !q
+            || norm(el.dataset.serverName).includes(q)
+            || norm(el.dataset.scheduleName).includes(q);
+        card.style.display = matches ? '' : 'none';
+    });
+});
+
 var scheduleEvents = {};
 
 var dayLabelToWeekday = {

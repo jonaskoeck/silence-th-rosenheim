@@ -1,36 +1,53 @@
 <div class="row g-3 mb-4">
 
     <div class="col-12 col-md-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted small mb-2">Gesamt Server</p>
-                <h3 class="fw-bold mb-0">{{ $total }}</h3>
+        <a href="{{ route('servers') }}"
+           hx-get="{{ route('servers') }}"
+           hx-target="#main-content"
+           hx-swap="innerHTML"
+           hx-push-url="true"
+           class="text-decoration-none">
+            <div class="card stat-card shadow-sm h-100" style="cursor:pointer">
+                <div class="card-body">
+                    <p class="text-muted small mb-2">Gesamt Server</p>
+                    <h3 class="fw-bold mb-0 dash-value" style="min-height:2.1rem">{{ $total }}</h3>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-12 col-md-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted small mb-2">Laufend</p>
-                <h3 class="fw-bold text-success mb-1">{{ $running }}</h3>
-                <div class="progress" style="height:4px">
-                    <div class="progress-bar bg-success" style="width:{{ $total > 0 ? round($running/$total*100) : 0 }}%"></div>
+        <a href="{{ route('servers') }}?filter=running"
+           hx-get="{{ route('servers') }}?filter=running"
+           hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+           class="text-decoration-none">
+            <div class="card stat-card shadow-sm h-100" style="cursor:pointer">
+                <div class="card-body">
+                    <p class="text-muted small mb-2">Laufend</p>
+                    <h3 class="fw-bold text-success mb-1 dash-value" style="min-height:2.1rem">{{ $running }}</h3>
+                    <div class="progress" style="height:4px">
+                        <div class="progress-bar bg-success dash-bar" style="--bar-width:{{ $total > 0 ? round($running/$total*100) : 0 }}%"></div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-12 col-md-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted small mb-2">Gestoppt</p>
-                <h3 class="fw-bold text-secondary mb-1">{{ $stopped }}</h3>
-                <div class="progress" style="height:4px">
-                    <div class="progress-bar bg-secondary" style="width:{{ $total > 0 ? round($stopped/$total*100) : 0 }}%"></div>
+        <a href="{{ route('servers') }}?filter=stopped"
+           hx-get="{{ route('servers') }}?filter=stopped"
+           hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+           class="text-decoration-none">
+            <div class="card stat-card shadow-sm h-100" style="cursor:pointer">
+                <div class="card-body">
+                    <p class="text-muted small mb-2">Gestoppt</p>
+                    <h3 class="fw-bold text-secondary mb-1 dash-value" style="min-height:2.1rem">{{ $stopped }}</h3>
+                    <div class="progress" style="height:4px">
+                        <div class="progress-bar bg-secondary dash-bar" style="--bar-width:{{ $total > 0 ? round($stopped/$total*100) : 0 }}%"></div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
 </div>
@@ -52,7 +69,8 @@
                     <span class="text-muted font-monospace" style="font-size:0.7rem">{{ $project['open_stack_project_id'] }}</span>
                 </div>
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
+                    <table class="table table-hover align-middle mb-0 dash-table" style="table-layout:fixed">
+                        <colgroup><col style="width:54%"><col style="width:23%"><col style="width:23%"></colgroup>
                         <thead class="table-light">
                             <tr>
                                 <th>Name</th>
@@ -71,13 +89,13 @@
                                 </td>
                                 <td>
                                     @if ($srv['label'] === 'production')
-                                    <span class="badge text-bg-danger rounded-pill" style="font-size:0.72rem">Produktiv</span>
+                                    <span class="badge text-bg-danger rounded-pill">Produktiv</span>
                                     @elseif ($srv['label'] === 'test')
-                                    <span class="badge text-bg-info rounded-pill" style="font-size:0.72rem">Test</span>
+                                    <span class="badge text-bg-info rounded-pill">Test</span>
                                     @elseif ($srv['label'] === 'development')
-                                    <span class="badge text-bg-primary rounded-pill" style="font-size:0.72rem">Entwicklung</span>
+                                    <span class="badge text-bg-primary rounded-pill">Entwicklung</span>
                                     @else
-                                    <span class="badge text-bg-secondary rounded-pill" style="font-size:0.72rem">Unkategorisiert</span>
+                                    <span class="badge text-bg-secondary rounded-pill">Unkategorisiert</span>
                                     @endif
                                 </td>
                             </tr>
@@ -168,9 +186,15 @@
             <div class="card-body">
                 <p class="text-muted small mb-1">Durch Zeitpläne diesen Monat gespart (geschätzt)</p>
                 <h3 class="fw-bold mb-0">€ {{ number_format($monthlySavings, 2, ',', '.') }}</h3>
+                @if ($savingsHours > 0)
                 <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">
-                    Basiert auf aktiven Zeitplänen aller Server
+                    {{ number_format($savingsHours, 0, ',', '.') }} Std./Monat × Ø {{ number_format($savingsAvgRate, 4, ',', '.') }} €/Std.
                 </p>
+                @else
+                <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">
+                    Keine aktiven Zeitpläne mit bekanntem Flavor
+                </p>
+                @endif
             </div>
         </div>
 

@@ -31,28 +31,57 @@ class ProjectServerController extends Controller
 
     public function index(Request $request): View|Response
     {
+        $projects = $this->projects->getAll()->load('servers')->map(fn ($p) => [
+            'id'      => $p->id,
+            'name'    => $p->name,
+            'servers' => $p->servers->map(fn ($s) => [
+                'id'                   => $s->id,
+                'name'                 => $s->name,
+                'open_stack_server_id' => $s->open_stack_server_id,
+                'label'                => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
+            ])->all(),
+        ])->all();
+
+        $view = view('servers', compact('projects'));
+
+        if ($request->header('HX-Request')) {
+            return response($view);
+        }
+
+        return $view;
+    }
+
+    public function statusAll(): Response
+    {
+        $projectModels = $this->projects->getAll()->load('servers');
+        $projects = $this->mapProjects($projectModels, $this->serverStatus->statusesForProjects($projectModels));
+
+        return response(view('partials.projects-status-oob', compact('projects')));
+    }
+
+    public function data(Request $request): Response
+    {
         $projectModels = $this->projects->getAll()->load('servers');
 
         if ($search = $request->input('search', '')) {
+            $q = strtolower(preg_replace('/[^a-z0-9]/i', '', $search));
+            $norm = fn ($s) => strtolower(preg_replace('/[^a-z0-9]/i', '', $s ?? ''));
             $projectModels = $projectModels->filter(
-                fn ($p) => str_contains(
-                    strtolower(preg_replace('/[^a-z0-9]/i', '', $p->name)),
-                    strtolower(preg_replace('/[^a-z0-9]/i', '', $search))
-                )
+                fn ($p) => str_contains($norm($p->name), $q)
+                    || $p->servers->contains(
+                        fn ($s) => str_contains($norm($s->name), $q)
+                            || str_contains($norm($s->open_stack_server_id), $q)
+                    )
             );
         }
 
         $statuses = $this->serverStatus->statusesForProjects($projectModels);
         $projects = $this->mapProjects($projectModels, $statuses);
 
-        if ($request->header('HX-Target') === 'projects-container') {
-            return $this->withStatusFailureToast(
-                response(view('partials.projects-list', compact('projects'))),
-                $statuses,
-            );
-        }
-
-        return view('servers', compact('projects'));
+        return $this->withStatusFailureToast(
+            response(view('partials.projects-list', compact('projects'))),
+            $statuses,
+        );
     }
 
     public function updateLabel(Request $request, Server $server): Response|RedirectResponse
@@ -85,7 +114,11 @@ class ProjectServerController extends Controller
         $this->pendingActions->record($server->id, 'ACTIVE');
 
         if ($request->header('HX-Request')) {
-            return $this->projectsPartial("Server \"{$server->name}\" wurde gestartet.");
+            return response(view('partials.server-status-oob', [
+                'serverId' => $server->id,
+                'rawStatus' => 'SHUTOFF',
+                'expecting' => 'ACTIVE',
+            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wurde gestartet.", 'type' => 'success']]));
         }
 
         return back()->with('status', "Server \"{$server->name}\" wurde gestartet.");
@@ -109,7 +142,11 @@ class ProjectServerController extends Controller
         $this->pendingActions->record($server->id, 'SHUTOFF');
 
         if ($request->header('HX-Request')) {
-            return $this->projectsPartial("Server \"{$server->name}\" wurde gestoppt.");
+            return response(view('partials.server-status-oob', [
+                'serverId' => $server->id,
+                'rawStatus' => 'ACTIVE',
+                'expecting' => 'SHUTOFF',
+            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wurde gestoppt.", 'type' => 'success']]));
         }
 
         return back()->with('status', "Server \"{$server->name}\" wurde gestoppt.");
@@ -128,16 +165,6 @@ class ProjectServerController extends Controller
                 : null,
             'attempt' => max(0, $attempt),
         ]);
-    }
-
-    private function projectsPartial(string $toastMessage, string $toastType = 'success'): Response
-    {
-        $projectModels = $this->projects->getAll()->load('servers');
-        $statuses = $this->serverStatus->statusesForProjects($projectModels);
-        $projects = $this->mapProjects($projectModels, $statuses);
-
-        return response(view('partials.projects-list', compact('projects')))
-            ->header('HX-Trigger', json_encode(['toast' => ['message' => $toastMessage, 'type' => $toastType]]));
     }
 
     /**
