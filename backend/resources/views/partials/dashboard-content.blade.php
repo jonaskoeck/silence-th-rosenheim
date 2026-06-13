@@ -73,9 +73,9 @@
                                     @if ($srv['label'] === 'production')
                                     <span class="badge text-bg-danger rounded-pill" style="font-size:0.72rem">Produktiv</span>
                                     @elseif ($srv['label'] === 'test')
-                                    <span class="badge text-bg-info rounded-pill" style="font-size:0.72rem">Test</span>
+                                    <span class="badge text-bg-warning rounded-pill" style="font-size:0.72rem">Test</span>
                                     @elseif ($srv['label'] === 'development')
-                                    <span class="badge text-bg-primary rounded-pill" style="font-size:0.72rem">Entwicklung</span>
+                                    <span class="badge label-dev rounded-pill" style="font-size:0.72rem">Entwicklung</span>
                                     @else
                                     <span class="badge text-bg-secondary rounded-pill" style="font-size:0.72rem">Unkategorisiert</span>
                                     @endif

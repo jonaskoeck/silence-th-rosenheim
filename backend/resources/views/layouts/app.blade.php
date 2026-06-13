@@ -31,7 +31,8 @@
                 {{ str_replace(' (RZ)', '', session('user_displayname', 'Mitarbeiter')) }}
             </span>
             <button class="btn btn-sm" style="border-color:#F29400; color:#F29400" title="Einstellungen"
-                    data-bs-toggle="offcanvas" data-bs-target="#settingsOffcanvas">
+                    data-bs-toggle="offcanvas" data-bs-target="#settingsOffcanvas"
+                    data-tooltip="enabled">
                 <i class="bi bi-gear-fill"></i>
             </button>
             <a href="{{ route('logout') }}" class="btn btn-sm" style="border-color:#F29400; color:#F29400">

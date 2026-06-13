@@ -78,7 +78,9 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
                                 <div class="events-container d-flex flex-column gap-1 w-100" id="edit-events-{{ $day }}"></div>
                                 <button type="button" class="btn btn-sm btn-light text-muted mt-auto w-100"
                                         style="font-size:0.75rem; border:1px dashed #dee2e6"
-                                        onclick="showEditAddEvent('{{ $day }}')">
+                                        onclick="showEditAddEvent('{{ $day }}')"
+                                        title="Ereignis hinzufügen"
+                                        data-bs-toggle="tooltip">
                                     <i class="bi bi-plus"></i>
                                 </button>
                                 <div class="add-event-form d-none" id="edit-form-{{ $day }}">
@@ -92,7 +94,9 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
                                         <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                 onclick="addEditEvent('{{ $day }}')">OK</button>
                                         <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                onclick="hideEditAddEvent('{{ $day }}')">×</button>
+                                                onclick="hideEditAddEvent('{{ $day }}')"
+                                                title="Abbrechen"
+                                                data-bs-toggle="tooltip">×</button>
                                     </div>
                                 </div>
                             </div>
@@ -174,7 +178,9 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
                                     <div class="events-container d-flex flex-column gap-1 w-100" id="events-{{ $day }}"></div>
                                     <button type="button" class="btn btn-sm btn-light text-muted mt-auto w-100"
                                             style="font-size:0.75rem; border:1px dashed #dee2e6"
-                                            onclick="showAddEvent('{{ $day }}')">
+                                            onclick="showAddEvent('{{ $day }}')"
+                                            title="Ereignis hinzufügen"
+                                            data-bs-toggle="tooltip">
                                         <i class="bi bi-plus"></i>
                                     </button>
                                     <div class="add-event-form d-none" id="form-{{ $day }}">
@@ -188,7 +194,9 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
                                             <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                     onclick="addEvent('{{ $day }}')">OK</button>
                                             <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                    onclick="hideAddEvent('{{ $day }}')">×</button>
+                                                    onclick="hideAddEvent('{{ $day }}')"
+                                                    title="Abbrechen"
+                                                    data-bs-toggle="tooltip">×</button>
                                         </div>
                                     </div>
                                 </div>

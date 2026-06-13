@@ -20,7 +20,7 @@
                 @if ($run->triggered_automatically)
                     <span class="badge text-bg-secondary rounded-pill">Automatisch</span>
                 @else
-                    <span class="badge text-bg-primary rounded-pill">Manuell</span>
+                    <span class="badge label-manuell rounded-pill">Manuell</span>
                 @endif
             </td>
             <td>
