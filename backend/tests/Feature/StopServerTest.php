@@ -191,7 +191,7 @@ class StopServerTest extends TestCase
             ),
         ]);
 
-        $response = $this->get(route('dashboard'));
+        $response = $this->get(route('dashboard.data'));
 
         $response->assertOk();
         $response->assertSee('Stoppt', escape: false);
