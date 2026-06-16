@@ -1,7 +1,7 @@
 @forelse ($projects as $index => $project)
 <div class="card shadow-sm border-0 mb-3">
     <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
-        <div class="d-flex align-items-center flex-grow-1 py-3" style="cursor:pointer"
+        <div class="d-flex align-items-center flex-grow-1 py-3 collapsed" style="cursor:pointer"
              data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}"
              data-project-name="{{ $project['name'] }}">
             <i class="bi bi-chevron-right me-2 text-muted collapse-icon-closed" style="font-size:0.85rem"></i>
@@ -43,7 +43,8 @@
     </div>
     <div class="collapse" id="project-{{ $index }}">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" style="table-layout:fixed">
+                <colgroup><col style="width:20%"><col style="width:28%"><col style="width:12%"><col style="width:15%"><col style="width:25%"></colgroup>
                 <thead class="table-light">
                     <tr>
                         <th>Name</th>
@@ -55,10 +56,19 @@
                 </thead>
                 <tbody>
                     @forelse ($project['servers'] as $srv)
+                    @php($isLazy = ! array_key_exists('raw_status', $srv))
                     <tr>
                         <td><div class="fw-semibold small">{{ $srv['name'] }}</div></td>
-                        <td class="text-muted font-monospace small">{{ $srv['open_stack_server_id'] ?? '—' }}</td>
-                        <td>@include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])</td>
+                        <td class="text-muted font-monospace small" style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ $srv['open_stack_server_id'] ?? '—' }}</td>
+                        <td>
+                            <span id="srv-status-{{ $srv['id'] }}" @if ($isLazy) class="placeholder-glow" @endif>
+                                @if ($isLazy)
+                                <span class="placeholder rounded-pill" style="width:4.5rem;height:1.275rem;display:inline-block"></span>
+                                @else
+                                @include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])
+                                @endif
+                            </span>
+                        </td>
                         <td>
                             @if ($srv['label'] === 'production')
                             <span class="badge text-bg-danger rounded-pill badge-label">Produktiv</span>
@@ -72,7 +82,13 @@
                         </td>
                         <td class="text-end">
                             <div class="btn-group">
+                                @if ($isLazy)
+                                <button id="server-toggle-{{ $srv['id'] }}" class="btn btn-sm btn-outline-secondary" disabled title="Lädt…">
+                                    <span class="spinner-border spinner-border-sm" style="width:0.75em;height:0.75em"></span>
+                                </button>
+                                @else
                                 @include('partials.server-toggle-button', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])
+                                @endif
                                 <a href="{{ route('schedules', ['server' => $srv['id'], 'edit' => 1]) }}"
                                    class="btn btn-sm btn-outline-secondary" title="Zeitpläne"
                                    data-bs-toggle="tooltip"
@@ -107,5 +123,7 @@
     </div>
 </div>
 @empty
-<div class="text-center text-muted py-5">Keine Projekte vorhanden.</div>
+<div class="card border-0 shadow-sm">
+    <div class="card-body text-center py-5 text-muted">Keine Projekte vorhanden.</div>
+</div>
 @endforelse

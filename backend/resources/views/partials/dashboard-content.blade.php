@@ -1,36 +1,53 @@
 <div class="row g-3 mb-4">
 
     <div class="col-12 col-md-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted small mb-2">Gesamt Server</p>
-                <h3 class="fw-bold mb-0">{{ $total }}</h3>
+        <a href="{{ route('servers') }}"
+           hx-get="{{ route('servers') }}"
+           hx-target="#main-content"
+           hx-swap="innerHTML"
+           hx-push-url="true"
+           class="text-decoration-none">
+            <div class="card stat-card shadow-sm h-100" style="cursor:pointer">
+                <div class="card-body">
+                    <p class="text-muted small mb-2">Gesamt Server</p>
+                    <h3 class="fw-bold mb-0 dash-value" style="min-height:2.1rem">{{ $total }}</h3>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-12 col-md-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted small mb-2">Laufend</p>
-                <h3 class="fw-bold text-success mb-1">{{ $running }}</h3>
-                <div class="progress" style="height:4px">
-                    <div class="progress-bar bg-success" style="width:{{ $total > 0 ? round($running/$total*100) : 0 }}%"></div>
+        <a href="{{ route('servers') }}?filter=running"
+           hx-get="{{ route('servers') }}?filter=running"
+           hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+           class="text-decoration-none">
+            <div class="card stat-card shadow-sm h-100" style="cursor:pointer">
+                <div class="card-body">
+                    <p class="text-muted small mb-2">Laufend</p>
+                    <h3 class="fw-bold text-success mb-1 dash-value" style="min-height:2.1rem">{{ $running }}</h3>
+                    <div class="progress" style="height:4px">
+                        <div class="progress-bar bg-success dash-bar" style="--bar-width:{{ $total > 0 ? round($running/$total*100) : 0 }}%"></div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
     <div class="col-12 col-md-4">
-        <div class="card stat-card shadow-sm h-100">
-            <div class="card-body">
-                <p class="text-muted small mb-2">Gestoppt</p>
-                <h3 class="fw-bold text-secondary mb-1">{{ $stopped }}</h3>
-                <div class="progress" style="height:4px">
-                    <div class="progress-bar bg-secondary" style="width:{{ $total > 0 ? round($stopped/$total*100) : 0 }}%"></div>
+        <a href="{{ route('servers') }}?filter=stopped"
+           hx-get="{{ route('servers') }}?filter=stopped"
+           hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+           class="text-decoration-none">
+            <div class="card stat-card shadow-sm h-100" style="cursor:pointer">
+                <div class="card-body">
+                    <p class="text-muted small mb-2">Gestoppt</p>
+                    <h3 class="fw-bold text-secondary mb-1 dash-value" style="min-height:2.1rem">{{ $stopped }}</h3>
+                    <div class="progress" style="height:4px">
+                        <div class="progress-bar bg-secondary dash-bar" style="--bar-width:{{ $total > 0 ? round($stopped/$total*100) : 0 }}%"></div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </a>
     </div>
 
 </div>
@@ -45,58 +62,7 @@
                 </h6>
             </div>
 
-            @forelse ($projects as $project)
-            <div class="border-bottom">
-                <div class="px-3 py-2 bg-light d-flex flex-column">
-                    <span class="fw-semibold small">{{ $project['name'] }}</span>
-                    <span class="text-muted font-monospace" style="font-size:0.7rem">{{ $project['open_stack_project_id'] }}</span>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Name</th>
-                                <th>Status</th>
-                                <th>Typ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($project['servers'] as $srv)
-                            <tr>
-                                <td>
-                                    <div class="fw-semibold small">{{ $srv['name'] }}</div>
-                                </td>
-                                <td>
-                                    @include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])
-                                </td>
-                                <td>
-                                    @if ($srv['label'] === 'production')
-                                    <span class="badge text-bg-danger rounded-pill" style="font-size:0.72rem">Produktiv</span>
-                                    @elseif ($srv['label'] === 'test')
-                                    <span class="badge text-bg-warning rounded-pill" style="font-size:0.72rem">Test</span>
-                                    @elseif ($srv['label'] === 'development')
-                                    <span class="badge label-dev rounded-pill" style="font-size:0.72rem">Entwicklung</span>
-                                    @else
-                                    <span class="badge text-bg-secondary rounded-pill" style="font-size:0.72rem">Unkategorisiert</span>
-                                    @endif
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="3" class="text-center text-muted small py-3">
-                                    Keine Server in diesem Projekt.
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            @empty
-            <div class="text-center text-muted py-5">
-                Keine Projekte vorhanden.
-            </div>
-            @endforelse
+            @include('partials.dashboard-projects')
 
             <div class="card-footer bg-white border-top text-center py-2">
                 <a href="{{ route('servers') }}" class="btn btn-sm btn-link text-decoration-none small fw-semibold"
@@ -168,9 +134,15 @@
             <div class="card-body">
                 <p class="text-muted small mb-1">Durch Zeitpläne diesen Monat gespart (geschätzt)</p>
                 <h3 class="fw-bold mb-0">€ {{ number_format($monthlySavings, 2, ',', '.') }}</h3>
+                @if ($savingsHours > 0)
                 <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">
-                    Basiert auf aktiven Zeitplänen aller Server
+                    {{ number_format($savingsHours, 0, ',', '.') }} Std./Monat × Ø {{ number_format($savingsAvgRate, 4, ',', '.') }} €/Std.
                 </p>
+                @else
+                <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">
+                    Keine aktiven Zeitpläne mit bekanntem Flavor
+                </p>
+                @endif
             </div>
         </div>
 

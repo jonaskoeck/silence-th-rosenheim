@@ -124,7 +124,7 @@ class StartServerTest extends TestCase
             'openstack.test/v3/auth/tokens' => Http::response(status: 401),
         ]);
 
-        $response = $this->get(route('servers'));
+        $response = $this->get(route('servers.data'));
 
         $response->assertOk();
         $response->assertSee('Unbekannt');

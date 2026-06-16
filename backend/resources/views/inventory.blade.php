@@ -7,7 +7,7 @@
 
     <div class="d-flex justify-content-between align-items-center page-header">
         <div>
-            <h1 class="h4 fw-bold mb-0">Inventarisierungsläufe</h1>
+            <h1 class="h4 fw-bold mb-0 page-title">Inventarisierungsläufe</h1>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <form method="POST" action="{{ route('inventory.run') }}"

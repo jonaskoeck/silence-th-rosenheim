@@ -8,7 +8,7 @@
 
     <div class="d-flex justify-content-between align-items-center page-header">
         <div>
-            <h1 class="h4 fw-bold mb-0">Projekte & Server</h1>
+            <h1 class="h4 fw-bold mb-0 page-title">Projekte & Server</h1>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <form method="POST" action="{{ route('inventory.run') }}"
@@ -35,11 +35,12 @@
                 </span>
                 <input type="text" id="projectSearch" name="search"
                        class="form-control border-start-0 ps-0"
-                       placeholder="Projekt suchen..." list="project-suggestions"
-                       hx-get="{{ route('servers') }}"
-                       hx-trigger="input changed delay:300ms"
-                       hx-target="#projects-container"
-                       hx-include="[name='search']">
+                       placeholder="Projekt suchen..." list="project-suggestions">
+                <select id="projectFilter" class="form-select form-select-sm border-start-0" style="max-width:11rem;color:var(--bs-secondary-color)">
+                    <option value="all">Alle</option>
+                    <option value="running">Laufend</option>
+                    <option value="stopped">Gestoppt</option>
+                </select>
             </div>
             <datalist id="project-suggestions">
                 @foreach ($projects as $project)
@@ -52,6 +53,8 @@
     <div id="projects-container">
         @include('partials.projects-list')
     </div>
+
+    <div id="status-sink" hidden></div>
 
 </div>
 
@@ -89,7 +92,8 @@
                   hx-post="{{ route('projects.store') }}"
                   hx-target="#projects-container"
                   hx-swap="innerHTML"
-                  hx-on::after-request="if(event.detail.successful) bootstrap.Modal.getInstance(document.getElementById('createProjectModal'))?.hide()">
+                  hx-on::before-request="setFormLoading(this, true)"
+                  hx-on::after-request="setFormLoading(this, false); if(event.detail.successful) bootstrap.Modal.getInstance(document.getElementById('createProjectModal'))?.hide()">
                 @csrf
                 <div class="modal-body d-flex flex-column gap-3">
                     <div>
@@ -107,7 +111,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Speichern</button>
+                    <button type="submit" class="btn btn-orange">Speichern</button>
                 </div>
             </form>
         </div>
@@ -124,7 +128,8 @@
             <form id="editProjectForm" method="POST"
                   hx-target="#projects-container"
                   hx-swap="innerHTML"
-                  hx-on::after-request="if(event.detail.successful) bootstrap.Modal.getInstance(document.getElementById('editProjectModal'))?.hide()">
+                  hx-on::before-request="setFormLoading(this, true)"
+                  hx-on::after-request="setFormLoading(this, false); if(event.detail.successful) bootstrap.Modal.getInstance(document.getElementById('editProjectModal'))?.hide()">
                 @csrf
                 @method('PUT')
                 <div class="modal-body d-flex flex-column gap-3">
@@ -149,7 +154,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
-                    <button type="submit" class="btn btn-primary">Speichern</button>
+                    <button type="submit" class="btn btn-orange">Speichern</button>
                 </div>
             </form>
         </div>
@@ -193,14 +198,6 @@
     <input type="hidden" name="label" id="label-input">
 </form>
 
-<form id="startServerForm" method="POST" style="display:none">
-    @csrf
-</form>
-
-<form id="stopServerForm" method="POST" style="display:none">
-    @csrf
-</form>
-
 <div class="modal fade" id="labelModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -237,26 +234,70 @@
 
 @push('scripts')
 <script>
-var pendingServerId = '';
+htmx.ajax('GET', '{{ route('servers.statuses') }}', { target: '#status-sink', swap: 'innerHTML' });
 
+// Single source of truth for filtering: combines the text search and the status
+// dropdown. Re-run on every htmx settle (e.g. status polling) so neither filter
+// gets clobbered by an unrelated swap.
+function applyFilters() {
+    const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const q = norm(document.getElementById('projectSearch')?.value ?? '');
+    const statusFilter = document.getElementById('projectFilter')?.value ?? 'all';
 
-document.getElementById('projectSearch').addEventListener('input', function () {
-    const normalize = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const query = normalize(this.value);
-    document.querySelectorAll('[data-project-name]').forEach(el => {
-        const card = el.closest('.card');
-        if (card) card.style.display = normalize(el.dataset.projectName).includes(query) ? '' : 'none';
+    document.querySelectorAll('#projects-container > .card').forEach(card => {
+        const header = card.querySelector('[data-project-name]');
+        const projectNameMatches = !q || (header && norm(header.dataset.projectName).includes(q));
+        let anyVisible = false;
+
+        card.querySelectorAll('tbody tr').forEach(row => {
+            const cells = row.querySelectorAll('td');
+            const name = norm(cells[0]?.textContent ?? '');
+            const id = norm(cells[1]?.textContent ?? '');
+            const matchesSearch = projectNameMatches || name.includes(q) || id.includes(q);
+
+            let matchesStatus = true;
+            if (statusFilter !== 'all') {
+                const badge = row.querySelector('.badge:not(.badge-label)');
+                // No status badge yet means it is still loading -> keep visible until it resolves.
+                if (badge) {
+                    matchesStatus = statusFilter === 'running'
+                        ? badge.classList.contains('text-bg-success')
+                        : badge.classList.contains('text-bg-secondary');
+                }
+            }
+
+            const show = matchesSearch && matchesStatus;
+            row.style.display = show ? '' : 'none';
+            if (show) {
+                anyVisible = true;
+            }
+        });
+
+        card.style.display = anyVisible ? '' : 'none';
     });
-});
-
-function submitManual(e) {
-    e.preventDefault();
-    const projectId = document.getElementById('projectSelect').value;
-    if (!projectId) return;
-    const form = document.getElementById('manualForm');
-    form.action = '/inventory/run/' + projectId;
-    form.submit();
 }
+
+document.getElementById('projectFilter').addEventListener('change', applyFilters);
+document.getElementById('projectSearch').addEventListener('input', applyFilters);
+document.addEventListener('htmx:afterSettle', applyFilters);
+
+(function () {
+    const f = new URLSearchParams(window.location.search).get('filter');
+    if (f === 'running' || f === 'stopped') {
+        document.getElementById('projectFilter').value = f;
+    }
+    applyFilters();
+})();
+
+function setFormLoading(form, loading) {
+    const btn = form.querySelector('button[type=submit]');
+    btn.disabled = loading;
+    btn.innerHTML = loading
+        ? '<span class="spinner-border spinner-border-sm me-1"></span>Speichern…'
+        : 'Speichern';
+}
+
+var pendingServerId = '';
 
 function prepareDeleteModal(formId, projectName) {
     document.getElementById('delete-project-name').textContent = projectName;
@@ -303,25 +344,13 @@ function setLabel(label) {
         body: JSON.stringify({ label: label.toUpperCase() })
     }).then(() => {
         window._collapseRestoreAfterSwap = openCollapses;
-        htmx.ajax('GET', '/servers', {
+        htmx.ajax('GET', '/servers/data', {
             target: '#projects-container',
             swap: 'innerHTML',
-            headers: { 'HX-Target': 'projects-container' }
         });
     });
 }
 
-function startServer(serverId) {
-    const form = document.getElementById('startServerForm');
-    form.action = '/servers/' + serverId + '/start';
-    form.submit();
-}
-
-function stopServer(serverId) {
-    const form = document.getElementById('stopServerForm');
-    form.action = '/servers/' + serverId + '/stop';
-    form.submit();
-}
 </script>
 @endpush
 
