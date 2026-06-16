@@ -47,6 +47,7 @@ Route::middleware('shibboleth')->group(function () {
     Route::redirect('/', '/dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/data', [DashboardController::class, 'data'])->name('dashboard.data');
+    Route::get('/dashboard/next-events', [DashboardController::class, 'nextEvents'])->name('dashboard.next-events');
     Route::get('/servers', [ProjectServerController::class, 'index'])->name('servers');
     Route::get('/servers/data', [ProjectServerController::class, 'data'])->name('servers.data');
     Route::get('/servers/statuses', [ProjectServerController::class, 'statusAll'])->name('servers.statuses');

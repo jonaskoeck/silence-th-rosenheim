@@ -119,6 +119,15 @@ class DashboardController extends Controller
         return $response;
     }
 
+    /**
+     * Freshly recomputed "next events" list — polled by the dashboard so it
+     * stays accurate as time passes / scheduled actions fire.
+     */
+    public function nextEvents(): View
+    {
+        return view('partials.dashboard-next-events', ['nextEvents' => $this->calculateNextEvents()]);
+    }
+
     /** @return array{savings: float, hours: float, avgRate: float} */
     private function calculateMonthlySavings(\Illuminate\Support\Collection $projects): array
     {

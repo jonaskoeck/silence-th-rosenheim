@@ -65,4 +65,27 @@ class DashboardNextEventsTest extends TestCase
         $eventServers = collect($response->viewData('nextEvents'))->pluck('server');
         $this->assertNotContains('InactiveScheduleServer', $eventServers);
     }
+
+    public function test_next_events_endpoint_recomputes_and_renders_the_list(): void
+    {
+        $server = Server::factory()->create(['name' => 'PollingServer', 'schedule_active' => true]);
+        ServerAction::create([
+            'server_id' => $server->id,
+            'weekday' => 1, // Monday
+            'time' => '08:00',
+            'type' => 'START',
+        ]);
+
+        $response = $this->get(route('dashboard.next-events'));
+
+        $response->assertOk();
+        $response->assertSee('PollingServer');
+
+        // Must be the bare list partial — not a full page reload. Asserting the
+        // absence of layout/page containers guards against accidentally returning
+        // the whole dashboard (which would reload everything and disrupt polling).
+        $response->assertDontSee('<!DOCTYPE', escape: false);
+        $response->assertDontSee('id="dashboard-content"', escape: false);
+        $response->assertDontSee('id="main-content"', escape: false);
+    }
 }
