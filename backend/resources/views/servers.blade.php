@@ -62,6 +62,12 @@
         @include('partials.projects-list')
     </div>
 
+    <div id="no-results" class="card border-0 shadow-sm" style="display:none">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="bi bi-search me-1"></i>Keine Suchtreffer.
+        </div>
+    </div>
+
     <div id="status-sink" hidden
          hx-get="{{ route('servers.statuses') }}"
          hx-trigger="load"
@@ -285,15 +291,23 @@ function applyFilters() {
     const statusFilter = document.getElementById('projectFilter')?.value ?? 'all';
     const regionFilter = document.getElementById('projectRegionFilter')?.value ?? 'all';
 
+    let visibleCards = 0;
+
     document.querySelectorAll('#projects-container > .card').forEach(card => {
+        const header = card.querySelector('[data-project-name]');
+
+        // The "no projects" empty-state card has no project header — leave it alone.
+        if (!header) {
+            return;
+        }
+
         // Region is a project-level attribute -> hide the whole card when it doesn't match.
         if (regionFilter !== 'all' && card.dataset.region !== regionFilter) {
             card.style.display = 'none';
             return;
         }
 
-        const header = card.querySelector('[data-project-name]');
-        const projectNameMatches = !q || (header && norm(header.dataset.projectName).includes(q));
+        const projectNameMatches = !q || norm(header.dataset.projectName).includes(q);
         let anyVisible = false;
 
         card.querySelectorAll('tbody tr').forEach(row => {
@@ -321,7 +335,17 @@ function applyFilters() {
         });
 
         card.style.display = anyVisible ? '' : 'none';
+        if (anyVisible) {
+            visibleCards++;
+        }
     });
+
+    // Show a hint when an active search/filter matches nothing.
+    const filtering = q !== '' || statusFilter !== 'all' || regionFilter !== 'all';
+    const noResults = document.getElementById('no-results');
+    if (noResults) {
+        noResults.style.display = (filtering && visibleCards === 0) ? '' : 'none';
+    }
 }
 
 document.getElementById('projectFilter').addEventListener('change', applyFilters);
