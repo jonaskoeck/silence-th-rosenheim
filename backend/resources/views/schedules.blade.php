@@ -251,18 +251,89 @@ $snapMinutes = max(1, (int) config('scheduling.trigger_interval_minutes', 5));
 
 @push('scripts')
 <script>
-document.getElementById('scheduleSearch').addEventListener('input', function () {
-    const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const q = norm(this.value);
-    document.querySelectorAll('#schedules-container .card').forEach(card => {
-        const el = card.querySelector('[data-server-name]');
-        if (!el) return;
-        const matches = !q
-            || norm(el.dataset.serverName).includes(q)
-            || norm(el.dataset.scheduleName).includes(q);
-        card.style.display = matches ? '' : 'none';
+// Wrapped in an IIFE: navigation is htmx-based and re-runs this inline script in
+// the same global scope, so top-level `const`s would throw on the second visit.
+(function () {
+    const SCHEDULE_SEARCH_KEY = 'schedules.search';
+    const scheduleSearch = document.getElementById('scheduleSearch');
+
+    function filterSchedules() {
+        const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const q = norm(scheduleSearch.value);
+        document.querySelectorAll('#schedules-container .card').forEach(card => {
+            const el = card.querySelector('[data-server-name]');
+            if (!el) return;
+            const matches = !q
+                || norm(el.dataset.serverName).includes(q)
+                || norm(el.dataset.scheduleName).includes(q);
+            card.style.display = matches ? '' : 'none';
+        });
+    }
+
+    scheduleSearch.addEventListener('input', function () {
+        // Remember the query for this browser session so it survives navigation.
+        sessionStorage.setItem(SCHEDULE_SEARCH_KEY, this.value);
+        filterSchedules();
     });
-});
+
+    const saved = sessionStorage.getItem(SCHEDULE_SEARCH_KEY);
+    if (saved) {
+        scheduleSearch.value = saved;
+        filterSchedules();
+    }
+})();
+
+// Remember which schedule panels are expanded so they stay open when navigating
+// away and back. Navigation is htmx-based, so this script re-runs each visit.
+(function () {
+    const OPEN_KEY = 'schedules.openSchedules';
+
+    function readOpen() {
+        try {
+            return new Set(JSON.parse(sessionStorage.getItem(OPEN_KEY)) || []);
+        } catch (e) {
+            return new Set();
+        }
+    }
+
+    // Reopen panels saved from a previous visit (instant, no transition).
+    readOpen().forEach(id => {
+        const panel = document.getElementById(id);
+        if (!panel) {
+            return;
+        }
+        panel.classList.add('show');
+        const trigger = document.querySelector('[data-bs-target="#' + id + '"]');
+        if (trigger) {
+            trigger.classList.remove('collapsed');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    // Bind the toggle tracker once per session (window survives htmx navigation).
+    if (!window._schedulesOpenTracker) {
+        window._schedulesOpenTracker = true;
+        const update = (id, isOpen) => {
+            const set = readOpen();
+            if (isOpen) {
+                set.add(id);
+            } else {
+                set.delete(id);
+            }
+            sessionStorage.setItem(OPEN_KEY, JSON.stringify([...set]));
+        };
+        document.addEventListener('shown.bs.collapse', e => {
+            if (e.target.id.startsWith('schedule-')) {
+                update(e.target.id, true);
+            }
+        });
+        document.addEventListener('hidden.bs.collapse', e => {
+            if (e.target.id.startsWith('schedule-')) {
+                update(e.target.id, false);
+            }
+        });
+    }
+})();
 
 var scheduleEvents = {};
 
@@ -379,7 +450,12 @@ document.getElementById('newScheduleForm').addEventListener('submit', function (
         return;
     }
 
-    const existingServerIds = @json(array_column($schedules, 'id'));
+    // Read the current schedules straight from the DOM rather than a value baked
+    // in at page render: deleting a schedule swaps only the list partial, so a
+    // baked-in list would still report a just-deleted server as taken.
+    const existingServerIds = [...document.querySelectorAll('#schedules-container .collapse')]
+        .map(el => parseInt(el.id.replace('schedule-', ''), 10))
+        .filter(id => !Number.isNaN(id));
     if (existingServerIds.includes(parseInt(serverId))) {
         showToast('Für diesen Server existiert bereits ein Zeitplan.', 'danger');
         return;

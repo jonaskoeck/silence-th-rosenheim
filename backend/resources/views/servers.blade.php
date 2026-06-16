@@ -348,17 +348,105 @@ function applyFilters() {
     }
 }
 
-document.getElementById('projectFilter').addEventListener('change', applyFilters);
-document.getElementById('projectRegionFilter').addEventListener('change', applyFilters);
-document.getElementById('projectSearch').addEventListener('input', applyFilters);
 document.addEventListener('htmx:afterSettle', applyFilters);
 
+// Wrapped in an IIFE: navigation is htmx-based and re-runs this inline script in
+// the same global scope, so top-level `const`s would throw on the second visit.
 (function () {
+    const FILTERS_KEY = 'servers.filters';
+    const searchInput = document.getElementById('projectSearch');
+    const statusSelect = document.getElementById('projectFilter');
+    const regionSelect = document.getElementById('projectRegionFilter');
+
+    // Remember the active search/filters for this browser session so they survive
+    // navigating away from and back to this page.
+    function persistFilters() {
+        sessionStorage.setItem(FILTERS_KEY, JSON.stringify({
+            search: searchInput.value,
+            status: statusSelect.value,
+            region: regionSelect.value,
+        }));
+    }
+
+    statusSelect.addEventListener('change', () => { persistFilters(); applyFilters(); });
+    regionSelect.addEventListener('change', () => { persistFilters(); applyFilters(); });
+    searchInput.addEventListener('input', () => { persistFilters(); applyFilters(); });
+
+    let saved = {};
+    try {
+        saved = JSON.parse(sessionStorage.getItem(FILTERS_KEY)) || {};
+    } catch (e) {
+        saved = {};
+    }
+    if (saved.search) {
+        searchInput.value = saved.search;
+    }
+    if (saved.status) {
+        statusSelect.value = saved.status;
+    }
+    if (saved.region) {
+        regionSelect.value = saved.region;
+    }
+
+    // An explicit ?filter= in the URL (e.g. a dashboard link) wins over the
+    // remembered status.
     const f = new URLSearchParams(window.location.search).get('filter');
     if (f === 'running' || f === 'stopped') {
-        document.getElementById('projectFilter').value = f;
+        statusSelect.value = f;
     }
     applyFilters();
+})();
+
+// Remember which project panels are expanded so they stay open when navigating
+// away and back. Navigation is htmx-based, so this script re-runs each visit.
+(function () {
+    const OPEN_KEY = 'servers.openProjects';
+
+    function readOpen() {
+        try {
+            return new Set(JSON.parse(sessionStorage.getItem(OPEN_KEY)) || []);
+        } catch (e) {
+            return new Set();
+        }
+    }
+
+    // Reopen panels saved from a previous visit (instant, no transition).
+    readOpen().forEach(id => {
+        const panel = document.getElementById(id);
+        if (!panel) {
+            return;
+        }
+        panel.classList.add('show');
+        const trigger = document.querySelector('[data-bs-target="#' + id + '"]');
+        if (trigger) {
+            trigger.classList.remove('collapsed');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    // Bind the toggle tracker once per session (window survives htmx navigation).
+    if (!window._serversOpenTracker) {
+        window._serversOpenTracker = true;
+        const update = (id, isOpen) => {
+            const set = readOpen();
+            if (isOpen) {
+                set.add(id);
+            } else {
+                set.delete(id);
+            }
+            sessionStorage.setItem(OPEN_KEY, JSON.stringify([...set]));
+        };
+        document.addEventListener('shown.bs.collapse', e => {
+            if (e.target.id.startsWith('project-')) {
+                update(e.target.id, true);
+            }
+        });
+        document.addEventListener('hidden.bs.collapse', e => {
+            if (e.target.id.startsWith('project-')) {
+                update(e.target.id, false);
+            }
+        });
+    }
 })();
 
 function setFormLoading(form, loading) {

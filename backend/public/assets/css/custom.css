@@ -283,6 +283,17 @@ textarea {
     color: #9ca3ab !important;
 }
 
+/* Suchleisten: kein blauer Fokus-Ring. Das Input bildet zusammen mit dem
+   Icon-Span eine Einheit, weshalb der Standard-Ring nur das Input umrahmt und
+   abgeschnitten wirkt. */
+#projectSearch:focus,
+#scheduleSearch:focus,
+#projectFilter:focus,
+#projectRegionFilter:focus {
+    border-color: var(--bs-border-color);
+    box-shadow: none;
+}
+
 /* Formular-Elemente im Dark Mode (Inputs, Selects, Textareas) */
 [data-bs-theme="dark"] .form-control,
 [data-bs-theme="dark"] .form-select {
