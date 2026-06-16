@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Region;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
+use App\Services\OpenStack\Exceptions\OpenStackUnreachableException;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -81,6 +82,10 @@ class UpdateProjectRequest extends FormRequest
                 $credentialId,
                 $credentialSecret,
             );
+        } catch (OpenStackUnreachableException) {
+            throw ValidationException::withMessages([
+                'region_id' => 'Die gewählte Region ist nicht erreichbar.',
+            ]);
         } catch (InvalidOpenStackCredentialsException) {
             throw ValidationException::withMessages([
                 'app_credential_secret' => 'Ungültige OpenStack-Zugangsdaten.',

@@ -7,6 +7,7 @@ namespace App\Services\OpenStack;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use App\Services\OpenStack\Exceptions\OpenStackServerActionException;
+use App\Services\OpenStack\Exceptions\OpenStackUnreachableException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -40,7 +41,7 @@ class OpenStackClient implements OpenStackClientInterface
         } catch (ConnectionException $e) {
             Log::warning('OpenStack auth connection failed', ['message' => $e->getMessage()]);
 
-            throw InvalidOpenStackCredentialsException::fromTransportError($e);
+            throw OpenStackUnreachableException::fromTransportError($e);
         }
 
         Log::debug('OpenStack auth response', [
@@ -53,7 +54,7 @@ class OpenStackClient implements OpenStackClientInterface
         }
 
         if ($response->failed()) {
-            throw InvalidOpenStackCredentialsException::fromTransportError(
+            throw OpenStackUnreachableException::fromTransportError(
                 new RuntimeException("OpenStack auth returned status {$response->status()}.")
             );
         }
@@ -62,7 +63,7 @@ class OpenStackClient implements OpenStackClientInterface
         $projectId = $response->json('token.project.id');
 
         if (! is_string($token) || $token === '' || ! is_string($projectId) || $projectId === '') {
-            throw InvalidOpenStackCredentialsException::fromTransportError(
+            throw OpenStackUnreachableException::fromTransportError(
                 new RuntimeException('OpenStack auth response was missing a token or project id.')
             );
         }
@@ -71,6 +72,34 @@ class OpenStackClient implements OpenStackClientInterface
         $computeEndpoint = $this->extractComputeEndpoint($catalog);
 
         return new AuthenticationResultDto($token, $projectId, $computeEndpoint);
+    }
+
+    /**
+     * Prüft (ohne Zugangsdaten), ob unter der Host-URL ein erreichbarer
+     * OpenStack-Identity-Dienst (Keystone v3) antwortet. Wirft, wenn der Host
+     * nicht aufgelöst/erreicht werden kann oder kein Keystone-v3-Endpunkt ist.
+     *
+     * @throws OpenStackUnreachableException
+     */
+    public function verifyIdentityEndpoint(string $authUrl): void
+    {
+        $url = rtrim($authUrl, '/').'/v3';
+
+        try {
+            $response = Http::acceptJson()->get($url);
+        } catch (ConnectionException $e) {
+            Log::warning('OpenStack identity probe connection failed', ['url' => $url, 'message' => $e->getMessage()]);
+
+            throw OpenStackUnreachableException::fromTransportError($e);
+        }
+
+        $versionId = $response->json('version.id');
+
+        if (! is_string($versionId) || ! str_starts_with($versionId, 'v3')) {
+            throw OpenStackUnreachableException::fromTransportError(
+                new RuntimeException("No OpenStack identity (Keystone v3) endpoint found at {$url}.")
+            );
+        }
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Region;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
+use App\Services\OpenStack\Exceptions\OpenStackUnreachableException;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
@@ -54,6 +55,8 @@ class StoreProjectRequest extends FormRequest
             }
 
             $this->resolvedOpenStackProjectId = $result->projectId;
+        } catch (OpenStackUnreachableException) {
+            $this->throwHtmxOrFlash('Die gewählte Region ist nicht erreichbar.', 'region_id');
         } catch (InvalidOpenStackCredentialsException) {
             $this->throwHtmxOrFlash('Ungültige OpenStack-Zugangsdaten.', 'app_credential_secret');
         } catch (ValidationException $e) {

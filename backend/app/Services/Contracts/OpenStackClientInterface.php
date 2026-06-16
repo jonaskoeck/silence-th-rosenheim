@@ -5,10 +5,18 @@ declare(strict_types=1);
 namespace App\Services\Contracts;
 
 use App\Services\OpenStack\AuthenticationResultDto;
+use App\Services\OpenStack\Exceptions\OpenStackUnreachableException;
 
 interface OpenStackClientInterface
 {
     public function authenticate(string $authUrl, string $applicationCredentialId, string $applicationCredentialSecret): AuthenticationResultDto;
+
+    /**
+     * Verify that a reachable OpenStack identity (Keystone v3) endpoint lives at the URL.
+     *
+     * @throws OpenStackUnreachableException
+     */
+    public function verifyIdentityEndpoint(string $authUrl): void;
 
     /**
      * @return array<int, array<string, mixed>>
