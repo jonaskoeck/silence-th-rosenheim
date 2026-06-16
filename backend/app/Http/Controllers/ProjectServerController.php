@@ -127,10 +127,10 @@ class ProjectServerController extends Controller
                 'serverId' => $server->id,
                 'rawStatus' => 'SHUTOFF',
                 'expecting' => 'ACTIVE',
-            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wurde gestartet.", 'type' => 'success']]));
+            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wird gestartet…", 'type' => 'success']]));
         }
 
-        return back()->with('status', "Server \"{$server->name}\" wurde gestartet.");
+        return back()->with('status', "Server \"{$server->name}\" wird gestartet…");
     }
 
     public function stop(Request $request, Server $server): RedirectResponse|View|Response
@@ -155,10 +155,10 @@ class ProjectServerController extends Controller
                 'serverId' => $server->id,
                 'rawStatus' => 'ACTIVE',
                 'expecting' => 'SHUTOFF',
-            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wurde gestoppt.", 'type' => 'success']]));
+            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wird gestoppt…", 'type' => 'success']]));
         }
 
-        return back()->with('status', "Server \"{$server->name}\" wurde gestoppt.");
+        return back()->with('status', "Server \"{$server->name}\" wird gestoppt…");
     }
 
     public function status(Request $request, Server $server): View

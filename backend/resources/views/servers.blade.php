@@ -106,7 +106,7 @@
                         <a href="{{ route('regions') }}"
                            hx-get="{{ route('regions') }}" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
                            data-bs-dismiss="modal" class="alert-link">Region anlegen</a>,
-                        bevor ein Projekt erstellt werden kann.
+                        bevor ein Projekt hinzugefügt werden kann.
                     </div>
                     @else
                     <div>

@@ -27,7 +27,7 @@ class RegionController extends Controller
         $this->regions->create($request->validated());
 
         if ($request->header('HX-Request')) {
-            return $this->regionsPartial('Region wurde erstellt.');
+            return $this->regionsPartial('Region wurde hinzugefügt.');
         }
 
         return redirect()->route('regions');
