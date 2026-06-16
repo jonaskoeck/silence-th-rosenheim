@@ -7,6 +7,10 @@
             <i class="bi bi-chevron-right me-2 text-muted collapse-icon-closed" style="font-size:0.85rem"></i>
             <i class="bi bi-chevron-down me-2 text-muted collapse-icon-open" style="font-size:0.85rem"></i>
             <span class="fw-semibold">{{ $project['name'] }}</span>
+            <span class="badge rounded-pill text-bg-light border text-secondary ms-2" style="font-size:0.7rem"
+                  title="{{ $project['region_host_url'] }}" data-bs-toggle="tooltip">
+                <i class="bi bi-geo-alt me-1"></i>{{ $project['region_code'] }}
+            </span>
         </div>
         <div class="d-flex gap-1 align-items-center py-3">
             <button class="btn btn-sm btn-outline-secondary"

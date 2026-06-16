@@ -81,6 +81,8 @@ class ProjectController extends Controller
             'id' => $p->id,
             'name' => $p->name,
             'region_id' => $p->region_id,
+            'region_code' => $p->region->code,
+            'region_host_url' => $p->region->host_url,
             'servers' => $p->servers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
