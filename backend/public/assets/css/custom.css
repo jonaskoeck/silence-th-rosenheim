@@ -475,3 +475,57 @@ textarea {
 [data-bs-toggle="collapse"] .collapse-icon-open { display: none; }
 [data-bs-toggle="collapse"][aria-expanded="true"] .collapse-icon-closed { display: none; }
 [data-bs-toggle="collapse"][aria-expanded="true"] .collapse-icon-open { display: inline-block; }
+
+/* ============================================================
+   Server-Typ-Label „Entwicklung" — Blau in beiden Modi.
+   Wir nutzen eine eigene Klasse statt der Bootstrap-Brand-Farbe,
+   damit das Label im Farbblindenmodus klar von „Produktiv" (rot
+   wird zu orange) unterscheidbar bleibt und nicht mit der TH-
+   Akzentfarbe (Orange) kollidiert.
+   ============================================================ */
+.badge.label-dev {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+}
+
+.btn-outline-label-dev {
+    color: #0d6efd;
+    border-color: #0d6efd;
+    background-color: transparent;
+}
+
+.btn-outline-label-dev:hover,
+.btn-outline-label-dev:focus {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+
+/* ============================================================
+   Zeitplan-Aktivieren/Deaktivieren-Toggle.
+   Im aktiven Zustand grün (= „läuft / ist scharf geschaltet"),
+   intuitiver als das Bootstrap-Standardblau. Im Farbblindmodus
+   wechselt er zu Blau, damit er sich konsistent in die übrige
+   Colorblind-Palette einfügt.
+   ============================================================ */
+.schedule-toggle:checked {
+    background-color: #198754 !important;
+    border-color: #198754 !important;
+}
+
+[data-colorblind="true"] .schedule-toggle:checked {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+
+/* ============================================================
+   Auslöser-Label „Manuell" — Lila in beiden Modi.
+   Steht damit klar abgegrenzt zu „Automatisch" (grau) und ist
+   nicht mit der Brand-Orange oder dem Fehler-Orange im Farbblind-
+   Modus zu verwechseln. Lila hat in Light- wie Dark-Mode genug
+   Kontrast und ist auch bei Rot-Grün-Schwäche unterscheidbar.
+   ============================================================ */
+.badge.label-manuell {
+    background-color: #6f42c1 !important;
+    color: #fff !important;
+}

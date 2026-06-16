@@ -222,7 +222,7 @@
                     <button type="button" class="btn btn-outline-warning" onclick="setLabel('test')">
                         Test setzen
                     </button>
-                    <button type="button" class="btn btn-outline-primary" onclick="setLabel('development')">
+                    <button type="button" class="btn btn-outline-label-dev" onclick="setLabel('development')">
                         Entwicklung setzen
                     </button>
                     <button type="button" class="btn btn-outline-secondary" onclick="setLabel('none')">
