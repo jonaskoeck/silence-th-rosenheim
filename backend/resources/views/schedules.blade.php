@@ -5,6 +5,7 @@
 @section('content')
 @php
 $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+$snapMinutes = max(1, (int) config('scheduling.trigger_interval_minutes', 5));
 @endphp
 
 <div class="container-fluid">
@@ -88,7 +89,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                                         <option value="STOP">Stoppen</option>
                                     </select>
                                     <input type="time" class="form-control form-control-sm mb-1"
-                                           id="edit-time-{{ $day }}" value="08:00" step="300" onchange="snapTime(this)">
+                                           id="edit-time-{{ $day }}" value="08:00" step="{{ $snapMinutes * 60 }}" onchange="snapTime(this)">
                                     <div class="d-flex gap-1">
                                         <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                 onclick="addEditEvent('{{ $day }}')">OK</button>
@@ -188,7 +189,7 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                                             <option value="STOP">Stoppen</option>
                                         </select>
                                         <input type="time" class="form-control form-control-sm mb-1"
-                                               id="time-{{ $day }}" value="08:00" step="300" onchange="snapTime(this)">
+                                               id="time-{{ $day }}" value="08:00" step="{{ $snapMinutes * 60 }}" onchange="snapTime(this)">
                                         <div class="d-flex gap-1">
                                             <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                     onclick="addEvent('{{ $day }}')">OK</button>
@@ -303,13 +304,15 @@ document.getElementById('new-schedule-btn').addEventListener('click', resetNewSc
 // Schedule times live on a 5-minute grid. The native time picker allows any
 // minute, so snap the chosen value to the nearest 5 minutes (on change and again
 // before reading it). The server enforces the same rule as a backstop.
+const SNAP_MINUTES = {{ $snapMinutes }};
+
 function snapTime(input) {
     if (!input || !input.value) return;
     const [h, m] = input.value.split(':').map(Number);
     if (!Number.isInteger(h) || !Number.isInteger(m)) return;
-    let minutes = Math.round(m / 5) * 5;
+    let minutes = Math.round(m / SNAP_MINUTES) * SNAP_MINUTES;
     let hours = h;
-    if (minutes === 60) {
+    if (minutes >= 60) {
         minutes = 0;
         hours = (h + 1) % 24;
     }
