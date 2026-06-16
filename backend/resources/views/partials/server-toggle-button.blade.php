@@ -20,6 +20,7 @@
 <button id="server-toggle-{{ $serverId }}"
         class="btn btn-sm btn-outline-danger"
         title="Stoppen"
+        data-bs-toggle="tooltip"
         hx-post="{{ route('servers.stop', $serverId) }}"
         hx-swap="none"
         @if ($oob) hx-swap-oob="true" @endif>
@@ -29,6 +30,7 @@
 <button id="server-toggle-{{ $serverId }}"
         class="btn btn-sm btn-outline-success"
         title="Starten"
+        data-bs-toggle="tooltip"
         hx-post="{{ route('servers.start', $serverId) }}"
         hx-swap="none"
         @if ($oob) hx-swap-oob="true" @endif>

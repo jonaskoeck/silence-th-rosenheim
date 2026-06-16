@@ -31,21 +31,21 @@ class DashboardController extends Controller
     {
         $projectModels = $this->projects->getAll()->load('servers.actions');
 
-        $total        = $projectModels->sum(fn ($p) => $p->servers->count());
-        $savings      = $this->calculateMonthlySavings($projectModels);
-        $monthlySavings  = $savings['savings'];
-        $savingsHours    = $savings['hours'];
-        $savingsAvgRate  = $savings['avgRate'];
-        $nextEvents   = $this->calculateNextEvents();
+        $total = $projectModels->sum(fn ($p) => $p->servers->count());
+        $savings = $this->calculateMonthlySavings($projectModels);
+        $monthlySavings = $savings['savings'];
+        $savingsHours = $savings['hours'];
+        $savingsAvgRate = $savings['avgRate'];
+        $nextEvents = $this->calculateNextEvents();
         $lastInventory = InventoryRun::latest()->first();
 
         $projects = $projectModels->sortByDesc('created_at')->take(3)->map(fn ($p) => [
-            'id'                    => $p->id,
-            'name'                  => $p->name,
+            'id' => $p->id,
+            'name' => $p->name,
             'open_stack_project_id' => $p->open_stack_project_id,
-            'servers'               => $p->servers->map(fn ($s) => [
-                'id'    => $s->id,
-                'name'  => $s->name,
+            'servers' => $p->servers->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
                 'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
             ])->all(),
         ])->all();
@@ -105,9 +105,9 @@ class DashboardController extends Controller
             'stopped' => $total - $running,
             'activeSchedules' => 0,
             'lastInventory' => $lastInventory,
-            'monthlySavings'  => ($s = $this->calculateMonthlySavings($projectModels))['savings'],
-            'savingsHours'    => $s['hours'],
-            'savingsAvgRate'  => $s['avgRate'],
+            'monthlySavings' => ($s = $this->calculateMonthlySavings($projectModels))['savings'],
+            'savingsHours' => $s['hours'],
+            'savingsAvgRate' => $s['avgRate'],
         ];
 
         $response = response(view('partials.dashboard-content', $data));
@@ -123,28 +123,28 @@ class DashboardController extends Controller
     private function calculateMonthlySavings(\Illuminate\Support\Collection $projects): array
     {
         $totalSavings = 0.0;
-        $totalHours   = 0.0;
-        $rateSum      = 0.0;
-        $rateCount    = 0;
+        $totalHours = 0.0;
+        $rateSum = 0.0;
+        $rateCount = 0;
 
         foreach ($projects->flatMap(fn ($p) => $p->servers) as $server) {
             if ($server->actions->isEmpty() || ! $server->schedule_active || ! $server->flavor) {
                 continue;
             }
 
-            $rate           = FlavorParser::hourlyCost($server->flavor);
+            $rate = FlavorParser::hourlyCost($server->flavor);
             $stoppedPerWeek = $this->weeklyStoppedHours($server->actions);
-            $monthlyHours   = $stoppedPerWeek * 4;
+            $monthlyHours = $stoppedPerWeek * 4;
 
             $totalSavings += $monthlyHours * $rate;
-            $totalHours   += $monthlyHours;
-            $rateSum      += $rate;
+            $totalHours += $monthlyHours;
+            $rateSum += $rate;
             $rateCount++;
         }
 
         return [
             'savings' => $totalSavings,
-            'hours'   => $totalHours,
+            'hours' => $totalHours,
             'avgRate' => $totalHours > 0 ? $totalSavings / $totalHours : 0.0,
         ];
     }
@@ -216,6 +216,10 @@ class DashboardController extends Controller
         $dayLabel = [1 => 'Mo', 2 => 'Di', 3 => 'Mi', 4 => 'Do', 5 => 'Fr', 6 => 'Sa', 7 => 'So'];
 
         foreach ($this->serverActions->getAll() as $action) {
+            if ($action->server !== null && ! $action->server->schedule_active) {
+                continue;
+            }
+
             $serverName = $action->server?->name ?? '—';
 
             foreach ($action->weekdays() as $weekday) {

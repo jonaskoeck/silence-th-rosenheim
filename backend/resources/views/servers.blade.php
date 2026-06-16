@@ -35,12 +35,7 @@
                 </span>
                 <input type="text" id="projectSearch" name="search"
                        class="form-control border-start-0 ps-0"
-                       placeholder="Projekt suchen..." list="project-suggestions"
-                       hx-get="{{ route('servers.data') }}"
-                       hx-trigger="input changed delay:300ms"
-                       hx-target="#projects-container"
-                       hx-swap="innerHTML"
-                       hx-include="[name='search']">
+                       placeholder="Projekt suchen..." list="project-suggestions">
                 <select id="projectFilter" class="form-select form-select-sm border-start-0" style="max-width:11rem;color:var(--bs-secondary-color)">
                     <option value="all">Alle</option>
                     <option value="running">Laufend</option>
@@ -56,119 +51,7 @@
     </div>
 
     <div id="projects-container">
-        @forelse ($projects as $index => $project)
-        <div class="card shadow-sm border-0 mb-3">
-            <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
-                <div class="d-flex align-items-center flex-grow-1 py-3 collapsed" style="cursor:pointer"
-                     data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}"
-                     data-project-name="{{ $project['name'] }}">
-                    <i class="bi bi-chevron-right me-2 text-muted collapse-icon-closed" style="font-size:0.85rem"></i>
-                    <i class="bi bi-chevron-down me-2 text-muted collapse-icon-open" style="font-size:0.85rem"></i>
-                    <span class="fw-semibold">{{ $project['name'] }}</span>
-                </div>
-                <div class="d-flex gap-1 align-items-center py-3">
-                    <button class="btn btn-sm btn-outline-secondary"
-                            data-bs-toggle="modal" data-bs-target="#editProjectModal"
-                            onclick="prepareEditModal({{ $project['id'] }}, '{{ addslashes($project['name']) }}')"
-                            title="Projekt bearbeiten">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <form id="delete-form-{{ $project['id'] }}" method="POST"
-                          action="{{ route('projects.destroy', $project['id']) }}" style="display:none">
-                        @csrf
-                        @method('DELETE')
-                    </form>
-                    <button class="btn btn-sm btn-outline-danger"
-                            data-bs-toggle="modal" data-bs-target="#deleteProjectModal"
-                            onclick="prepareDeleteModal('delete-form-{{ $project['id'] }}', '{{ addslashes($project['name']) }}')"
-                            title="Projekt löschen">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                    <form method="POST" action="{{ route('inventory.run.project', $project['id']) }}"
-                          hx-post="{{ route('inventory.run.project', $project['id']) }}"
-                          hx-target="#projects-container"
-                          hx-swap="innerHTML"
-                          hx-on::before-request="window._collapseRestoreAfterSwap=[...document.querySelectorAll('.collapse.show')].map(el=>el.id)">
-                        @csrf
-                        <button type="submit" class="btn btn-sm btn-outline-primary" title="Inventarisieren">
-                            <i class="bi bi-arrow-repeat"></i>
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <div class="collapse" id="project-{{ $index }}">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0 dash-table" style="table-layout:fixed">
-                        <colgroup><col style="width:20%"><col style="width:28%"><col style="width:12%"><col style="width:15%"><col style="width:25%"></colgroup>
-                        <thead class="table-light">
-                            <tr>
-                                <th>Name</th>
-                                <th>OpenStack ID</th>
-                                <th>Status</th>
-                                <th>Typ</th>
-                                <th class="text-end">Aktionen</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($project['servers'] as $srv)
-                            <tr>
-                                <td><div class="fw-semibold small">{{ $srv['name'] }}</div></td>
-                                <td class="text-muted font-monospace small" style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ $srv['open_stack_server_id'] ?? '—' }}</td>
-                                <td>
-                                    <span id="srv-status-{{ $srv['id'] }}" class="placeholder-glow">
-                                        <span class="placeholder rounded-pill" style="width:4.5rem;height:1.275rem;display:inline-block"></span>
-                                    </span>
-                                </td>
-                                <td>
-                                    @if ($srv['label'] === 'production')
-                                    <span class="badge text-bg-danger rounded-pill">Produktiv</span>
-                                    @elseif ($srv['label'] === 'test')
-                                    <span class="badge text-bg-info rounded-pill">Test</span>
-                                    @elseif ($srv['label'] === 'development')
-                                    <span class="badge text-bg-primary rounded-pill">Entwicklung</span>
-                                    @else
-                                    <span class="badge text-bg-secondary rounded-pill">Unkategorisiert</span>
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    <div class="btn-group">
-                                        <button id="server-toggle-{{ $srv['id'] }}" class="btn btn-sm btn-outline-secondary" disabled title="Lädt…">
-                                            <span class="spinner-border spinner-border-sm" style="width:0.75em;height:0.75em"></span>
-                                        </button>
-                                        <a href="{{ route('schedules', ['server' => $srv['id'], 'edit' => 1]) }}"
-                                           class="btn btn-sm btn-outline-secondary" title="Zeitpläne"
-                                           hx-get="{{ route('schedules', ['server' => $srv['id'], 'edit' => 1]) }}"
-                                           hx-target="#main-content"
-                                           hx-swap="innerHTML"
-                                           hx-push-url="true">
-                                            <i class="bi bi-clock"></i>
-                                        </a>
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                                data-bs-toggle="modal" data-bs-target="#labelModal"
-                                                data-server-id="{{ $srv['id'] }}"
-                                                data-server-name="{{ $srv['name'] }}"
-                                                data-server-label="{{ $srv['label'] }}"
-                                                title="Label ändern">
-                                            <i class="bi bi-tag"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="5" class="text-center text-muted small py-3">Keine Server in diesem Projekt.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        @empty
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center py-5 text-muted">Keine Projekte vorhanden.</div>
-        </div>
-        @endforelse
+        @include('partials.projects-list')
     </div>
 
     <div id="status-sink" hidden></div>
@@ -336,7 +219,7 @@
                     <button type="button" class="btn btn-outline-warning" onclick="setLabel('test')">
                         Test setzen
                     </button>
-                    <button type="button" class="btn btn-outline-primary" onclick="setLabel('development')">
+                    <button type="button" class="btn btn-outline-label-dev" onclick="setLabel('development')">
                         Entwicklung setzen
                     </button>
                     <button type="button" class="btn btn-outline-secondary" onclick="setLabel('none')">
@@ -353,32 +236,57 @@
 <script>
 htmx.ajax('GET', '{{ route('servers.statuses') }}', { target: '#status-sink', swap: 'innerHTML' });
 
-function applyProjectFilter() {
-    const filter = document.getElementById('projectFilter')?.value ?? 'all';
+// Single source of truth for filtering: combines the text search and the status
+// dropdown. Re-run on every htmx settle (e.g. status polling) so neither filter
+// gets clobbered by an unrelated swap.
+function applyFilters() {
+    const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const q = norm(document.getElementById('projectSearch')?.value ?? '');
+    const statusFilter = document.getElementById('projectFilter')?.value ?? 'all';
+
     document.querySelectorAll('#projects-container > .card').forEach(card => {
-        let visible = 0;
+        const header = card.querySelector('[data-project-name]');
+        const projectNameMatches = !q || (header && norm(header.dataset.projectName).includes(q));
+        let anyVisible = false;
+
         card.querySelectorAll('tbody tr').forEach(row => {
-            if (filter === 'all') { row.style.display = ''; visible++; return; }
-            const badge = row.querySelector('.badge:not(.badge-label)');
-            if (!badge) { row.style.display = 'none'; return; }
-            const matches = filter === 'running'
-                ? badge.classList.contains('text-bg-success')
-                : badge.classList.contains('text-bg-secondary');
-            row.style.display = matches ? '' : 'none';
-            if (matches) visible++;
+            const cells = row.querySelectorAll('td');
+            const name = norm(cells[0]?.textContent ?? '');
+            const id = norm(cells[1]?.textContent ?? '');
+            const matchesSearch = projectNameMatches || name.includes(q) || id.includes(q);
+
+            let matchesStatus = true;
+            if (statusFilter !== 'all') {
+                const badge = row.querySelector('.badge:not(.badge-label)');
+                // No status badge yet means it is still loading -> keep visible until it resolves.
+                if (badge) {
+                    matchesStatus = statusFilter === 'running'
+                        ? badge.classList.contains('text-bg-success')
+                        : badge.classList.contains('text-bg-secondary');
+                }
+            }
+
+            const show = matchesSearch && matchesStatus;
+            row.style.display = show ? '' : 'none';
+            if (show) {
+                anyVisible = true;
+            }
         });
-        card.style.display = filter === 'all' || visible > 0 ? '' : 'none';
+
+        card.style.display = anyVisible ? '' : 'none';
     });
 }
 
-document.getElementById('projectFilter').addEventListener('change', applyProjectFilter);
-document.addEventListener('htmx:afterSettle', applyProjectFilter);
+document.getElementById('projectFilter').addEventListener('change', applyFilters);
+document.getElementById('projectSearch').addEventListener('input', applyFilters);
+document.addEventListener('htmx:afterSettle', applyFilters);
 
 (function () {
     const f = new URLSearchParams(window.location.search).get('filter');
     if (f === 'running' || f === 'stopped') {
         document.getElementById('projectFilter').value = f;
     }
+    applyFilters();
 })();
 
 function setFormLoading(form, loading) {
@@ -390,36 +298,6 @@ function setFormLoading(form, loading) {
 }
 
 var pendingServerId = '';
-
-
-document.getElementById('projectSearch').addEventListener('input', function () {
-    const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const q = norm(this.value);
-    document.querySelectorAll('#projects-container > .card').forEach(card => {
-        const header = card.querySelector('[data-project-name]');
-        if (!header) return;
-        if (!q) {
-            card.style.display = '';
-            card.querySelectorAll('tbody tr').forEach(r => r.style.display = '');
-            return;
-        }
-        if (norm(header.dataset.projectName).includes(q)) {
-            card.style.display = '';
-            card.querySelectorAll('tbody tr').forEach(r => r.style.display = '');
-            return;
-        }
-        let anyVisible = false;
-        card.querySelectorAll('tbody tr').forEach(row => {
-            const cells = row.querySelectorAll('td');
-            const name = norm(cells[0]?.textContent ?? '');
-            const id   = norm(cells[1]?.textContent ?? '');
-            const matches = name.includes(q) || id.includes(q);
-            row.style.display = matches ? '' : 'none';
-            if (matches) anyVisible = true;
-        });
-        card.style.display = anyVisible ? '' : 'none';
-    });
-});
 
 function prepareDeleteModal(formId, projectName) {
     document.getElementById('delete-project-name').textContent = projectName;

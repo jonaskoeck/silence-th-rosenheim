@@ -32,13 +32,13 @@ class ProjectServerController extends Controller
     public function index(Request $request): View|Response
     {
         $projects = $this->projects->getAll()->load('servers')->map(fn ($p) => [
-            'id'      => $p->id,
-            'name'    => $p->name,
+            'id' => $p->id,
+            'name' => $p->name,
             'servers' => $p->servers->map(fn ($s) => [
-                'id'                   => $s->id,
-                'name'                 => $s->name,
+                'id' => $s->id,
+                'name' => $s->name,
                 'open_stack_server_id' => $s->open_stack_server_id,
-                'label'                => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
+                'label' => strtolower($s->label instanceof ServerLabel ? $s->label->value : $s->label),
             ])->all(),
         ])->all();
 
@@ -54,9 +54,13 @@ class ProjectServerController extends Controller
     public function statusAll(): Response
     {
         $projectModels = $this->projects->getAll()->load('servers');
-        $projects = $this->mapProjects($projectModels, $this->serverStatus->statusesForProjects($projectModels));
+        $statuses = $this->serverStatus->statusesForProjects($projectModels);
+        $projects = $this->mapProjects($projectModels, $statuses);
 
-        return response(view('partials.projects-status-oob', compact('projects')));
+        return $this->withStatusFailureToast(
+            response(view('partials.projects-status-oob', compact('projects'))),
+            $statuses,
+        );
     }
 
     public function data(Request $request): Response

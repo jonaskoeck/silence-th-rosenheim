@@ -87,16 +87,39 @@ document.addEventListener('htmx:configRequest', e => {
     e.detail.headers['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]')?.content;
 });
 
-document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-    new bootstrap.Tooltip(el);
-    el.addEventListener('click', () => bootstrap.Tooltip.getInstance(el)?.hide());
-});
+/**
+ * Initialisiert Bootstrap-Tooltips auf allen Elementen mit
+ * data-bs-toggle="tooltip" innerhalb des übergebenen Roots.
+ * Bereits initialisierte Elemente werden übersprungen, damit keine
+ * doppelten Tooltips entstehen. Nach einem Klick wird der Tooltip
+ * automatisch ausgeblendet, damit er nicht über geöffneten Modals
+ * oder neuen Inhalten kleben bleibt.
+ */
+function initTooltips(root = document) {
+    // Standard-Bootstrap-Selector + zusätzlicher Marker für Buttons,
+    // die schon ein anderes data-bs-toggle nutzen (z.B. ein Offcanvas-
+    // oder Modal-Trigger). Bei denen wird der Tooltip rein über JS
+    // aufgebaut, weil zwei data-bs-toggle-Werte nicht funktionieren.
+    const selector = '[data-bs-toggle="tooltip"],[data-tooltip="enabled"]';
+    root.querySelectorAll(selector).forEach(el => {
+        if (bootstrap.Tooltip.getInstance(el)) return;
+        new bootstrap.Tooltip(el);
+        el.addEventListener('click', () => bootstrap.Tooltip.getInstance(el)?.hide());
+    });
+}
 
-document.addEventListener('htmx:afterSwap', () => {
+initTooltips();
+
+document.addEventListener('htmx:afterSwap', e => {
+    // Sidebar: aktiven Link nachziehen, falls die URL via HTMX gewechselt hat
     document.querySelectorAll('.sidebar-icon-link').forEach(link => {
         const url = new URL(link.href, window.location.origin);
         link.classList.toggle('active', url.pathname === window.location.pathname);
     });
+    // Tooltips für die frisch gesetzten DOM-Knoten neu initialisieren,
+    // sonst hätten z.B. die Buttons nach einem HTMX-Refresh der Tabelle
+    // keine Tooltips mehr.
+    initTooltips(e.detail.target ?? document);
 });
 
 document.addEventListener('htmx:afterSettle', () => {

@@ -32,8 +32,9 @@ $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
                       hx-target="#schedules-container"
                       hx-swap="innerHTML">
                     @csrf
-                    <div class="form-check form-switch m-0" title="Zeitplan aktivieren/deaktivieren">
-                        <input class="form-check-input" type="checkbox" role="switch"
+                    <div class="form-check form-switch m-0" title="Zeitplan aktivieren/deaktivieren"
+                         data-bs-toggle="tooltip">
+                        <input class="form-check-input schedule-toggle" type="checkbox" role="switch"
                                id="toggle-{{ $sch['id'] }}"
                                {{ $isActive ? 'checked' : '' }}
                                onchange="this.form.requestSubmit()">

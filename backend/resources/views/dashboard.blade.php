@@ -58,49 +58,7 @@
                     <div class="card-header bg-white border-bottom py-3">
                         <h6 class="fw-semibold mb-0"><i class="bi bi-diagram-3 me-2 text-primary"></i>Server nach Projekt</h6>
                     </div>
-                    @forelse ($projects as $project)
-                    <div class="border-bottom">
-                        <div class="px-3 py-2 bg-light d-flex flex-column">
-                            <span class="fw-semibold small">{{ $project['name'] }}</span>
-                            <span class="text-muted font-monospace" style="font-size:0.7rem">{{ $project['open_stack_project_id'] }}</span>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 dash-table" style="table-layout:fixed">
-                                <colgroup><col style="width:54%"><col style="width:23%"><col style="width:23%"></colgroup>
-                                <thead class="table-light">
-                                    <tr><th>Name</th><th>Status</th><th>Typ</th></tr>
-                                </thead>
-                                <tbody>
-                                    @forelse ($project['servers'] as $srv)
-                                    <tr>
-                                        <td><div class="fw-semibold small">{{ $srv['name'] }}</div></td>
-                                        <td>
-                                            <span class="placeholder-glow">
-                                                <span class="placeholder rounded-pill" style="width:4.5rem;height:1.275rem;display:inline-block"></span>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            @if ($srv['label'] === 'production')
-                                            <span class="badge text-bg-danger rounded-pill">Produktiv</span>
-                                            @elseif ($srv['label'] === 'test')
-                                            <span class="badge text-bg-info rounded-pill">Test</span>
-                                            @elseif ($srv['label'] === 'development')
-                                            <span class="badge text-bg-primary rounded-pill">Entwicklung</span>
-                                            @else
-                                            <span class="badge text-bg-secondary rounded-pill">Unkategorisiert</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                    @empty
-                                    <tr><td colspan="3" class="text-center text-muted small py-3">Keine Server in diesem Projekt.</td></tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    @empty
-                    <div class="text-center text-muted py-5">Keine Projekte vorhanden.</div>
-                    @endforelse
+                    @include('partials.dashboard-projects')
                     <div class="card-footer bg-white border-top text-center py-2">
                         <a href="{{ route('servers') }}" class="btn btn-sm btn-link text-decoration-none small fw-semibold" style="color:#F29400"
                            hx-get="{{ route('servers') }}" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true">

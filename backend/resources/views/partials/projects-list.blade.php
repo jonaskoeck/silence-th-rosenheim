@@ -12,7 +12,8 @@
             <button class="btn btn-sm btn-outline-secondary"
                     data-bs-toggle="modal" data-bs-target="#editProjectModal"
                     onclick="prepareEditModal({{ $project['id'] }}, '{{ addslashes($project['name']) }}')"
-                    title="Projekt bearbeiten">
+                    title="Projekt bearbeiten"
+                    data-tooltip="enabled">
                 <i class="bi bi-pencil"></i>
             </button>
             <form id="delete-form-{{ $project['id'] }}" method="POST"
@@ -23,7 +24,8 @@
             <button class="btn btn-sm btn-outline-danger"
                     data-bs-toggle="modal" data-bs-target="#deleteProjectModal"
                     onclick="prepareDeleteModal('delete-form-{{ $project['id'] }}', '{{ addslashes($project['name']) }}')"
-                    title="Projekt löschen">
+                    title="Projekt löschen"
+                    data-tooltip="enabled">
                 <i class="bi bi-trash"></i>
             </button>
             <form method="POST" action="{{ route('inventory.run.project', $project['id']) }}"
@@ -32,7 +34,8 @@
                   hx-swap="innerHTML"
                   hx-on::before-request="window._collapseRestoreAfterSwap=[...document.querySelectorAll('.collapse.show')].map(el=>el.id)">
                 @csrf
-                <button type="submit" class="btn btn-sm btn-outline-primary" title="Inventarisieren">
+                <button type="submit" class="btn btn-sm btn-outline-primary" title="Inventarisieren"
+                        data-bs-toggle="tooltip">
                     <i class="bi bi-arrow-repeat"></i>
                 </button>
             </form>
@@ -53,26 +56,42 @@
                 </thead>
                 <tbody>
                     @forelse ($project['servers'] as $srv)
+                    @php($isLazy = ! array_key_exists('raw_status', $srv))
                     <tr>
                         <td><div class="fw-semibold small">{{ $srv['name'] }}</div></td>
                         <td class="text-muted font-monospace small" style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis">{{ $srv['open_stack_server_id'] ?? '—' }}</td>
-                        <td><span id="srv-status-{{ $srv['id'] }}">@include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])</span></td>
+                        <td>
+                            <span id="srv-status-{{ $srv['id'] }}" @if ($isLazy) class="placeholder-glow" @endif>
+                                @if ($isLazy)
+                                <span class="placeholder rounded-pill" style="width:4.5rem;height:1.275rem;display:inline-block"></span>
+                                @else
+                                @include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])
+                                @endif
+                            </span>
+                        </td>
                         <td>
                             @if ($srv['label'] === 'production')
                             <span class="badge text-bg-danger rounded-pill badge-label">Produktiv</span>
                             @elseif ($srv['label'] === 'test')
-                            <span class="badge text-bg-info rounded-pill badge-label">Test</span>
+                            <span class="badge text-bg-warning rounded-pill badge-label">Test</span>
                             @elseif ($srv['label'] === 'development')
-                            <span class="badge text-bg-primary rounded-pill badge-label">Entwicklung</span>
+                            <span class="badge label-dev rounded-pill badge-label">Entwicklung</span>
                             @else
                             <span class="badge text-bg-secondary rounded-pill badge-label">Unkategorisiert</span>
                             @endif
                         </td>
                         <td class="text-end">
                             <div class="btn-group">
+                                @if ($isLazy)
+                                <button id="server-toggle-{{ $srv['id'] }}" class="btn btn-sm btn-outline-secondary" disabled title="Lädt…">
+                                    <span class="spinner-border spinner-border-sm" style="width:0.75em;height:0.75em"></span>
+                                </button>
+                                @else
                                 @include('partials.server-toggle-button', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])
+                                @endif
                                 <a href="{{ route('schedules', ['server' => $srv['id'], 'edit' => 1]) }}"
                                    class="btn btn-sm btn-outline-secondary" title="Zeitpläne"
+                                   data-bs-toggle="tooltip"
                                    hx-get="{{ route('schedules', ['server' => $srv['id'], 'edit' => 1]) }}"
                                    hx-target="#main-content"
                                    hx-swap="innerHTML"
@@ -84,7 +103,8 @@
                                         data-server-id="{{ $srv['id'] }}"
                                         data-server-name="{{ $srv['name'] }}"
                                         data-server-label="{{ $srv['label'] }}"
-                                        title="Label ändern">
+                                        title="Label ändern"
+                                        data-tooltip="enabled">
                                     <i class="bi bi-tag"></i>
                                 </button>
                             </div>
