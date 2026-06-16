@@ -22,27 +22,42 @@ class ServerStatusService implements ServerStatusServiceInterface
         $statuses = [];
         $failedProjectIds = [];
 
+        // Phase 1: get a token per project. Authentication is cached, so this is
+        // a fast in-memory hit on the common (warm) path; a project that fails to
+        // authenticate is marked failed and excluded from the status fetch.
+        $authByProjectId = [];
         foreach ($projects as $project) {
             try {
-                $auth = $this->client->authenticate(
+                $authByProjectId[$project->id] = $this->client->authenticate(
                     $project->region->host_url,
                     $project->app_credential_id,
                     $project->app_credential_secret,
                 );
-
-                foreach ($this->client->listServers($auth->token, $auth->computeEndpoint) as $osServer) {
-                    if (! isset($osServer['id'], $osServer['status'])) {
-                        continue;
-                    }
-
-                    $statuses[(string) $osServer['id']] = (string) $osServer['status'];
-                }
             } catch (Throwable $e) {
-                Log::warning('Failed to load server statuses for project', [
+                Log::warning('Failed to authenticate project for status fetch', [
                     'project_id' => $project->id,
                     'error' => $e->getMessage(),
                 ]);
                 $failedProjectIds[] = $project->id;
+            }
+        }
+
+        // Phase 2: fetch all server lists concurrently (bounded pool).
+        $serversByProjectId = $this->client->listServersMany($authByProjectId);
+
+        foreach ($authByProjectId as $projectId => $auth) {
+            if (! array_key_exists($projectId, $serversByProjectId)) {
+                $failedProjectIds[] = $projectId; // list request failed
+
+                continue;
+            }
+
+            foreach ($serversByProjectId[$projectId] as $osServer) {
+                if (! isset($osServer['id'], $osServer['status'])) {
+                    continue;
+                }
+
+                $statuses[(string) $osServer['id']] = (string) $osServer['status'];
             }
         }
 

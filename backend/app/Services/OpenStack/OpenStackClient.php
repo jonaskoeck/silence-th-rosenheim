@@ -10,6 +10,8 @@ use App\Services\OpenStack\Exceptions\OpenStackServerActionException;
 use App\Services\OpenStack\Exceptions\OpenStackUnreachableException;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -17,6 +19,9 @@ use RuntimeException;
 
 class OpenStackClient implements OpenStackClientInterface
 {
+    /** Max concurrent OpenStack requests per pooled batch. */
+    private const POOL_SIZE = 10;
+
     public function authenticate(string $authUrl, string $applicationCredentialId, string $applicationCredentialSecret): AuthenticationResultDto
     {
         // Cache the token (valid for hours per Keystone config) so we don't
@@ -165,6 +170,42 @@ class OpenStackClient implements OpenStackClientInterface
         }
 
         return $response->json('servers') ?? [];
+    }
+
+    /**
+     * @param  array<int, AuthenticationResultDto>  $authByProjectId
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    public function listServersMany(array $authByProjectId): array
+    {
+        $serversByProjectId = [];
+
+        // Bounded concurrency: fire at most POOL_SIZE requests at a time so we
+        // don't flood OpenStack (or trip its rate limits) with many projects.
+        foreach (array_chunk($authByProjectId, self::POOL_SIZE, true) as $chunk) {
+            $responses = Http::pool(fn (Pool $pool) => array_map(
+                fn (int $projectId) => $pool->as((string) $projectId)
+                    ->withHeader('X-Auth-Token', $chunk[$projectId]->token)
+                    ->withHeader('X-OpenStack-Nova-Microversion', '2.47')
+                    ->acceptJson()
+                    ->get($chunk[$projectId]->computeEndpoint.'/servers/detail'),
+                array_keys($chunk),
+            ));
+
+            foreach ($chunk as $projectId => $auth) {
+                $response = $responses[(string) $projectId] ?? null;
+
+                // A failed request comes back as an exception object, not a Response;
+                // such projects are simply omitted (the caller treats them as failed).
+                if ($response instanceof Response && $response->successful()) {
+                    $serversByProjectId[$projectId] = $response->json('servers') ?? [];
+                } else {
+                    Log::warning('OpenStack list servers failed in pool', ['project_id' => $projectId]);
+                }
+            }
+        }
+
+        return $serversByProjectId;
     }
 
     public function startServer(string $token, string $computeEndpoint, string $serverId): void

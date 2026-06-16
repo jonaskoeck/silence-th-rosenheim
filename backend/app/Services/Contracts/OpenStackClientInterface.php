@@ -23,6 +23,15 @@ interface OpenStackClientInterface
      */
     public function listServers(string $token, string $computeEndpoint): array;
 
+    /**
+     * List servers for many projects concurrently (bounded request pool).
+     *
+     * @param  array<int, AuthenticationResultDto>  $authByProjectId  auth result keyed by project id
+     * @return array<int, array<int, array<string, mixed>>> servers keyed by project id; projects whose
+     *                                                      request failed are omitted
+     */
+    public function listServersMany(array $authByProjectId): array;
+
     public function startServer(string $token, string $computeEndpoint, string $serverId): void;
 
     public function stopServer(string $token, string $computeEndpoint, string $serverId): void;
