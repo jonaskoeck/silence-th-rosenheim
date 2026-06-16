@@ -86,6 +86,32 @@ class PendingActionTracker implements PendingActionTrackerInterface
             ->all();
     }
 
+    /**
+     * @return array<int, string>
+     */
+    public function pendingExpectations(): array
+    {
+        $ids = $this->pendingServerIds();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        // Read from the same database cache store that pendingServerIds() queries.
+        $keys = array_map(self::keyFor(...), $ids);
+        $values = Cache::store('database')->many($keys);
+
+        $result = [];
+        foreach ($ids as $id) {
+            $expecting = $values[self::keyFor($id)] ?? null;
+            if (is_string($expecting)) {
+                $result[$id] = $expecting;
+            }
+        }
+
+        return $result;
+    }
+
     private static function keyFor(int $serverId): string
     {
         return self::KEY_PREFIX.$serverId;

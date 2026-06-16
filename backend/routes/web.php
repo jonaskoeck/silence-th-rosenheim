@@ -74,7 +74,7 @@ Route::middleware('shibboleth')->group(function () {
     Route::post('/servers/{server}/stop', [ProjectServerController::class, 'stop'])->name('servers.stop');
     Route::get('/servers/{server}/status', [ProjectServerController::class, 'status'])->name('servers.status');
 
-    Route::get('/pending-actions/check', fn (PendingActionTrackerInterface $tracker) => response()->json($tracker->pendingServerIds()))
+    Route::get('/pending-actions/check', fn (PendingActionTrackerInterface $tracker) => response()->json($tracker->pendingExpectations()))
         ->name('pending-actions.check');
 
     Route::put('/settings/inventory-interval', [SettingsController::class, 'updateInventoryInterval'])
