@@ -29,9 +29,12 @@ class OpenStackClient implements OpenStackClientInterface
         // host + credentials, so a credential or region change re-authenticates.
         $cacheKey = 'openstack-auth:'.hash('sha256', $authUrl.'|'.$applicationCredentialId.'|'.$applicationCredentialSecret);
 
+        // Cache a plain array (not the DTO object): it round-trips reliably through
+        // any cache store, whereas a serialized object can come back as an
+        // incomplete class depending on the store/serializer.
         $cached = Cache::get($cacheKey);
-        if ($cached instanceof AuthenticationResultDto) {
-            return $cached;
+        if (is_array($cached) && isset($cached['token'], $cached['projectId'], $cached['computeEndpoint'])) {
+            return new AuthenticationResultDto($cached['token'], $cached['projectId'], $cached['computeEndpoint']);
         }
 
         $url = rtrim($authUrl, '/').'/v3/auth/tokens';
@@ -91,7 +94,11 @@ class OpenStackClient implements OpenStackClientInterface
         $result = new AuthenticationResultDto($token, $projectId, $computeEndpoint);
 
         if (($ttl = $this->tokenCacheTtl($response->json('token.expires_at'))) > 0) {
-            Cache::put($cacheKey, $result, $ttl);
+            Cache::put($cacheKey, [
+                'token' => $result->token,
+                'projectId' => $result->projectId,
+                'computeEndpoint' => $result->computeEndpoint,
+            ], $ttl);
         }
 
         return $result;

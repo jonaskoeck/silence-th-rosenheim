@@ -5,11 +5,23 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Services\Contracts\OpenStackClientInterface;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class OpenStackTokenCacheTest extends TestCase
 {
+    use DatabaseTransactions;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Use the database cache store (as in production) so the test exercises
+        // real serialization — the array store would keep the object reference
+        // and hide round-trip bugs.
+        config(['cache.default' => 'database']);
+    }
+
     private function fakeAuth(string $token = 'tok-1'): void
     {
         Http::fake([
