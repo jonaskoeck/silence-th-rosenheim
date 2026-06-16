@@ -52,11 +52,6 @@ class AppServiceProvider extends ServiceProvider
         View::composer('layouts.app', function ($view): void {
             $tableReady = Schema::hasTable('settings');
 
-            $view->with('schedulePollIntervalMinutes', $tableReady
-                ? Setting::schedulePollIntervalMinutes()
-                : Setting::DEFAULT_SCHEDULE_POLL_INTERVAL_MINUTES);
-            $view->with('allowedSchedulePollIntervals', Setting::ALLOWED_SCHEDULE_POLL_INTERVAL_MINUTES);
-
             $view->with('inventoryIntervalMinutes', $tableReady
                 ? Setting::inventoryIntervalMinutes()
                 : Setting::DEFAULT_INVENTORY_INTERVAL_MINUTES);

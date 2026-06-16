@@ -77,8 +77,6 @@ Route::middleware('shibboleth')->group(function () {
     Route::get('/pending-actions/check', fn (PendingActionTrackerInterface $tracker) => response()->json($tracker->pendingServerIds()))
         ->name('pending-actions.check');
 
-    Route::put('/settings/schedule-poll-interval', [SettingsController::class, 'updateSchedulePollInterval'])
-        ->name('settings.schedule-poll-interval');
     Route::put('/settings/inventory-interval', [SettingsController::class, 'updateInventoryInterval'])
         ->name('settings.inventory-interval');
 });
