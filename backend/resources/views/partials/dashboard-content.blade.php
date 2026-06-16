@@ -113,7 +113,7 @@
                 <h3 class="fw-bold mb-0">€ {{ number_format($monthlySavings, 2, ',', '.') }}</h3>
                 @if ($savingsHours > 0)
                 <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">
-                    {{ number_format($savingsHours, 0, ',', '.') }} Std./Monat × Ø {{ number_format($savingsAvgRate, 4, ',', '.') }} €/Std.
+                    ≈ {{ number_format($savingsHours, 0, ',', '.') }} Std./Monat × Ø {{ number_format($savingsAvgRate, 4, ',', '.') }} €/Std.
                 </p>
                 @else
                 <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">
