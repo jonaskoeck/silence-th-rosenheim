@@ -8,7 +8,9 @@ use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use App\Services\OpenStack\Exceptions\OpenStackServerActionException;
 use App\Services\OpenStack\Exceptions\OpenStackUnreachableException;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -17,6 +19,16 @@ class OpenStackClient implements OpenStackClientInterface
 {
     public function authenticate(string $authUrl, string $applicationCredentialId, string $applicationCredentialSecret): AuthenticationResultDto
     {
+        // Cache the token (valid for hours per Keystone config) so we don't
+        // re-authenticate on every status/inventory call. Keyed by a hash of
+        // host + credentials, so a credential or region change re-authenticates.
+        $cacheKey = 'openstack-auth:'.hash('sha256', $authUrl.'|'.$applicationCredentialId.'|'.$applicationCredentialSecret);
+
+        $cached = Cache::get($cacheKey);
+        if ($cached instanceof AuthenticationResultDto) {
+            return $cached;
+        }
+
         $url = rtrim($authUrl, '/').'/v3/auth/tokens';
 
         Log::debug('OpenStack auth request', [
@@ -71,7 +83,33 @@ class OpenStackClient implements OpenStackClientInterface
         $catalog = $response->json('token.catalog') ?? [];
         $computeEndpoint = $this->extractComputeEndpoint($catalog);
 
-        return new AuthenticationResultDto($token, $projectId, $computeEndpoint);
+        $result = new AuthenticationResultDto($token, $projectId, $computeEndpoint);
+
+        if (($ttl = $this->tokenCacheTtl($response->json('token.expires_at'))) > 0) {
+            Cache::put($cacheKey, $result, $ttl);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Seconds to cache a token for: until its expires_at minus a 60s safety
+     * buffer, capped at a day. Returns 0 when it can't be determined (then the
+     * token is simply not cached).
+     */
+    private function tokenCacheTtl(mixed $expiresAt): int
+    {
+        if (! is_string($expiresAt) || $expiresAt === '') {
+            return 0;
+        }
+
+        try {
+            $seconds = CarbonImmutable::parse($expiresAt)->getTimestamp() - CarbonImmutable::now()->getTimestamp() - 60;
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        return max(0, min($seconds, 86400));
     }
 
     /**
