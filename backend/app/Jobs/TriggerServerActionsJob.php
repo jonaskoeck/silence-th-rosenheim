@@ -15,14 +15,17 @@ use Throwable;
 
 class TriggerServerActionsJob
 {
-    private const CATCHUP_WINDOW_MINUTES = 15;
-
     public function handle(ServerControlServiceInterface $control, PendingActionTrackerInterface $tracker): void
     {
         $displayTz = config('app.display_timezone');
         $now = CarbonImmutable::now($displayTz);
         $weekday = self::weekdayFromIso($now->dayOfWeekIso);
-        $catchupCutoff = $now->subMinutes(self::CATCHUP_WINDOW_MINUTES);
+
+        // Catch up missed runs over the last few trigger cycles. Tied to the
+        // trigger interval (3×) so it is always at least one interval wide and
+        // scales when the interval is changed via SCHEDULE_TRIGGER_INTERVAL_MINUTES.
+        $interval = max(1, (int) config('scheduling.trigger_interval_minutes', 5));
+        $catchupCutoff = $now->subMinutes($interval * 3);
 
         $candidates = ServerAction::query()
             ->whereHas('server', fn ($q) => $q->where('schedule_active', true))

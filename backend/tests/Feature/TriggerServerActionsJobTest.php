@@ -106,9 +106,24 @@ class TriggerServerActionsJobTest extends TestCase
         (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
+    public function test_catchup_window_scales_with_the_trigger_interval(): void
+    {
+        // Interval 10 -> window 30 min. An action 25 min ago would be outside the
+        // default (15 min) window but is caught up because the window scaled.
+        config(['scheduling.trigger_interval_minutes' => 10]);
+        $this->freezeMonday('08:25:00');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->once();
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+    }
+
     public function test_past_action_outside_catchup_window_is_skipped(): void
     {
-        // 30 min spaeter — ausserhalb des 15-min Fensters
+        // 30 min spaeter — ausserhalb des Fensters (Default-Intervall 5 -> 15 min)
         $this->freezeMonday('08:30:00');
         $server = Server::factory()->create(['schedule_active' => true]);
         $action = $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
