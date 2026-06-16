@@ -174,6 +174,37 @@ class UpdateServerActionsTest extends TestCase
         $this->assertSame(2, ServerAction::where('server_id', $server->id)->count());
     }
 
+    public function test_update_rejects_time_not_on_five_minute_step(): void
+    {
+        $server = Server::factory()->create();
+        $this->makeAction($server, 'START', '08:00', 1);
+
+        $response = $this->put(route('server-actions.update-for-server', $server), [
+            'actions' => [
+                ['type' => 'START', 'time' => '08:03', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('actions.0.time');
+        // schedule untouched
+        $this->assertSame(1, ServerAction::where('server_id', $server->id)->count());
+        $this->assertDatabaseHas('server_actions', ['server_id' => $server->id, 'time' => '08:00']);
+    }
+
+    public function test_update_accepts_time_on_five_minute_step(): void
+    {
+        $server = Server::factory()->create();
+
+        $response = $this->put(route('server-actions.update-for-server', $server), [
+            'actions' => [
+                ['type' => 'START', 'time' => '08:05', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('server_actions', ['server_id' => $server->id, 'time' => '08:05']);
+    }
+
     public function test_update_rejects_invalid_weekday_name(): void
     {
         $server = Server::factory()->create();

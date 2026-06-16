@@ -5,7 +5,6 @@
 @section('content')
 @php
 $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-$timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
 @endphp
 
 <div class="container-fluid">
@@ -89,7 +88,7 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
                                         <option value="STOP">Stoppen</option>
                                     </select>
                                     <input type="time" class="form-control form-control-sm mb-1"
-                                           id="edit-time-{{ $day }}" value="08:00" step="{{ $timeStep }}">
+                                           id="edit-time-{{ $day }}" value="08:00" step="300" onchange="snapTime(this)">
                                     <div class="d-flex gap-1">
                                         <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                 onclick="addEditEvent('{{ $day }}')">OK</button>
@@ -189,7 +188,7 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
                                             <option value="STOP">Stoppen</option>
                                         </select>
                                         <input type="time" class="form-control form-control-sm mb-1"
-                                               id="time-{{ $day }}" value="08:00" step="{{ $timeStep }}">
+                                               id="time-{{ $day }}" value="08:00" step="300" onchange="snapTime(this)">
                                         <div class="d-flex gap-1">
                                             <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                     onclick="addEvent('{{ $day }}')">OK</button>
@@ -301,6 +300,22 @@ function resetNewScheduleModal() {
 
 document.getElementById('new-schedule-btn').addEventListener('click', resetNewScheduleModal);
 
+// Schedule times live on a 5-minute grid. The native time picker allows any
+// minute, so snap the chosen value to the nearest 5 minutes (on change and again
+// before reading it). The server enforces the same rule as a backstop.
+function snapTime(input) {
+    if (!input || !input.value) return;
+    const [h, m] = input.value.split(':').map(Number);
+    if (!Number.isInteger(h) || !Number.isInteger(m)) return;
+    let minutes = Math.round(m / 5) * 5;
+    let hours = h;
+    if (minutes === 60) {
+        minutes = 0;
+        hours = (h + 1) % 24;
+    }
+    input.value = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+}
+
 // Returns 'duplicate' (same type+time), 'conflict' (different type, same time) or null.
 function eventTimeConflict(events, type, time) {
     const match = (events || []).find(ev => ev.time === time);
@@ -321,7 +336,9 @@ function rejectIfConflicting(events, type, time) {
 
 function addEvent(day) {
     const type = document.getElementById('type-' + day).value;
-    const time = document.getElementById('time-' + day).value;
+    const input = document.getElementById('time-' + day);
+    snapTime(input);
+    const time = input.value;
     if (!time) return;
 
     if (rejectIfConflicting(scheduleEvents[day], type, time)) return;
@@ -544,7 +561,9 @@ function hideEditAddEvent(day) {
 }
 function addEditEvent(day) {
     const type = document.getElementById('edit-type-' + day).value;
-    const time = document.getElementById('edit-time-' + day).value;
+    const input = document.getElementById('edit-time-' + day);
+    snapTime(input);
+    const time = input.value;
     if (!time) return;
     if (rejectIfConflicting(editScheduleEvents[day], type, time)) return;
     if (!editScheduleEvents[day]) editScheduleEvents[day] = [];

@@ -37,10 +37,20 @@ class StoreServerActionRequest extends FormRequest
             'name' => ['nullable', 'string', 'max:120'],
             'actions' => ['required', 'array', 'min:1'],
             'actions.*.type' => ['required', Rule::enum(ActionType::class)],
-            'actions.*.time' => ['required', 'date_format:H:i'],
+            'actions.*.time' => ['required', 'date_format:H:i', 'regex:/^([01]\d|2[0-3]):[0-5][05]$/'],
             'actions.*.days' => ['required', 'array', 'min:1'],
             'actions.*.days.*' => ['required', 'string', Rule::in($weekdayNames)],
             'confirmed_production' => ['nullable', 'string'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'actions.*.time.regex' => 'Uhrzeiten sind nur in 5-Minuten-Schritten möglich.',
         ];
     }
 
