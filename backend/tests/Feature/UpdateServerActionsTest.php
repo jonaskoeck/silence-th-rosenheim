@@ -138,6 +138,27 @@ class UpdateServerActionsTest extends TestCase
         $this->assertDatabaseHas('server_actions', ['server_id' => $server->id, 'time' => '08:00']);
     }
 
+    public function test_update_allows_same_type_duplicate_at_same_day_and_time(): void
+    {
+        $server = Server::factory()->create();
+
+        $response = $this->put(route('server-actions.update-for-server', $server), [
+            'actions' => [
+                ['type' => 'START', 'time' => '12:00', 'days' => ['MONDAY']],
+                ['type' => 'START', 'time' => '12:00', 'days' => ['MONDAY', 'TUESDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertSame(1, ServerAction::where('server_id', $server->id)->count());
+        $this->assertDatabaseHas('server_actions', [
+            'server_id' => $server->id,
+            'type' => 'START',
+            'time' => '12:00',
+            'weekday' => 1 | 2,
+        ]);
+    }
+
     public function test_update_allows_start_and_stop_at_same_time_on_different_days(): void
     {
         $server = Server::factory()->create();

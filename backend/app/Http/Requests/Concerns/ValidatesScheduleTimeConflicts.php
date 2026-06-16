@@ -9,8 +9,10 @@ use Illuminate\Contracts\Validation\Validator;
 trait ValidatesScheduleTimeConflicts
 {
     /**
-     * Reject schedules that place more than one event on the same weekday at the
-     * same time (e.g. a START and a STOP both at 12:00), which is contradictory.
+     * Reject contradictory schedule events: a START and a STOP on the same
+     * weekday at the same time (e.g. both at 12:00) makes no sense. Repeats of
+     * the *same* type at the same day/time are harmless (they get grouped) and
+     * are left alone.
      */
     protected function addScheduleTimeConflictErrors(Validator $validator): void
     {
@@ -20,13 +22,14 @@ trait ValidatesScheduleTimeConflicts
             return;
         }
 
-        $seen = [];
+        $typeByDayTime = [];
 
         foreach ($actions as $index => $action) {
             $time = $action['time'] ?? null;
             $days = $action['days'] ?? null;
+            $type = $action['type'] ?? null;
 
-            if (! is_string($time) || ! is_array($days)) {
+            if (! is_string($time) || ! is_array($days) || ! is_string($type)) {
                 continue;
             }
 
@@ -37,7 +40,7 @@ trait ValidatesScheduleTimeConflicts
 
                 $key = $day.'|'.$time;
 
-                if (isset($seen[$key])) {
+                if (array_key_exists($key, $typeByDayTime) && $typeByDayTime[$key] !== $type) {
                     $validator->errors()->add(
                         "actions.{$index}.time",
                         "Pro Tag und Uhrzeit ist nur ein Ereignis erlaubt (Konflikt um {$time} Uhr).",
@@ -46,7 +49,7 @@ trait ValidatesScheduleTimeConflicts
                     continue;
                 }
 
-                $seen[$key] = true;
+                $typeByDayTime[$key] = $type;
             }
         }
     }

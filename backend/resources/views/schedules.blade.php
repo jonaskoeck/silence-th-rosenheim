@@ -297,11 +297,9 @@ function rejectIfConflicting(events, type, time) {
         showToast(`Um ${time} Uhr ist an diesem Tag bereits ein gegenteiliges Ereignis eingetragen.`, 'danger');
         return true;
     }
-    if (conflict === 'duplicate') {
-        showToast(`Um ${time} Uhr ist an diesem Tag bereits dasselbe Ereignis eingetragen.`, 'warning');
-        return true;
-    }
-    return false;
+    // Same type + time is just a duplicate; it would be grouped together anyway,
+    // so silently ignore it instead of nagging the user.
+    return conflict === 'duplicate';
 }
 
 function addEvent(day) {
