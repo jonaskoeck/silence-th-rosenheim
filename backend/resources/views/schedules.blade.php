@@ -14,7 +14,7 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
         <div>
             <h1 class="h4 fw-bold mb-0 page-title">Zeitpläne</h1>
         </div>
-        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newScheduleModal">
+        <button id="new-schedule-btn" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newScheduleModal">
             <i class="bi bi-plus-lg me-1"></i>Neuer Zeitplan
         </button>
     </div>
@@ -283,6 +283,23 @@ function showAddEvent(day) {
 function hideAddEvent(day) {
     document.getElementById('form-' + day).classList.add('d-none');
 }
+
+// Start the "Neuer Zeitplan" modal from a clean slate so it never shows leftover
+// input from a previous (unsaved) attempt. The preselect auto-open opens the modal
+// directly without this button, so its preselected server is preserved.
+function resetNewScheduleModal() {
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-server').selectedIndex = 0;
+    document.getElementById('confirmed-production').value = '0';
+    scheduleEvents = {};
+    ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(d => {
+        const container = document.getElementById('events-' + d);
+        if (container) container.innerHTML = '';
+        hideAddEvent(d);
+    });
+}
+
+document.getElementById('new-schedule-btn').addEventListener('click', resetNewScheduleModal);
 
 // Returns 'duplicate' (same type+time), 'conflict' (different type, same time) or null.
 function eventTimeConflict(events, type, time) {
