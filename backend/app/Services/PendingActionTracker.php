@@ -71,11 +71,16 @@ class PendingActionTracker implements PendingActionTrackerInterface
 
     public function pendingServerIds(): array
     {
+        // Anchor the LIKE to the full key prefix (cache store prefix + our prefix)
+        // so it uses the cache table's primary-key index instead of a full scan.
+        // Matters now that cached OpenStack tokens share this table.
+        $prefix = Cache::store('database')->getStore()->getPrefix().self::KEY_PREFIX;
+
         return DB::table('cache')
-            ->where('key', 'like', '%'.self::KEY_PREFIX.'%')
+            ->where('key', 'like', $prefix.'%')
             ->where('expiration', '>', time())
             ->pluck('key')
-            ->map(fn ($key) => (int) substr($key, strrpos($key, self::KEY_PREFIX) + strlen(self::KEY_PREFIX)))
+            ->map(fn ($key) => (int) substr($key, strlen($prefix)))
             ->filter()
             ->values()
             ->all();
