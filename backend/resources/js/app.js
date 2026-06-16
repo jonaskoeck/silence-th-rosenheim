@@ -103,7 +103,10 @@ function initTooltips(root = document) {
     const selector = '[data-bs-toggle="tooltip"],[data-tooltip="enabled"]';
     root.querySelectorAll(selector).forEach(el => {
         if (bootstrap.Tooltip.getInstance(el)) return;
-        new bootstrap.Tooltip(el);
+        // Trigger on hover only — not focus. A focus trigger keeps the tooltip
+        // visible after click (the element stays focused while a modal/offcanvas
+        // opens), so it would hang around until you click elsewhere.
+        new bootstrap.Tooltip(el, { trigger: 'hover' });
         el.addEventListener('click', () => bootstrap.Tooltip.getInstance(el)?.hide());
     });
 }
