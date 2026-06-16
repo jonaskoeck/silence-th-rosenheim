@@ -38,4 +38,28 @@ class ScheduleEventOrderingTest extends TestCase
         $this->assertSame($sorted, $times, 'Schedule events should be ordered ascending by time.');
         $this->assertSame(['12:00', '15:00', '16:00'], $times);
     }
+
+    public function test_schedule_events_are_sorted_by_time_after_editing(): void
+    {
+        $server = Server::factory()->create();
+        ServerAction::create(['server_id' => $server->id, 'weekday' => Weekday::MONDAY->value, 'time' => '09:00', 'type' => ActionType::START]);
+
+        // Submit the edit with actions out of chronological order.
+        $response = $this->withHeaders(['HX-Request' => 'true'])
+            ->put(route('server-actions.update-for-server', $server), [
+                'name' => 'Zeitplan',
+                'actions' => [
+                    ['type' => 'STOP', 'time' => '18:00', 'days' => ['MONDAY']],
+                    ['type' => 'START', 'time' => '07:00', 'days' => ['MONDAY']],
+                ],
+            ]);
+
+        $response->assertOk();
+
+        $schedules = collect($response->viewData('schedules'));
+        $events = $schedules->firstWhere('id', $server->id)['events'];
+        $times = array_column($events, 'time');
+
+        $this->assertSame(['07:00', '18:00'], $times);
+    }
 }
