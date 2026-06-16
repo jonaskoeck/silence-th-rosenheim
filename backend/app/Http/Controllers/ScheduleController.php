@@ -118,6 +118,8 @@ class ScheduleController extends Controller
             }
         }
 
+        usort($events, fn ($a, $b) => $a['time'] <=> $b['time']);
+
         return $events;
     }
 }
