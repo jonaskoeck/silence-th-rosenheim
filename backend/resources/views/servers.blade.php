@@ -54,7 +54,10 @@
         @include('partials.projects-list')
     </div>
 
-    <div id="status-sink" hidden></div>
+    <div id="status-sink" hidden
+         hx-get="{{ route('servers.statuses') }}"
+         hx-trigger="load"
+         hx-swap="innerHTML"></div>
 
 </div>
 
@@ -234,7 +237,6 @@
 
 @push('scripts')
 <script>
-htmx.ajax('GET', '{{ route('servers.statuses') }}', { target: '#status-sink', swap: 'innerHTML' });
 
 // Single source of truth for filtering: combines the text search and the status
 // dropdown. Re-run on every htmx settle (e.g. status polling) so neither filter

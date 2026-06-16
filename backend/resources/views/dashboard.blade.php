@@ -15,7 +15,10 @@
         </span>
     </div>
 
-    <div id="dashboard-content">
+    <div id="dashboard-content"
+         hx-get="{{ route('dashboard.data') }}"
+         hx-trigger="load"
+         hx-swap="innerHTML">
 
         <div class="row g-3 mb-4">
             <div class="col-12 col-md-4">
@@ -125,9 +128,3 @@
 
 </div>
 @endsection
-
-@push('scripts')
-<script>
-htmx.ajax('GET', '{{ route('dashboard.data') }}', { target: '#dashboard-content', swap: 'innerHTML' });
-</script>
-@endpush
