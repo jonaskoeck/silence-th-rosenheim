@@ -2,7 +2,7 @@
     <thead class="table-light">
         <tr>
             <th>Kürzel</th>
-            <th>Host-URL (Baselink)</th>
+            <th>Host-URL</th>
             <th>Projekte</th>
             <th class="text-end">Aktionen</th>
         </tr>

@@ -46,7 +46,7 @@
                         <input type="text" name="code" class="form-control" placeholder="z.B. muc" required>
                     </div>
                     <div>
-                        <label class="form-label small fw-semibold">Host-URL (Baselink)</label>
+                        <label class="form-label small fw-semibold">Host-URL</label>
                         <input type="text" name="host_url" class="form-control" placeholder="https://api.dc.muc.cloud.cnds.io:5000" required>
                     </div>
                 </div>
@@ -78,7 +78,7 @@
                         <input type="text" name="code" id="edit-region-code" class="form-control" required>
                     </div>
                     <div>
-                        <label class="form-label small fw-semibold">Host-URL (Baselink)</label>
+                        <label class="form-label small fw-semibold">Host-URL</label>
                         <input type="text" name="host_url" id="edit-region-host-url" class="form-control" required>
                     </div>
                 </div>
