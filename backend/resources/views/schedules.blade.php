@@ -89,7 +89,7 @@ $snapMinutes = max(1, (int) config('scheduling.trigger_interval_minutes', 5));
                                         <option value="STOP">Stoppen</option>
                                     </select>
                                     <input type="time" class="form-control form-control-sm mb-1"
-                                           id="edit-time-{{ $day }}" value="08:00" step="{{ $snapMinutes * 60 }}" onchange="snapTime(this)">
+                                           id="edit-time-{{ $day }}" value="08:00" onblur="snapTime(this)">
                                     <div class="d-flex gap-1">
                                         <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                 onclick="addEditEvent('{{ $day }}')">OK</button>
@@ -189,7 +189,7 @@ $snapMinutes = max(1, (int) config('scheduling.trigger_interval_minutes', 5));
                                             <option value="STOP">Stoppen</option>
                                         </select>
                                         <input type="time" class="form-control form-control-sm mb-1"
-                                               id="time-{{ $day }}" value="08:00" step="{{ $snapMinutes * 60 }}" onchange="snapTime(this)">
+                                               id="time-{{ $day }}" value="08:00" onblur="snapTime(this)">
                                         <div class="d-flex gap-1">
                                             <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                     onclick="addEvent('{{ $day }}')">OK</button>
