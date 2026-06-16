@@ -304,7 +304,9 @@ document.getElementById('new-schedule-btn').addEventListener('click', resetNewSc
 // Schedule times live on a 5-minute grid. The native time picker allows any
 // minute, so snap the chosen value to the nearest 5 minutes (on change and again
 // before reading it). The server enforces the same rule as a backstop.
-const SNAP_MINUTES = {{ $snapMinutes }};
+// var (not const): these inline scripts re-run on every SPA navigation, and a
+// top-level const would throw "already declared" on the second visit.
+var SNAP_MINUTES = {{ $snapMinutes }};
 
 function snapTime(input) {
     if (!input || !input.value) return;
