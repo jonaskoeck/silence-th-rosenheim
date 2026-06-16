@@ -99,9 +99,28 @@
                   hx-on::after-request="setFormLoading(this, false); if(event.detail.successful) bootstrap.Modal.getInstance(document.getElementById('createProjectModal'))?.hide()">
                 @csrf
                 <div class="modal-body d-flex flex-column gap-3">
+                    @if ($regions->isEmpty())
+                    <div class="alert alert-warning small mb-0" role="alert">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Es ist noch keine Region vorhanden. Bitte zuerst eine
+                        <a href="{{ route('regions') }}"
+                           hx-get="{{ route('regions') }}" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+                           data-bs-dismiss="modal" class="alert-link">Region anlegen</a>,
+                        bevor ein Projekt erstellt werden kann.
+                    </div>
+                    @else
                     <div>
                         <label class="form-label small fw-semibold">Name</label>
                         <input type="text" name="name" class="form-control">
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">Region</label>
+                        <select name="region_id" class="form-select" required>
+                            <option value="" disabled selected>Region wählen…</option>
+                            @foreach ($regions as $region)
+                            <option value="{{ $region->id }}">{{ $region->code }} — {{ $region->host_url }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label class="form-label small fw-semibold">App Credential ID</label>
@@ -111,10 +130,13 @@
                         <label class="form-label small fw-semibold">App Credential Secret</label>
                         <input type="password" name="app_credential_secret" class="form-control" required>
                     </div>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    @unless ($regions->isEmpty())
                     <button type="submit" class="btn btn-orange">Speichern</button>
+                    @endunless
                 </div>
             </form>
         </div>
@@ -141,6 +163,14 @@
                         <label class="form-label small fw-semibold">Name</label>
                         <input type="text" name="name" id="edit-project-name" class="form-control @error('name') is-invalid @enderror"
                                value="{{ old('name') }}">
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">Region</label>
+                        <select name="region_id" id="edit-project-region" class="form-select @error('region_id') is-invalid @enderror">
+                            @foreach ($regions as $region)
+                            <option value="{{ $region->id }}">{{ $region->code }} — {{ $region->host_url }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label class="form-label small fw-semibold">App Credential ID</label>
@@ -309,13 +339,14 @@ function prepareDeleteModal(formId, projectName) {
     htmx.process(btn);
 }
 
-function prepareEditModal(projectId, projectName) {
+function prepareEditModal(projectId, projectName, regionId) {
     const editForm = document.getElementById('editProjectForm');
     editForm.action = '/projects/' + projectId;
     editForm.setAttribute('hx-put', '/projects/' + projectId);
     htmx.process(editForm);
     document.getElementById('edit-project-id').value  = projectId;
     document.getElementById('edit-project-name').value = projectName;
+    document.getElementById('edit-project-region').value = regionId;
     document.getElementById('edit-project-credential-id').value    = '';
     document.getElementById('edit-project-credential-secret').value = '';
     document.querySelector('#editProjectModal .alert-danger')?.remove();

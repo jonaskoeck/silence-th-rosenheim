@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Models\Project;
+use App\Models\Region;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -29,6 +30,7 @@ class StoreProjectRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:255'],
+            'region_id' => ['required', 'integer', 'exists:regions,id'],
             'app_credential_id' => ['required', 'string', 'max:255'],
             'app_credential_secret' => ['required', 'string'],
         ];
@@ -37,7 +39,10 @@ class StoreProjectRequest extends FormRequest
     protected function passedValidation(): void
     {
         try {
+            $region = Region::findOrFail((int) $this->validated('region_id'));
+
             $result = app(OpenStackClientInterface::class)->authenticate(
+                $region->host_url,
                 (string) $this->validated('app_credential_id'),
                 (string) $this->validated('app_credential_secret'),
             );

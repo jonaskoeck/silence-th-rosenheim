@@ -80,6 +80,7 @@ class ProjectController extends Controller
         $projects = $projectModels->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
+            'region_id' => $p->region_id,
             'servers' => $p->servers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,

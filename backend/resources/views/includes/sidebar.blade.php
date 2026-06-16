@@ -3,6 +3,7 @@ $navItems = [
     ['route' => 'dashboard',  'icon' => 'speedometer2',  'label' => 'Dashboard'],
     ['route' => 'servers',    'icon' => 'server',         'label' => 'Projekte & Server'],
     ['route' => 'schedules',  'icon' => 'clock-history',  'label' => 'Zeitpläne'],
+    ['route' => 'regions',    'icon' => 'geo-alt',        'label' => 'Regionen'],
     ['route' => 'inventory',  'icon' => 'arrow-repeat',   'label' => 'Inventarisierungsläufe'],
 ];
 @endphp

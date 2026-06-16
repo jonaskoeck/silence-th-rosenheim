@@ -36,7 +36,7 @@ class ServerControlServiceTest extends TestCase
         $openStack = Mockery::mock(OpenStackClientInterface::class);
         $openStack->shouldReceive('authenticate')
             ->once()
-            ->with($server->project->app_credential_id, $server->project->app_credential_secret)
+            ->with($server->project->region->host_url, $server->project->app_credential_id, $server->project->app_credential_secret)
             ->andReturn($this->authDto());
         $openStack->shouldReceive('startServer')
             ->once()

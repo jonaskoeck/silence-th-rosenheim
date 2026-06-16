@@ -4,6 +4,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectServerController;
+use App\Http\Controllers\RegionController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\ServerActionController;
 use App\Http\Controllers\SettingsController;
@@ -49,6 +50,11 @@ Route::middleware('shibboleth')->group(function () {
     Route::get('/servers', [ProjectServerController::class, 'index'])->name('servers');
     Route::get('/servers/data', [ProjectServerController::class, 'data'])->name('servers.data');
     Route::get('/servers/statuses', [ProjectServerController::class, 'statusAll'])->name('servers.statuses');
+    Route::get('/regions', [RegionController::class, 'index'])->name('regions');
+    Route::post('/regions', [RegionController::class, 'store'])->name('regions.store');
+    Route::put('/regions/{region}', [RegionController::class, 'update'])->name('regions.update');
+    Route::delete('/regions/{region}', [RegionController::class, 'destroy'])->name('regions.destroy');
+
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
     Route::post('/inventory/run', [InventoryController::class, 'run'])->name('inventory.run');
     Route::post('/inventory/run/{project}', [InventoryController::class, 'runForProject'])->name('inventory.run.project');

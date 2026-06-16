@@ -25,6 +25,7 @@ class ServerStatusService implements ServerStatusServiceInterface
         foreach ($projects as $project) {
             try {
                 $auth = $this->client->authenticate(
+                    $project->region->host_url,
                     $project->app_credential_id,
                     $project->app_credential_secret,
                 );
@@ -54,6 +55,7 @@ class ServerStatusService implements ServerStatusServiceInterface
 
         try {
             $auth = $this->client->authenticate(
+                $project->region->host_url,
                 $project->app_credential_id,
                 $project->app_credential_secret,
             );

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Project;
+use App\Models\Region;
 use App\Services\Contracts\InventoryServiceInterface;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
@@ -17,9 +18,13 @@ class StoreProjectTest extends TestCase
 
     private const RESOLVED_PROJECT_ID = 'a4d3f1c2b5e64d7a8c9b0e1f2a3b4c5d';
 
+    private Region $region;
+
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->region = Region::factory()->create(['host_url' => 'https://openstack.test']);
 
         // InventoryService standardmäßig stubben, damit bestehende Tests nicht
         // durch den neuen runForProject()-Aufruf nach dem Store fehlschlagen.
@@ -32,8 +37,6 @@ class StoreProjectTest extends TestCase
 
     private function fakeSuccessfulAuth(): void
     {
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
-
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(
                 body: [
@@ -54,6 +57,7 @@ class StoreProjectTest extends TestCase
 
         $response = $this->post(route('projects.store'), [
             'name' => 'Acme Production',
+            'region_id' => $this->region->id,
             'app_credential_id' => 'cred-id-123',
             'app_credential_secret' => 'cred-secret-xyz',
         ]);
@@ -77,6 +81,7 @@ class StoreProjectTest extends TestCase
         $this->fakeSuccessfulAuth();
 
         $response = $this->post(route('projects.store'), [
+            'region_id' => $this->region->id,
             'app_credential_id' => 'cred-id-123',
             'app_credential_secret' => 'cred-secret-xyz',
         ]);
@@ -94,6 +99,7 @@ class StoreProjectTest extends TestCase
 
         Project::create([
             'name' => 'Existing',
+            'region_id' => $this->region->id,
             'open_stack_project_id' => self::RESOLVED_PROJECT_ID,
             'app_credential_id' => 'other-id',
             'app_credential_secret' => 'other-secret',
@@ -103,6 +109,7 @@ class StoreProjectTest extends TestCase
 
         $response = $this->post(route('projects.store'), [
             'name' => 'Duplicate',
+            'region_id' => $this->region->id,
             'app_credential_id' => 'cred-id-123',
             'app_credential_secret' => 'cred-secret-xyz',
         ]);
@@ -113,8 +120,6 @@ class StoreProjectTest extends TestCase
 
     public function test_project_is_rejected_when_open_stack_credentials_are_invalid(): void
     {
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
-
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(
                 body: ['error' => ['code' => 401, 'message' => 'The request you have made requires authentication.']],
@@ -126,6 +131,7 @@ class StoreProjectTest extends TestCase
 
         $response = $this->post(route('projects.store'), [
             'name' => 'Acme Production',
+            'region_id' => $this->region->id,
             'app_credential_id' => 'wrong-id',
             'app_credential_secret' => 'wrong-secret',
         ]);
@@ -155,6 +161,7 @@ class StoreProjectTest extends TestCase
 
         $this->post(route('projects.store'), [
             'name' => 'Acme Production',
+            'region_id' => $this->region->id,
             'app_credential_id' => 'cred-id-123',
             'app_credential_secret' => 'cred-secret-xyz',
         ]);
@@ -166,8 +173,6 @@ class StoreProjectTest extends TestCase
      */
     public function test_inventory_is_not_run_when_project_store_fails(): void
     {
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
-
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(status: 401),
         ]);
@@ -178,6 +183,7 @@ class StoreProjectTest extends TestCase
 
         $this->post(route('projects.store'), [
             'name' => 'Acme Production',
+            'region_id' => $this->region->id,
             'app_credential_id' => 'wrong-id',
             'app_credential_secret' => 'wrong-secret',
         ]);

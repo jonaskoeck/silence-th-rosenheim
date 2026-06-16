@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Models\Project;
+use App\Models\Region;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -27,6 +28,7 @@ class UpdateProjectRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:255'],
+            'region_id' => ['nullable', 'integer', 'exists:regions,id'],
             'app_credential_id' => ['nullable', 'string', 'max:255'],
             'app_credential_secret' => ['nullable', 'string'],
         ];
@@ -49,9 +51,12 @@ class UpdateProjectRequest extends FormRequest
     {
         $submittedId = $this->validated('app_credential_id');
         $submittedSecret = $this->validated('app_credential_secret');
+        $submittedRegionId = $this->validated('region_id');
 
-        // Kein Credential angegeben → nur Name wird gespeichert, keine Auth nötig
-        if (! $submittedId && ! $submittedSecret) {
+        $regionChanged = $submittedRegionId !== null && (int) $submittedRegionId !== $project->region_id;
+
+        // Weder Credentials noch Region geändert → nur Name o. Ä., keine Auth nötig
+        if (! $submittedId && ! $submittedSecret && ! $regionChanged) {
             return;
         }
 
@@ -59,14 +64,20 @@ class UpdateProjectRequest extends FormRequest
         $credentialId = $submittedId ?: $project->app_credential_id;
         $credentialSecret = $submittedSecret ?: $project->app_credential_secret;
 
-        // Credentials unverändert → keine Auth nötig
-        if ($credentialId === $project->app_credential_id
+        // Credentials unverändert UND Region unverändert → keine Auth nötig
+        if (! $regionChanged
+            && $credentialId === $project->app_credential_id
             && $credentialSecret === $project->app_credential_secret) {
             return;
         }
 
+        $region = $submittedRegionId !== null
+            ? Region::findOrFail((int) $submittedRegionId)
+            : $project->region;
+
         try {
             $result = app(OpenStackClientInterface::class)->authenticate(
+                $region->host_url,
                 $credentialId,
                 $credentialSecret,
             );

@@ -14,11 +14,9 @@ use RuntimeException;
 
 class OpenStackClient implements OpenStackClientInterface
 {
-    public function __construct(private string $authUrl) {}
-
-    public function authenticate(string $applicationCredentialId, string $applicationCredentialSecret): AuthenticationResultDto
+    public function authenticate(string $authUrl, string $applicationCredentialId, string $applicationCredentialSecret): AuthenticationResultDto
     {
-        $url = rtrim($this->authUrl, '/').'/v3/auth/tokens';
+        $url = rtrim($authUrl, '/').'/v3/auth/tokens';
 
         Log::debug('OpenStack auth request', [
             'url' => $url,

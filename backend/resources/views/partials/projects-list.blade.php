@@ -11,7 +11,7 @@
         <div class="d-flex gap-1 align-items-center py-3">
             <button class="btn btn-sm btn-outline-secondary"
                     data-bs-toggle="modal" data-bs-target="#editProjectModal"
-                    onclick="prepareEditModal({{ $project['id'] }}, '{{ addslashes($project['name']) }}')"
+                    onclick="prepareEditModal({{ $project['id'] }}, '{{ addslashes($project['name']) }}', {{ $project['region_id'] }})"
                     title="Projekt bearbeiten"
                     data-tooltip="enabled">
                 <i class="bi bi-pencil"></i>

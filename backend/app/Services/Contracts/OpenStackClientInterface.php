@@ -8,7 +8,7 @@ use App\Services\OpenStack\AuthenticationResultDto;
 
 interface OpenStackClientInterface
 {
-    public function authenticate(string $applicationCredentialId, string $applicationCredentialSecret): AuthenticationResultDto;
+    public function authenticate(string $authUrl, string $applicationCredentialId, string $applicationCredentialSecret): AuthenticationResultDto;
 
     /**
      * @return array<int, array<string, mixed>>

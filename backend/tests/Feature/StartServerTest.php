@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Project;
+use App\Models\Region;
 use App\Models\Server;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;
@@ -27,8 +28,6 @@ class StartServerTest extends TestCase
 
     private function fakeOpenStack(string $listedStatus = 'ACTIVE'): void
     {
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
-
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(
                 body: [
@@ -65,8 +64,11 @@ class StartServerTest extends TestCase
 
     private function makeProjectWithServer(): Server
     {
+        $region = Region::factory()->create(['host_url' => 'https://openstack.test']);
+
         $project = Project::create([
             'name' => 'Demo',
+            'region_id' => $region->id,
             'open_stack_project_id' => self::OS_PROJECT_ID,
             'app_credential_id' => 'cred-id',
             'app_credential_secret' => 'cred-secret',
@@ -119,7 +121,6 @@ class StartServerTest extends TestCase
     {
         $this->makeProjectWithServer();
 
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(status: 401),
         ]);
@@ -134,7 +135,6 @@ class StartServerTest extends TestCase
     {
         $server = $this->makeProjectWithServer();
 
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(status: 401),
         ]);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Project;
+use App\Models\Region;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -17,8 +18,6 @@ class UpdateProjectTest extends TestCase
 
     private function fakeSuccessfulAuth(string $projectId = self::RESOLVED_PROJECT_ID): void
     {
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
-
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(
                 body: [
@@ -35,8 +34,11 @@ class UpdateProjectTest extends TestCase
 
     private function makeProject(): Project
     {
+        $region = Region::factory()->create(['host_url' => 'https://openstack.test']);
+
         return Project::create([
             'name' => 'Original',
+            'region_id' => $region->id,
             'open_stack_project_id' => self::RESOLVED_PROJECT_ID,
             'app_credential_id' => 'old-id',
             'app_credential_secret' => 'old-secret',
@@ -103,7 +105,6 @@ class UpdateProjectTest extends TestCase
     public function test_update_is_rejected_when_new_credentials_are_invalid(): void
     {
         $project = $this->makeProject();
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(
                 body: ['error' => ['code' => 401]],

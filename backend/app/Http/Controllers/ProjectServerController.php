@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\Server;
 use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ProjectServiceInterface;
+use App\Services\Contracts\RegionServiceInterface;
 use App\Services\Contracts\ServerControlServiceInterface;
 use App\Services\Contracts\ServerStatusServiceInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
@@ -27,6 +28,7 @@ class ProjectServerController extends Controller
         private ServerControlServiceInterface $control,
         private ServerStatusServiceInterface $serverStatus,
         private PendingActionTrackerInterface $pendingActions,
+        private RegionServiceInterface $regions,
     ) {}
 
     public function index(Request $request): View|Response
@@ -34,6 +36,7 @@ class ProjectServerController extends Controller
         $projects = $this->projects->getAll()->load('servers')->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
+            'region_id' => $p->region_id,
             'servers' => $p->servers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
@@ -42,7 +45,9 @@ class ProjectServerController extends Controller
             ])->all(),
         ])->all();
 
-        $view = view('servers', compact('projects'));
+        $regions = $this->regions->getAll();
+
+        $view = view('servers', compact('projects', 'regions'));
 
         if ($request->header('HX-Request')) {
             return response($view);
@@ -188,6 +193,7 @@ class ProjectServerController extends Controller
         return $projects->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
+            'region_id' => $p->region_id,
             'servers' => $p->servers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,

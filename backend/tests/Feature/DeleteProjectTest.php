@@ -14,12 +14,7 @@ class DeleteProjectTest extends TestCase
 
     public function test_project_can_be_deleted(): void
     {
-        $project = Project::create([
-            'name' => 'To Be Deleted',
-            'open_stack_project_id' => 'a4d3f1c2b5e64d7a8c9b0e1f2a3b4c5d',
-            'app_credential_id' => 'cred-id-123',
-            'app_credential_secret' => 'cred-secret-xyz',
-        ]);
+        $project = Project::factory()->create(['name' => 'To Be Deleted']);
 
         $response = $this->delete(route('projects.destroy', $project));
 

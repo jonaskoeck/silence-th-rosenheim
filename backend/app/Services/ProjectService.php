@@ -12,7 +12,7 @@ class ProjectService implements ProjectServiceInterface
 {
     public function getAll(): Collection
     {
-        return Project::all();
+        return Project::with('region')->get();
     }
 
     public function findOrFail(int $id): Project
