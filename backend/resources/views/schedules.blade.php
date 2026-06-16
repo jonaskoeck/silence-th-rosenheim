@@ -284,10 +284,32 @@ function hideAddEvent(day) {
     document.getElementById('form-' + day).classList.add('d-none');
 }
 
+// Returns 'duplicate' (same type+time), 'conflict' (different type, same time) or null.
+function eventTimeConflict(events, type, time) {
+    const match = (events || []).find(ev => ev.time === time);
+    if (!match) return null;
+    return match.type === type ? 'duplicate' : 'conflict';
+}
+
+function rejectIfConflicting(events, type, time) {
+    const conflict = eventTimeConflict(events, type, time);
+    if (conflict === 'conflict') {
+        showToast(`Um ${time} Uhr ist an diesem Tag bereits ein gegenteiliges Ereignis eingetragen.`, 'danger');
+        return true;
+    }
+    if (conflict === 'duplicate') {
+        showToast(`Um ${time} Uhr ist an diesem Tag bereits dasselbe Ereignis eingetragen.`, 'warning');
+        return true;
+    }
+    return false;
+}
+
 function addEvent(day) {
     const type = document.getElementById('type-' + day).value;
     const time = document.getElementById('time-' + day).value;
     if (!time) return;
+
+    if (rejectIfConflicting(scheduleEvents[day], type, time)) return;
 
     if (!scheduleEvents[day]) scheduleEvents[day] = [];
     const index = scheduleEvents[day].length;
@@ -471,6 +493,25 @@ document.getElementById('editScheduleModal').addEventListener('hidden.bs.modal',
     }
 });
 
+document.getElementById('editScheduleModal').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (e.target.tagName === 'BUTTON') return; // let a focused button handle its own Enter
+
+    const addForm = e.target.closest('.add-event-form');
+    if (addForm) {
+        // Enter inside a day's "add event" form confirms that event instead of saving.
+        const day = addForm.closest('[data-edit-day]')?.dataset.editDay;
+        if (day) {
+            e.preventDefault();
+            addEditEvent(day);
+        }
+        return;
+    }
+
+    e.preventDefault();
+    document.getElementById('edit-schedule-submit').click();
+});
+
 function showEditAddEvent(day) {
     document.getElementById('edit-form-' + day).classList.remove('d-none');
 }
@@ -481,6 +522,7 @@ function addEditEvent(day) {
     const type = document.getElementById('edit-type-' + day).value;
     const time = document.getElementById('edit-time-' + day).value;
     if (!time) return;
+    if (rejectIfConflicting(editScheduleEvents[day], type, time)) return;
     if (!editScheduleEvents[day]) editScheduleEvents[day] = [];
     const index = editScheduleEvents[day].length;
     editScheduleEvents[day].push({ type, time });

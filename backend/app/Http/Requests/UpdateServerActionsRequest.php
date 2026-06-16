@@ -8,6 +8,7 @@ use App\Enums\ActionType;
 use App\Enums\ServerLabel;
 use App\Enums\Weekday;
 use App\Http\Requests\Concerns\ToastsValidationErrors;
+use App\Http\Requests\Concerns\ValidatesScheduleTimeConflicts;
 use App\Models\Server;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
@@ -17,6 +18,7 @@ use Illuminate\Validation\Rule;
 class UpdateServerActionsRequest extends FormRequest
 {
     use ToastsValidationErrors;
+    use ValidatesScheduleTimeConflicts;
 
     public function authorize(): bool
     {
@@ -47,6 +49,9 @@ class UpdateServerActionsRequest extends FormRequest
     public function after(): array
     {
         return [
+            function (Validator $validator): void {
+                $this->addScheduleTimeConflictErrors($validator);
+            },
             function (Validator $validator): void {
                 $server = $this->route('server');
 

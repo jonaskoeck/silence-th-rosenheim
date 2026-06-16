@@ -120,6 +120,39 @@ class UpdateServerActionsTest extends TestCase
         $this->assertSame(1, ServerAction::where('server_id', $server->id)->count());
     }
 
+    public function test_update_rejects_start_and_stop_at_same_time_on_same_day(): void
+    {
+        $server = Server::factory()->create();
+        $this->makeAction($server, 'START', '08:00', 1);
+
+        $response = $this->put(route('server-actions.update-for-server', $server), [
+            'actions' => [
+                ['type' => 'START', 'time' => '12:00', 'days' => ['MONDAY']],
+                ['type' => 'STOP', 'time' => '12:00', 'days' => ['MONDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasErrors('actions.1.time');
+        // The schedule must be left untouched when the update is rejected.
+        $this->assertSame(1, ServerAction::where('server_id', $server->id)->count());
+        $this->assertDatabaseHas('server_actions', ['server_id' => $server->id, 'time' => '08:00']);
+    }
+
+    public function test_update_allows_start_and_stop_at_same_time_on_different_days(): void
+    {
+        $server = Server::factory()->create();
+
+        $response = $this->put(route('server-actions.update-for-server', $server), [
+            'actions' => [
+                ['type' => 'START', 'time' => '12:00', 'days' => ['MONDAY']],
+                ['type' => 'STOP', 'time' => '12:00', 'days' => ['TUESDAY']],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $this->assertSame(2, ServerAction::where('server_id', $server->id)->count());
+    }
+
     public function test_update_rejects_invalid_weekday_name(): void
     {
         $server = Server::factory()->create();
