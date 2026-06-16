@@ -415,6 +415,12 @@ document.getElementById('confirm-production-submit').addEventListener('click', (
     }
 });
 
+// Focus the confirm button when the Sicherheitsabfrage opens so Enter confirms it.
+// (Tabbing to "Abbrechen" and pressing Enter still cancels.)
+document.getElementById('confirmProductionScheduleModal').addEventListener('shown.bs.modal', () => {
+    document.getElementById('confirm-production-submit').focus();
+});
+
 document.getElementById('newScheduleModal').addEventListener('hidden.bs.modal', () => {
     document.getElementById('confirmed-production').value = '0';
     const url = new URL(window.location.href);
@@ -504,6 +510,9 @@ document.getElementById('editScheduleModal').addEventListener('keydown', e => {
         if (day) {
             e.preventDefault();
             addEditEvent(day);
+            // The sub-form (and its focused input) is now hidden, which would drop
+            // focus to <body>; move it to Save so the next Enter saves directly.
+            document.getElementById('edit-schedule-submit').focus();
         }
         return;
     }
