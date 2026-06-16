@@ -29,14 +29,22 @@
 
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body py-2 px-3">
-            <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white border-end-0">
-                    <i class="bi bi-search text-muted"></i>
-                </span>
-                <input type="text" id="projectSearch" name="search"
-                       class="form-control border-start-0 ps-0"
-                       placeholder="Projekt suchen..." list="project-suggestions">
-                <select id="projectFilter" class="form-select form-select-sm border-start-0" style="max-width:11rem;color:var(--bs-secondary-color)">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <div class="input-group input-group-sm flex-grow-1" style="min-width:12rem">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" id="projectSearch" name="search"
+                           class="form-control border-start-0 ps-0"
+                           placeholder="Projekt suchen..." list="project-suggestions">
+                </div>
+                <select id="projectRegionFilter" class="form-select form-select-sm" style="max-width:11rem;color:var(--bs-secondary-color)">
+                    <option value="all">Alle Regionen</option>
+                    @foreach ($regions as $region)
+                    <option value="{{ $region->code }}">{{ $region->code }}</option>
+                    @endforeach
+                </select>
+                <select id="projectFilter" class="form-select form-select-sm" style="max-width:11rem;color:var(--bs-secondary-color)">
                     <option value="all">Alle</option>
                     <option value="running">Laufend</option>
                     <option value="stopped">Gestoppt</option>
@@ -275,8 +283,15 @@ function applyFilters() {
     const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
     const q = norm(document.getElementById('projectSearch')?.value ?? '');
     const statusFilter = document.getElementById('projectFilter')?.value ?? 'all';
+    const regionFilter = document.getElementById('projectRegionFilter')?.value ?? 'all';
 
     document.querySelectorAll('#projects-container > .card').forEach(card => {
+        // Region is a project-level attribute -> hide the whole card when it doesn't match.
+        if (regionFilter !== 'all' && card.dataset.region !== regionFilter) {
+            card.style.display = 'none';
+            return;
+        }
+
         const header = card.querySelector('[data-project-name]');
         const projectNameMatches = !q || (header && norm(header.dataset.projectName).includes(q));
         let anyVisible = false;
@@ -310,6 +325,7 @@ function applyFilters() {
 }
 
 document.getElementById('projectFilter').addEventListener('change', applyFilters);
+document.getElementById('projectRegionFilter').addEventListener('change', applyFilters);
 document.getElementById('projectSearch').addEventListener('input', applyFilters);
 document.addEventListener('htmx:afterSettle', applyFilters);
 

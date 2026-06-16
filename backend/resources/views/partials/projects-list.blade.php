@@ -1,5 +1,5 @@
 @forelse ($projects as $index => $project)
-<div class="card shadow-sm border-0 mb-3">
+<div class="card shadow-sm border-0 mb-3" data-region="{{ $project['region_code'] }}">
     <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
         <div class="d-flex align-items-center flex-grow-1 py-3 collapsed" style="cursor:pointer"
              data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}"
