@@ -32,7 +32,7 @@ class ProjectController extends Controller
         $this->inventory->runForProject($project->id, triggeredAutomatically: true);
 
         if ($request->header('HX-Request')) {
-            return $this->projectsPartial('Projekt wurde erstellt.');
+            return $this->projectsPartial('Projekt wurde hinzugefügt.');
         }
 
         return redirect()->back();
@@ -80,6 +80,9 @@ class ProjectController extends Controller
         $projects = $projectModels->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
+            'region_id' => $p->region_id,
+            'region_code' => $p->region->code,
+            'region_host_url' => $p->region->host_url,
             'servers' => $p->servers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,

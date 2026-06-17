@@ -103,7 +103,10 @@ function initTooltips(root = document) {
     const selector = '[data-bs-toggle="tooltip"],[data-tooltip="enabled"]';
     root.querySelectorAll(selector).forEach(el => {
         if (bootstrap.Tooltip.getInstance(el)) return;
-        new bootstrap.Tooltip(el);
+        // Trigger on hover only — not focus. A focus trigger keeps the tooltip
+        // visible after click (the element stays focused while a modal/offcanvas
+        // opens), so it would hang around until you click elsewhere.
+        new bootstrap.Tooltip(el, { trigger: 'hover' });
         el.addEventListener('click', () => bootstrap.Tooltip.getInstance(el)?.hide());
     });
 }
@@ -146,16 +149,28 @@ async function checkPendingActions() {
     try {
         const res = await fetch('/pending-actions/check', { headers: { 'Accept': 'application/json' } });
         if (!res.ok) return;
-        const ids = await res.json();
+        // { serverId: 'ACTIVE'|'SHUTOFF' } for servers with an active expectation.
+        const expectations = await res.json();
+        const ids = Object.keys(expectations);
+
+        // First run just establishes a baseline; badges are already rendered with
+        // their expectation by the initial load.
         if (pendingActionIds === null) {
             pendingActionIds = new Set(ids);
             return;
         }
-        const hasNew = ids.some(id => !pendingActionIds.has(id));
+
+        const newIds = ids.filter(id => !pendingActionIds.has(id));
         pendingActionIds = new Set(ids);
-        if (hasNew) {
-            window._collapseRestoreAfterSwap = [...document.querySelectorAll('.collapse.show')].map(el => el.id);
-            htmx.ajax('GET', window.location.pathname, { target: '#main-content', swap: 'innerHTML' });
+
+        // Kick only the newly-pending servers' badges into the polling state —
+        // no full page reload. Servers not rendered on this page are skipped.
+        for (const id of newIds) {
+            if (!document.getElementById('srv-status-' + id)) continue;
+            htmx.ajax('GET', '/servers/' + id + '/status?expecting=' + encodeURIComponent(expectations[id]), {
+                target: '#srv-status-' + id,
+                swap: 'innerHTML',
+            });
         }
     } catch {}
 }

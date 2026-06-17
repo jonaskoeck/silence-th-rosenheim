@@ -6,8 +6,10 @@ namespace Tests\Feature;
 
 use App\Models\InventoryRun;
 use App\Models\Project;
+use App\Models\Server;
 use App\Services\Contracts\InventoryServiceInterface;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Http;
 use Mockery;
 use Tests\TestCase;
 
@@ -82,5 +84,28 @@ class InventoryControllerTest extends TestCase
         $response = $this->from(route('inventory'))->post(route('inventory.run.project', $project->id));
 
         $response->assertRedirect(route('inventory'));
+    }
+
+    /**
+     * Regression: the HTMX branch returns the projects-list partial, whose edit
+     * button passes the project's region_id. A missing region_id would render a
+     * broken prepareEditModal(..., ) call, so assert it is present.
+     */
+    public function test_inventory_run_for_project_via_htmx_renders_edit_button_with_region(): void
+    {
+        Http::fake();
+
+        $project = Project::factory()->create();
+        Server::factory()->create(['project_id' => $project->id]);
+
+        $mock = Mockery::mock(InventoryServiceInterface::class);
+        $mock->shouldReceive('runForProject')->once();
+        $this->app->instance(InventoryServiceInterface::class, $mock);
+
+        $response = $this->withHeaders(['HX-Request' => 'true'])
+            ->post(route('inventory.run.project', $project->id));
+
+        $response->assertOk();
+        $response->assertSee(", {$project->region_id})", escape: false);
     }
 }

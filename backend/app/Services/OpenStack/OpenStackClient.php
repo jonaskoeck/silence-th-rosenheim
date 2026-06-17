@@ -7,18 +7,37 @@ namespace App\Services\OpenStack;
 use App\Services\Contracts\OpenStackClientInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
 use App\Services\OpenStack\Exceptions\OpenStackServerActionException;
+use App\Services\OpenStack\Exceptions\OpenStackUnreachableException;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class OpenStackClient implements OpenStackClientInterface
 {
-    public function __construct(private string $authUrl) {}
+    /** Max concurrent OpenStack requests per pooled batch. */
+    private const POOL_SIZE = 10;
 
-    public function authenticate(string $applicationCredentialId, string $applicationCredentialSecret): AuthenticationResultDto
+    public function authenticate(string $authUrl, string $applicationCredentialId, string $applicationCredentialSecret): AuthenticationResultDto
     {
-        $url = rtrim($this->authUrl, '/').'/v3/auth/tokens';
+        // Cache the token (valid for hours per Keystone config) so we don't
+        // re-authenticate on every status/inventory call. Keyed by a hash of
+        // host + credentials, so a credential or region change re-authenticates.
+        $cacheKey = 'openstack-auth:'.hash('sha256', $authUrl.'|'.$applicationCredentialId.'|'.$applicationCredentialSecret);
+
+        // Cache a plain array (not the DTO object): it round-trips reliably through
+        // any cache store, whereas a serialized object can come back as an
+        // incomplete class depending on the store/serializer.
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached) && isset($cached['token'], $cached['projectId'], $cached['computeEndpoint'])) {
+            return new AuthenticationResultDto($cached['token'], $cached['projectId'], $cached['computeEndpoint']);
+        }
+
+        $url = rtrim($authUrl, '/').'/v3/auth/tokens';
 
         Log::debug('OpenStack auth request', [
             'url' => $url,
@@ -42,7 +61,7 @@ class OpenStackClient implements OpenStackClientInterface
         } catch (ConnectionException $e) {
             Log::warning('OpenStack auth connection failed', ['message' => $e->getMessage()]);
 
-            throw InvalidOpenStackCredentialsException::fromTransportError($e);
+            throw OpenStackUnreachableException::fromTransportError($e);
         }
 
         Log::debug('OpenStack auth response', [
@@ -55,7 +74,7 @@ class OpenStackClient implements OpenStackClientInterface
         }
 
         if ($response->failed()) {
-            throw InvalidOpenStackCredentialsException::fromTransportError(
+            throw OpenStackUnreachableException::fromTransportError(
                 new RuntimeException("OpenStack auth returned status {$response->status()}.")
             );
         }
@@ -64,7 +83,7 @@ class OpenStackClient implements OpenStackClientInterface
         $projectId = $response->json('token.project.id');
 
         if (! is_string($token) || $token === '' || ! is_string($projectId) || $projectId === '') {
-            throw InvalidOpenStackCredentialsException::fromTransportError(
+            throw OpenStackUnreachableException::fromTransportError(
                 new RuntimeException('OpenStack auth response was missing a token or project id.')
             );
         }
@@ -72,7 +91,65 @@ class OpenStackClient implements OpenStackClientInterface
         $catalog = $response->json('token.catalog') ?? [];
         $computeEndpoint = $this->extractComputeEndpoint($catalog);
 
-        return new AuthenticationResultDto($token, $projectId, $computeEndpoint);
+        $result = new AuthenticationResultDto($token, $projectId, $computeEndpoint);
+
+        if (($ttl = $this->tokenCacheTtl($response->json('token.expires_at'))) > 0) {
+            Cache::put($cacheKey, [
+                'token' => $result->token,
+                'projectId' => $result->projectId,
+                'computeEndpoint' => $result->computeEndpoint,
+            ], $ttl);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Seconds to cache a token for: until its expires_at minus a 60s safety
+     * buffer, capped at a day. Returns 0 when it can't be determined (then the
+     * token is simply not cached).
+     */
+    private function tokenCacheTtl(mixed $expiresAt): int
+    {
+        if (! is_string($expiresAt) || $expiresAt === '') {
+            return 0;
+        }
+
+        try {
+            $seconds = CarbonImmutable::parse($expiresAt)->getTimestamp() - CarbonImmutable::now()->getTimestamp() - 60;
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        return max(0, min($seconds, 86400));
+    }
+
+    /**
+     * Prüft (ohne Zugangsdaten), ob unter der Host-URL ein erreichbarer
+     * OpenStack-Identity-Dienst (Keystone v3) antwortet. Wirft, wenn der Host
+     * nicht aufgelöst/erreicht werden kann oder kein Keystone-v3-Endpunkt ist.
+     *
+     * @throws OpenStackUnreachableException
+     */
+    public function verifyIdentityEndpoint(string $authUrl): void
+    {
+        $url = rtrim($authUrl, '/').'/v3';
+
+        try {
+            $response = Http::acceptJson()->get($url);
+        } catch (ConnectionException $e) {
+            Log::warning('OpenStack identity probe connection failed', ['url' => $url, 'message' => $e->getMessage()]);
+
+            throw OpenStackUnreachableException::fromTransportError($e);
+        }
+
+        $versionId = $response->json('version.id');
+
+        if (! is_string($versionId) || ! str_starts_with($versionId, 'v3')) {
+            throw OpenStackUnreachableException::fromTransportError(
+                new RuntimeException("No OpenStack identity (Keystone v3) endpoint found at {$url}.")
+            );
+        }
     }
 
     /**
@@ -100,6 +177,42 @@ class OpenStackClient implements OpenStackClientInterface
         }
 
         return $response->json('servers') ?? [];
+    }
+
+    /**
+     * @param  array<int, AuthenticationResultDto>  $authByProjectId
+     * @return array<int, array<int, array<string, mixed>>>
+     */
+    public function listServersMany(array $authByProjectId): array
+    {
+        $serversByProjectId = [];
+
+        // Bounded concurrency: fire at most POOL_SIZE requests at a time so we
+        // don't flood OpenStack (or trip its rate limits) with many projects.
+        foreach (array_chunk($authByProjectId, self::POOL_SIZE, true) as $chunk) {
+            $responses = Http::pool(fn (Pool $pool) => array_map(
+                fn (int $projectId) => $pool->as((string) $projectId)
+                    ->withHeader('X-Auth-Token', $chunk[$projectId]->token)
+                    ->withHeader('X-OpenStack-Nova-Microversion', '2.47')
+                    ->acceptJson()
+                    ->get($chunk[$projectId]->computeEndpoint.'/servers/detail'),
+                array_keys($chunk),
+            ));
+
+            foreach ($chunk as $projectId => $auth) {
+                $response = $responses[(string) $projectId] ?? null;
+
+                // A failed request comes back as an exception object, not a Response;
+                // such projects are simply omitted (the caller treats them as failed).
+                if ($response instanceof Response && $response->successful()) {
+                    $serversByProjectId[$projectId] = $response->json('servers') ?? [];
+                } else {
+                    Log::warning('OpenStack list servers failed in pool', ['project_id' => $projectId]);
+                }
+            }
+        }
+
+        return $serversByProjectId;
     }
 
     public function startServer(string $token, string $computeEndpoint, string $serverId): void

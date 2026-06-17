@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature;
 
 use App\Models\Project;
+use App\Models\Region;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -17,8 +19,6 @@ class UpdateProjectTest extends TestCase
 
     private function fakeSuccessfulAuth(string $projectId = self::RESOLVED_PROJECT_ID): void
     {
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
-
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(
                 body: [
@@ -35,8 +35,11 @@ class UpdateProjectTest extends TestCase
 
     private function makeProject(): Project
     {
+        $region = Region::factory()->create(['host_url' => 'https://openstack.test']);
+
         return Project::create([
             'name' => 'Original',
+            'region_id' => $region->id,
             'open_stack_project_id' => self::RESOLVED_PROJECT_ID,
             'app_credential_id' => 'old-id',
             'app_credential_secret' => 'old-secret',
@@ -100,10 +103,30 @@ class UpdateProjectTest extends TestCase
         $this->assertSame('old-id', $project->app_credential_id);
     }
 
+    public function test_switching_to_unreachable_region_reports_region_error_and_keeps_project(): void
+    {
+        $project = $this->makeProject();
+        $unreachable = Region::factory()->create(['host_url' => 'https://gibberish.test:5000']);
+
+        Http::fake([
+            'gibberish.test:5000/*' => fn () => throw new ConnectionException('cURL error 6: Could not resolve host'),
+        ]);
+
+        $response = $this->put(route('projects.update', $project), [
+            'name' => 'Original',
+            'region_id' => $unreachable->id,
+        ]);
+
+        // Should blame the region, not the (valid) credentials.
+        $response->assertSessionHasErrors('region_id');
+        $response->assertSessionDoesntHaveErrors('app_credential_secret');
+        $project->refresh();
+        $this->assertNotSame($unreachable->id, $project->region_id);
+    }
+
     public function test_update_is_rejected_when_new_credentials_are_invalid(): void
     {
         $project = $this->makeProject();
-        config(['services.openstack.auth_url' => 'https://openstack.test']);
         Http::fake([
             'openstack.test/v3/auth/tokens' => Http::response(
                 body: ['error' => ['code' => 401]],

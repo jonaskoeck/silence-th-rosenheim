@@ -1,5 +1,5 @@
 @forelse ($projects as $index => $project)
-<div class="card shadow-sm border-0 mb-3">
+<div class="card shadow-sm border-0 mb-3" data-region="{{ $project['region_code'] }}">
     <div class="card-header bg-white py-0 d-flex align-items-stretch justify-content-between">
         <div class="d-flex align-items-center flex-grow-1 py-3 collapsed" style="cursor:pointer"
              data-bs-toggle="collapse" data-bs-target="#project-{{ $index }}"
@@ -7,11 +7,15 @@
             <i class="bi bi-chevron-right me-2 text-muted collapse-icon-closed" style="font-size:0.85rem"></i>
             <i class="bi bi-chevron-down me-2 text-muted collapse-icon-open" style="font-size:0.85rem"></i>
             <span class="fw-semibold">{{ $project['name'] }}</span>
+            <span class="badge rounded-pill text-bg-light border text-secondary ms-2" style="font-size:0.7rem"
+                  title="{{ $project['region_host_url'] }}" data-bs-toggle="tooltip">
+                <i class="bi bi-geo-alt me-1"></i>{{ $project['region_code'] }}
+            </span>
         </div>
         <div class="d-flex gap-1 align-items-center py-3">
             <button class="btn btn-sm btn-outline-secondary"
                     data-bs-toggle="modal" data-bs-target="#editProjectModal"
-                    onclick="prepareEditModal({{ $project['id'] }}, '{{ addslashes($project['name']) }}')"
+                    onclick="prepareEditModal({{ $project['id'] }}, '{{ addslashes($project['name']) }}', {{ $project['region_id'] }})"
                     title="Projekt bearbeiten"
                     data-tooltip="enabled">
                 <i class="bi bi-pencil"></i>

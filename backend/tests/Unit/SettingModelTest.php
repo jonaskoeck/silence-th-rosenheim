@@ -34,21 +34,6 @@ class SettingModelTest extends TestCase
         $this->assertSame(1, Setting::query()->where('key', 'some_key')->count());
     }
 
-    public function test_schedule_poll_interval_returns_default_when_unset(): void
-    {
-        $this->assertSame(
-            Setting::DEFAULT_SCHEDULE_POLL_INTERVAL_MINUTES,
-            Setting::schedulePollIntervalMinutes(),
-        );
-    }
-
-    public function test_schedule_poll_interval_clamps_zero_to_minimum_one(): void
-    {
-        Setting::set(Setting::KEY_SCHEDULE_POLL_INTERVAL_MINUTES, '0');
-
-        $this->assertSame(1, Setting::schedulePollIntervalMinutes());
-    }
-
     public function test_inventory_interval_returns_stored_value(): void
     {
         Setting::set(Setting::KEY_INVENTORY_INTERVAL_MINUTES, '15');

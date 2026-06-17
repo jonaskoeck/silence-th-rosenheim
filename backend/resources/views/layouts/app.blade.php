@@ -110,17 +110,6 @@
 
         <div class="px-4 py-3 border-bottom">
             <p class="text-muted small fw-semibold text-uppercase mb-3" style="font-size:0.7rem;letter-spacing:.05em">System (Backend-Cron)</p>
-            <div class="mb-3">
-                <label class="form-label small fw-semibold" for="schedulePollIntervalSelect">Zeitplan-Auslösung</label>
-                <select class="form-select form-select-sm mt-2" id="schedulePollIntervalSelect"
-                        data-url="{{ route('settings.schedule-poll-interval') }}">
-                    @foreach ($allowedSchedulePollIntervals as $minutes)
-                        <option value="{{ $minutes }}" @selected($schedulePollIntervalMinutes === $minutes)>
-                            {{ \App\Models\Setting::intervalLabel($minutes) }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
             <div class="mb-0">
                 <label class="form-label small fw-semibold" for="inventoryIntervalSelect">Inventarisierung</label>
                 <select class="form-select form-select-sm mt-2" id="inventoryIntervalSelect"
@@ -204,13 +193,6 @@
                 showToast(errorLabel + ' konnte nicht gespeichert werden.', 'danger');
             }
         }
-    }
-
-    const scheduleSelect = document.getElementById('schedulePollIntervalSelect');
-    if (scheduleSelect) {
-        scheduleSelect.addEventListener('change', () => persistSetting(
-            scheduleSelect, 'minutes', 'Zeitplan-Intervall',
-        ));
     }
 
     const inventorySelect = document.getElementById('inventoryIntervalSelect');

@@ -15,7 +15,10 @@
         </span>
     </div>
 
-    <div id="dashboard-content">
+    <div id="dashboard-content"
+         hx-get="{{ route('dashboard.data') }}"
+         hx-trigger="load"
+         hx-swap="innerHTML">
 
         <div class="row g-3 mb-4">
             <div class="col-12 col-md-4">
@@ -72,28 +75,9 @@
                     <div class="card-header bg-white border-bottom py-3">
                         <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Nächste Events</h6>
                     </div>
-                    <ul class="list-group list-group-flush">
-                        @forelse ($nextEvents as $event)
-                        <li class="list-group-item py-2 px-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <div class="small fw-semibold">{{ $event['server'] }}</div>
-                                    <div class="text-muted" style="font-size:0.73rem">
-                                        @if ($event['type']->value === 'START')
-                                            <i class="bi bi-play-fill text-success"></i>
-                                        @else
-                                            <i class="bi bi-stop-fill text-danger"></i>
-                                        @endif
-                                        {{ $event['type']->value === 'START' ? 'Starten' : 'Stoppen' }}
-                                        &nbsp;·&nbsp; {{ $event['time'] }} Uhr
-                                    </div>
-                                </div>
-                                <span class="badge rounded-pill text-bg-secondary" style="font-size:0.65rem">{{ $event['day'] }}</span>
-                            </div>
-                        </li>
-                        @empty
-                        <li class="list-group-item py-3 text-center text-muted small">Keine Zeitpläne vorhanden.</li>
-                        @endforelse
+                    <ul class="list-group list-group-flush"
+                        hx-get="{{ route('dashboard.next-events') }}" hx-trigger="every 60s" hx-target="this" hx-swap="innerHTML">
+                        @include('partials.dashboard-next-events')
                     </ul>
                     <div class="card-footer bg-white border-top text-center py-2">
                         <a href="{{ route('schedules') }}" class="btn btn-sm btn-link text-decoration-none small fw-semibold" style="color:#F29400"
@@ -111,7 +95,7 @@
                         <h3 class="fw-bold mb-0">€ {{ number_format($monthlySavings, 2, ',', '.') }}</h3>
                         @if ($savingsHours > 0)
                         <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">
-                            {{ number_format($savingsHours, 0, ',', '.') }} Std./Monat × Ø {{ number_format($savingsAvgRate, 4, ',', '.') }} €/Std.
+                            ≈ {{ number_format($savingsHours, 0, ',', '.') }} Std./Monat × Ø {{ number_format($savingsAvgRate, 4, ',', '.') }} €/Std.
                         </p>
                         @else
                         <p class="text-muted mt-2 mb-0" style="font-size:0.75rem">Keine aktiven Zeitpläne mit bekanntem Flavor</p>
@@ -125,9 +109,3 @@
 
 </div>
 @endsection
-
-@push('scripts')
-<script>
-htmx.ajax('GET', '{{ route('dashboard.data') }}', { target: '#dashboard-content', swap: 'innerHTML' });
-</script>
-@endpush

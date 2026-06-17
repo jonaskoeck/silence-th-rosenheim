@@ -5,7 +5,7 @@
 @section('content')
 @php
 $days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-$timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
+$snapMinutes = max(1, (int) config('scheduling.trigger_interval_minutes', 5));
 @endphp
 
 <div class="container-fluid">
@@ -14,7 +14,7 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
         <div>
             <h1 class="h4 fw-bold mb-0 page-title">Zeitpläne</h1>
         </div>
-        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newScheduleModal">
+        <button id="new-schedule-btn" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#newScheduleModal">
             <i class="bi bi-plus-lg me-1"></i>Neuer Zeitplan
         </button>
     </div>
@@ -89,7 +89,7 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
                                         <option value="STOP">Stoppen</option>
                                     </select>
                                     <input type="time" class="form-control form-control-sm mb-1"
-                                           id="edit-time-{{ $day }}" value="08:00" step="{{ $timeStep }}">
+                                           id="edit-time-{{ $day }}" value="08:00" onblur="snapTime(this)">
                                     <div class="d-flex gap-1">
                                         <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                 onclick="addEditEvent('{{ $day }}')">OK</button>
@@ -189,7 +189,7 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
                                             <option value="STOP">Stoppen</option>
                                         </select>
                                         <input type="time" class="form-control form-control-sm mb-1"
-                                               id="time-{{ $day }}" value="08:00" step="{{ $timeStep }}">
+                                               id="time-{{ $day }}" value="08:00" onblur="snapTime(this)">
                                         <div class="d-flex gap-1">
                                             <button type="button" class="btn btn-sm btn-primary flex-grow-1"
                                                     onclick="addEvent('{{ $day }}')">OK</button>
@@ -251,18 +251,89 @@ $timeStep = \App\Models\Setting::schedulePollIntervalMinutes() * 60;
 
 @push('scripts')
 <script>
-document.getElementById('scheduleSearch').addEventListener('input', function () {
-    const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const q = norm(this.value);
-    document.querySelectorAll('#schedules-container .card').forEach(card => {
-        const el = card.querySelector('[data-server-name]');
-        if (!el) return;
-        const matches = !q
-            || norm(el.dataset.serverName).includes(q)
-            || norm(el.dataset.scheduleName).includes(q);
-        card.style.display = matches ? '' : 'none';
+// Wrapped in an IIFE: navigation is htmx-based and re-runs this inline script in
+// the same global scope, so top-level `const`s would throw on the second visit.
+(function () {
+    const SCHEDULE_SEARCH_KEY = 'schedules.search';
+    const scheduleSearch = document.getElementById('scheduleSearch');
+
+    function filterSchedules() {
+        const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const q = norm(scheduleSearch.value);
+        document.querySelectorAll('#schedules-container .card').forEach(card => {
+            const el = card.querySelector('[data-server-name]');
+            if (!el) return;
+            const matches = !q
+                || norm(el.dataset.serverName).includes(q)
+                || norm(el.dataset.scheduleName).includes(q);
+            card.style.display = matches ? '' : 'none';
+        });
+    }
+
+    scheduleSearch.addEventListener('input', function () {
+        // Remember the query for this browser session so it survives navigation.
+        sessionStorage.setItem(SCHEDULE_SEARCH_KEY, this.value);
+        filterSchedules();
     });
-});
+
+    const saved = sessionStorage.getItem(SCHEDULE_SEARCH_KEY);
+    if (saved) {
+        scheduleSearch.value = saved;
+        filterSchedules();
+    }
+})();
+
+// Remember which schedule panels are expanded so they stay open when navigating
+// away and back. Navigation is htmx-based, so this script re-runs each visit.
+(function () {
+    const OPEN_KEY = 'schedules.openSchedules';
+
+    function readOpen() {
+        try {
+            return new Set(JSON.parse(sessionStorage.getItem(OPEN_KEY)) || []);
+        } catch (e) {
+            return new Set();
+        }
+    }
+
+    // Reopen panels saved from a previous visit (instant, no transition).
+    readOpen().forEach(id => {
+        const panel = document.getElementById(id);
+        if (!panel) {
+            return;
+        }
+        panel.classList.add('show');
+        const trigger = document.querySelector('[data-bs-target="#' + id + '"]');
+        if (trigger) {
+            trigger.classList.remove('collapsed');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    // Bind the toggle tracker once per session (window survives htmx navigation).
+    if (!window._schedulesOpenTracker) {
+        window._schedulesOpenTracker = true;
+        const update = (id, isOpen) => {
+            const set = readOpen();
+            if (isOpen) {
+                set.add(id);
+            } else {
+                set.delete(id);
+            }
+            sessionStorage.setItem(OPEN_KEY, JSON.stringify([...set]));
+        };
+        document.addEventListener('shown.bs.collapse', e => {
+            if (e.target.id.startsWith('schedule-')) {
+                update(e.target.id, true);
+            }
+        });
+        document.addEventListener('hidden.bs.collapse', e => {
+            if (e.target.id.startsWith('schedule-')) {
+                update(e.target.id, false);
+            }
+        });
+    }
+})();
 
 var scheduleEvents = {};
 
@@ -284,10 +355,69 @@ function hideAddEvent(day) {
     document.getElementById('form-' + day).classList.add('d-none');
 }
 
+// Start the "Neuer Zeitplan" modal from a clean slate so it never shows leftover
+// input from a previous (unsaved) attempt. The preselect auto-open opens the modal
+// directly without this button, so its preselected server is preserved.
+function resetNewScheduleModal() {
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-server').selectedIndex = 0;
+    document.getElementById('confirmed-production').value = '0';
+    scheduleEvents = {};
+    ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].forEach(d => {
+        const container = document.getElementById('events-' + d);
+        if (container) container.innerHTML = '';
+        hideAddEvent(d);
+    });
+}
+
+document.getElementById('new-schedule-btn').addEventListener('click', resetNewScheduleModal);
+
+// Schedule times live on a 5-minute grid. The native time picker allows any
+// minute, so snap the chosen value to the nearest 5 minutes (on change and again
+// before reading it). The server enforces the same rule as a backstop.
+// var (not const): these inline scripts re-run on every SPA navigation, and a
+// top-level const would throw "already declared" on the second visit.
+var SNAP_MINUTES = {{ $snapMinutes }};
+
+function snapTime(input) {
+    if (!input || !input.value) return;
+    const [h, m] = input.value.split(':').map(Number);
+    if (!Number.isInteger(h) || !Number.isInteger(m)) return;
+    let minutes = Math.round(m / SNAP_MINUTES) * SNAP_MINUTES;
+    let hours = h;
+    if (minutes >= 60) {
+        minutes = 0;
+        hours = (h + 1) % 24;
+    }
+    input.value = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+}
+
+// Returns 'duplicate' (same type+time), 'conflict' (different type, same time) or null.
+function eventTimeConflict(events, type, time) {
+    const match = (events || []).find(ev => ev.time === time);
+    if (!match) return null;
+    return match.type === type ? 'duplicate' : 'conflict';
+}
+
+function rejectIfConflicting(events, type, time) {
+    const conflict = eventTimeConflict(events, type, time);
+    if (conflict === 'conflict') {
+        showToast(`Um ${time} Uhr ist an diesem Tag bereits ein gegenteiliges Ereignis eingetragen.`, 'danger');
+        return true;
+    }
+    // Same type + time is just a duplicate; it would be grouped together anyway,
+    // so silently ignore it instead of nagging the user.
+    return conflict === 'duplicate';
+}
+
 function addEvent(day) {
     const type = document.getElementById('type-' + day).value;
-    const time = document.getElementById('time-' + day).value;
+    const input = document.getElementById('time-' + day);
+    snapTime(input);
+    const time = input.value;
     if (!time) return;
+
+    if (rejectIfConflicting(scheduleEvents[day], type, time)) return;
 
     if (!scheduleEvents[day]) scheduleEvents[day] = [];
     const index = scheduleEvents[day].length;
@@ -320,7 +450,12 @@ document.getElementById('newScheduleForm').addEventListener('submit', function (
         return;
     }
 
-    const existingServerIds = @json(array_column($schedules, 'id'));
+    // Read the current schedules straight from the DOM rather than a value baked
+    // in at page render: deleting a schedule swaps only the list partial, so a
+    // baked-in list would still report a just-deleted server as taken.
+    const existingServerIds = [...document.querySelectorAll('#schedules-container .collapse')]
+        .map(el => parseInt(el.id.replace('schedule-', ''), 10))
+        .filter(id => !Number.isNaN(id));
     if (existingServerIds.includes(parseInt(serverId))) {
         showToast('Für diesen Server existiert bereits ein Zeitplan.', 'danger');
         return;
@@ -391,6 +526,12 @@ document.getElementById('confirm-production-submit').addEventListener('click', (
         pendingProductionSubmit = null;
         submit();
     }
+});
+
+// Focus the confirm button when the Sicherheitsabfrage opens so Enter confirms it.
+// (Tabbing to "Abbrechen" and pressing Enter still cancels.)
+document.getElementById('confirmProductionScheduleModal').addEventListener('shown.bs.modal', () => {
+    document.getElementById('confirm-production-submit').focus();
 });
 
 document.getElementById('newScheduleModal').addEventListener('hidden.bs.modal', () => {
@@ -471,6 +612,28 @@ document.getElementById('editScheduleModal').addEventListener('hidden.bs.modal',
     }
 });
 
+document.getElementById('editScheduleModal').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (e.target.tagName === 'BUTTON') return; // let a focused button handle its own Enter
+
+    const addForm = e.target.closest('.add-event-form');
+    if (addForm) {
+        // Enter inside a day's "add event" form confirms that event instead of saving.
+        const day = addForm.closest('[data-edit-day]')?.dataset.editDay;
+        if (day) {
+            e.preventDefault();
+            addEditEvent(day);
+            // The sub-form (and its focused input) is now hidden, which would drop
+            // focus to <body>; move it to Save so the next Enter saves directly.
+            document.getElementById('edit-schedule-submit').focus();
+        }
+        return;
+    }
+
+    e.preventDefault();
+    document.getElementById('edit-schedule-submit').click();
+});
+
 function showEditAddEvent(day) {
     document.getElementById('edit-form-' + day).classList.remove('d-none');
 }
@@ -479,8 +642,11 @@ function hideEditAddEvent(day) {
 }
 function addEditEvent(day) {
     const type = document.getElementById('edit-type-' + day).value;
-    const time = document.getElementById('edit-time-' + day).value;
+    const input = document.getElementById('edit-time-' + day);
+    snapTime(input);
+    const time = input.value;
     if (!time) return;
+    if (rejectIfConflicting(editScheduleEvents[day], type, time)) return;
     if (!editScheduleEvents[day]) editScheduleEvents[day] = [];
     const index = editScheduleEvents[day].length;
     editScheduleEvents[day].push({ type, time });

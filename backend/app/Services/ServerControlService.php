@@ -15,6 +15,7 @@ class ServerControlService implements ServerControlServiceInterface
     public function start(Server $server): void
     {
         $auth = $this->openStack->authenticate(
+            $server->project->region->host_url,
             $server->project->app_credential_id,
             $server->project->app_credential_secret,
         );
@@ -29,6 +30,7 @@ class ServerControlService implements ServerControlServiceInterface
     public function stop(Server $server): void
     {
         $auth = $this->openStack->authenticate(
+            $server->project->region->host_url,
             $server->project->app_credential_id,
             $server->project->app_credential_secret,
         );

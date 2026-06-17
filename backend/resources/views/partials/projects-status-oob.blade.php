@@ -4,3 +4,7 @@
 @include('partials.server-toggle-button', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null, 'oob' => true])
 @endforeach
 @endforeach
+@if (! empty($nextStatusUrl))
+{{-- Chain-load the next chunk of projects; replaces itself with the next trigger. --}}
+<span hx-get="{{ $nextStatusUrl }}" hx-trigger="load" hx-swap="outerHTML"></span>
+@endif

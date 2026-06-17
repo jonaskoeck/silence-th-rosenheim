@@ -8,15 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Setting extends Model
 {
-    public const KEY_SCHEDULE_POLL_INTERVAL_MINUTES = 'schedule_poll_interval_minutes';
-
-    public const DEFAULT_SCHEDULE_POLL_INTERVAL_MINUTES = 5;
-
-    /**
-     * @var array<int, int>
-     */
-    public const ALLOWED_SCHEDULE_POLL_INTERVAL_MINUTES = [1, 5, 10, 15, 30, 60];
-
     public const KEY_INVENTORY_INTERVAL_MINUTES = 'inventory_interval_minutes';
 
     public const DEFAULT_INVENTORY_INTERVAL_MINUTES = 60;
@@ -36,14 +27,6 @@ class Setting extends Model
     public static function set(string $key, ?string $value): self
     {
         return self::query()->updateOrCreate(['key' => $key], ['value' => $value]);
-    }
-
-    public static function schedulePollIntervalMinutes(): int
-    {
-        return max(1, (int) self::get(
-            self::KEY_SCHEDULE_POLL_INTERVAL_MINUTES,
-            (string) self::DEFAULT_SCHEDULE_POLL_INTERVAL_MINUTES,
-        ));
     }
 
     public static function inventoryIntervalMinutes(): int

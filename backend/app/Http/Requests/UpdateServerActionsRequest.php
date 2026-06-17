@@ -8,6 +8,7 @@ use App\Enums\ActionType;
 use App\Enums\ServerLabel;
 use App\Enums\Weekday;
 use App\Http\Requests\Concerns\ToastsValidationErrors;
+use App\Http\Requests\Concerns\ValidatesScheduleTimeConflicts;
 use App\Models\Server;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Contracts\Validation\Validator;
@@ -17,6 +18,7 @@ use Illuminate\Validation\Rule;
 class UpdateServerActionsRequest extends FormRequest
 {
     use ToastsValidationErrors;
+    use ValidatesScheduleTimeConflicts;
 
     public function authorize(): bool
     {
@@ -34,7 +36,7 @@ class UpdateServerActionsRequest extends FormRequest
             'name' => ['nullable', 'string', 'max:120'],
             'actions' => ['required', 'array', 'min:1'],
             'actions.*.type' => ['required', Rule::enum(ActionType::class)],
-            'actions.*.time' => ['required', 'date_format:H:i'],
+            'actions.*.time' => $this->scheduleTimeRules(),
             'actions.*.days' => ['required', 'array', 'min:1'],
             'actions.*.days.*' => ['required', 'string', Rule::in($weekdayNames)],
             'confirmed_production' => ['nullable', 'string'],
@@ -47,6 +49,9 @@ class UpdateServerActionsRequest extends FormRequest
     public function after(): array
     {
         return [
+            function (Validator $validator): void {
+                $this->addScheduleTimeConflictErrors($validator);
+            },
             function (Validator $validator): void {
                 $server = $this->route('server');
 

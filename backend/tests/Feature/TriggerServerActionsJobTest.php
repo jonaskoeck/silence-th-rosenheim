@@ -8,7 +8,6 @@ use App\Enums\Weekday;
 use App\Jobs\TriggerServerActionsJob;
 use App\Models\Server;
 use App\Models\ServerAction;
-use App\Models\Setting;
 use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ServerControlServiceInterface;
 use Carbon\CarbonImmutable;
@@ -107,9 +106,24 @@ class TriggerServerActionsJobTest extends TestCase
         (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
+    public function test_catchup_window_scales_with_the_trigger_interval(): void
+    {
+        // Interval 10 -> window 30 min. An action 25 min ago would be outside the
+        // default (15 min) window but is caught up because the window scaled.
+        config(['scheduling.trigger_interval_minutes' => 10]);
+        $this->freezeMonday('08:25:00');
+        $server = Server::factory()->create(['schedule_active' => true]);
+        $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
+
+        $mock = Mockery::mock(ServerControlServiceInterface::class);
+        $mock->shouldReceive('start')->once();
+
+        (new TriggerServerActionsJob)->handle($mock, $this->tracker());
+    }
+
     public function test_past_action_outside_catchup_window_is_skipped(): void
     {
-        // 30 min spaeter — ausserhalb des 15-min Fensters
+        // 30 min spaeter — ausserhalb des Fensters (Default-Intervall 5 -> 15 min)
         $this->freezeMonday('08:30:00');
         $server = Server::factory()->create(['schedule_active' => true]);
         $action = $this->makeAction($server, 'START', '08:00', Weekday::MONDAY->value);
@@ -334,13 +348,10 @@ class TriggerServerActionsJobTest extends TestCase
         (new TriggerServerActionsJob)->handle($mock, $this->tracker());
     }
 
-    public function test_interval_setting_does_not_affect_trigger_behaviour(): void
+    public function test_fires_action_when_its_scheduled_time_is_reached(): void
     {
-        // Egal welches Schedule-Poll-Setting gesetzt ist — der Job feuert
-        // Aktionen wenn ihre Zeit erreicht ist und sie heute noch nicht
-        // ausgeloest wurden. Das ehemalige Interval-Gating ist weg.
-        Setting::set(Setting::KEY_SCHEDULE_POLL_INTERVAL_MINUTES, '60');
-
+        // Der Job feuert Aktionen, sobald ihre Zeit erreicht ist und sie heute
+        // noch nicht ausgelöst wurden — unabhängig von einem Intervall-Gating.
         $this->freezeMonday('08:07:30');
         $server = Server::factory()->create(['schedule_active' => true]);
         $this->makeAction($server, 'START', '08:07', Weekday::MONDAY->value);

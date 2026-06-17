@@ -69,7 +69,12 @@ class ScheduleController extends Controller
             return view('partials.schedules-list', compact('schedules'));
         }
 
-        $editSchedule = ($request->boolean('edit') && ! empty($schedules)) ? $schedules[0] : null;
+        // Only auto-open an edit modal when a specific server was targeted (the
+        // per-server "Zeitpläne" link). A bare or stale `edit=1` must never fall
+        // back to opening the first existing schedule.
+        $editSchedule = ($request->boolean('edit') && $filterServer !== '' && ! empty($schedules))
+            ? $schedules[0]
+            : null;
 
         $preselectServerId = null;
         if ($editSchedule === null
@@ -117,6 +122,8 @@ class ScheduleController extends Controller
                 ];
             }
         }
+
+        usort($events, fn ($a, $b) => $a['time'] <=> $b['time']);
 
         return $events;
     }

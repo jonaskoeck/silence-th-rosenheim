@@ -16,13 +16,13 @@
                 <tr>
                     <td><div class="fw-semibold small">{{ $srv['name'] }}</div></td>
                     <td>
-                        @if ($isLazy)
-                        <span class="placeholder-glow">
+                        <span id="srv-status-{{ $srv['id'] }}" @if ($isLazy) class="placeholder-glow" @endif>
+                            @if ($isLazy)
                             <span class="placeholder rounded-pill" style="width:4.5rem;height:1.275rem;display:inline-block"></span>
+                            @else
+                            @include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])
+                            @endif
                         </span>
-                        @else
-                        @include('partials.server-status-badge', ['serverId' => $srv['id'], 'rawStatus' => $srv['raw_status'], 'expecting' => $srv['expecting'] ?? null])
-                        @endif
                     </td>
                     <td>
                         @if ($srv['label'] === 'production')

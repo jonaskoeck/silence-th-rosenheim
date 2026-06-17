@@ -16,6 +16,7 @@ class Project extends Model
 
     protected $fillable = [
         'name',
+        'region_id',
         'open_stack_project_id',
         'app_credential_id',
         'app_credential_secret',
@@ -42,6 +43,11 @@ class Project extends Model
                 $project->updateQuietly(['name' => $project->open_stack_project_id]);
             }
         });
+    }
+
+    public function region(): BelongsTo
+    {
+        return $this->belongsTo(Region::class);
     }
 
     public function servers(): HasMany

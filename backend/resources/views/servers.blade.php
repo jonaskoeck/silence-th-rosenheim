@@ -29,14 +29,22 @@
 
     <div class="card shadow-sm border-0 mb-3">
         <div class="card-body py-2 px-3">
-            <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white border-end-0">
-                    <i class="bi bi-search text-muted"></i>
-                </span>
-                <input type="text" id="projectSearch" name="search"
-                       class="form-control border-start-0 ps-0"
-                       placeholder="Projekt suchen..." list="project-suggestions">
-                <select id="projectFilter" class="form-select form-select-sm border-start-0" style="max-width:11rem;color:var(--bs-secondary-color)">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <div class="input-group input-group-sm flex-grow-1" style="min-width:12rem">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="bi bi-search text-muted"></i>
+                    </span>
+                    <input type="text" id="projectSearch" name="search"
+                           class="form-control border-start-0 ps-0"
+                           placeholder="Projekt suchen..." list="project-suggestions">
+                </div>
+                <select id="projectRegionFilter" class="form-select form-select-sm" style="max-width:11rem;color:var(--bs-secondary-color)">
+                    <option value="all">Alle Regionen</option>
+                    @foreach ($regions as $region)
+                    <option value="{{ $region->code }}">{{ $region->code }}</option>
+                    @endforeach
+                </select>
+                <select id="projectFilter" class="form-select form-select-sm" style="max-width:11rem;color:var(--bs-secondary-color)">
                     <option value="all">Alle</option>
                     <option value="running">Laufend</option>
                     <option value="stopped">Gestoppt</option>
@@ -54,7 +62,16 @@
         @include('partials.projects-list')
     </div>
 
-    <div id="status-sink" hidden></div>
+    <div id="no-results" class="card border-0 shadow-sm" style="display:none">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="bi bi-search me-1"></i>Keine Suchtreffer.
+        </div>
+    </div>
+
+    <div id="status-sink" hidden
+         hx-get="{{ route('servers.statuses') }}"
+         hx-trigger="load"
+         hx-swap="innerHTML"></div>
 
 </div>
 
@@ -96,9 +113,28 @@
                   hx-on::after-request="setFormLoading(this, false); if(event.detail.successful) bootstrap.Modal.getInstance(document.getElementById('createProjectModal'))?.hide()">
                 @csrf
                 <div class="modal-body d-flex flex-column gap-3">
+                    @if ($regions->isEmpty())
+                    <div class="alert alert-warning small mb-0" role="alert">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Es ist noch keine Region vorhanden. Bitte zuerst eine
+                        <a href="{{ route('regions') }}"
+                           hx-get="{{ route('regions') }}" hx-target="#main-content" hx-swap="innerHTML" hx-push-url="true"
+                           data-bs-dismiss="modal" class="alert-link">Region anlegen</a>,
+                        bevor ein Projekt hinzugefügt werden kann.
+                    </div>
+                    @else
                     <div>
                         <label class="form-label small fw-semibold">Name</label>
                         <input type="text" name="name" class="form-control">
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">Region</label>
+                        <select name="region_id" class="form-select" required>
+                            <option value="" disabled selected>Region wählen…</option>
+                            @foreach ($regions as $region)
+                            <option value="{{ $region->id }}">{{ $region->code }} — {{ $region->host_url }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label class="form-label small fw-semibold">App Credential ID</label>
@@ -108,10 +144,13 @@
                         <label class="form-label small fw-semibold">App Credential Secret</label>
                         <input type="password" name="app_credential_secret" class="form-control" required>
                     </div>
+                    @endif
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    @unless ($regions->isEmpty())
                     <button type="submit" class="btn btn-orange">Speichern</button>
+                    @endunless
                 </div>
             </form>
         </div>
@@ -138,6 +177,14 @@
                         <label class="form-label small fw-semibold">Name</label>
                         <input type="text" name="name" id="edit-project-name" class="form-control @error('name') is-invalid @enderror"
                                value="{{ old('name') }}">
+                    </div>
+                    <div>
+                        <label class="form-label small fw-semibold">Region</label>
+                        <select name="region_id" id="edit-project-region" class="form-select @error('region_id') is-invalid @enderror">
+                            @foreach ($regions as $region)
+                            <option value="{{ $region->id }}">{{ $region->code }} — {{ $region->host_url }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div>
                         <label class="form-label small fw-semibold">App Credential ID</label>
@@ -234,7 +281,6 @@
 
 @push('scripts')
 <script>
-htmx.ajax('GET', '{{ route('servers.statuses') }}', { target: '#status-sink', swap: 'innerHTML' });
 
 // Single source of truth for filtering: combines the text search and the status
 // dropdown. Re-run on every htmx settle (e.g. status polling) so neither filter
@@ -243,10 +289,25 @@ function applyFilters() {
     const norm = str => str.toLowerCase().replace(/[^a-z0-9]/g, '');
     const q = norm(document.getElementById('projectSearch')?.value ?? '');
     const statusFilter = document.getElementById('projectFilter')?.value ?? 'all';
+    const regionFilter = document.getElementById('projectRegionFilter')?.value ?? 'all';
+
+    let visibleCards = 0;
 
     document.querySelectorAll('#projects-container > .card').forEach(card => {
         const header = card.querySelector('[data-project-name]');
-        const projectNameMatches = !q || (header && norm(header.dataset.projectName).includes(q));
+
+        // The "no projects" empty-state card has no project header — leave it alone.
+        if (!header) {
+            return;
+        }
+
+        // Region is a project-level attribute -> hide the whole card when it doesn't match.
+        if (regionFilter !== 'all' && card.dataset.region !== regionFilter) {
+            card.style.display = 'none';
+            return;
+        }
+
+        const projectNameMatches = !q || norm(header.dataset.projectName).includes(q);
         let anyVisible = false;
 
         card.querySelectorAll('tbody tr').forEach(row => {
@@ -274,19 +335,118 @@ function applyFilters() {
         });
 
         card.style.display = anyVisible ? '' : 'none';
+        if (anyVisible) {
+            visibleCards++;
+        }
     });
+
+    // Show a hint when an active search/filter matches nothing.
+    const filtering = q !== '' || statusFilter !== 'all' || regionFilter !== 'all';
+    const noResults = document.getElementById('no-results');
+    if (noResults) {
+        noResults.style.display = (filtering && visibleCards === 0) ? '' : 'none';
+    }
 }
 
-document.getElementById('projectFilter').addEventListener('change', applyFilters);
-document.getElementById('projectSearch').addEventListener('input', applyFilters);
 document.addEventListener('htmx:afterSettle', applyFilters);
 
+// Wrapped in an IIFE: navigation is htmx-based and re-runs this inline script in
+// the same global scope, so top-level `const`s would throw on the second visit.
 (function () {
+    const FILTERS_KEY = 'servers.filters';
+    const searchInput = document.getElementById('projectSearch');
+    const statusSelect = document.getElementById('projectFilter');
+    const regionSelect = document.getElementById('projectRegionFilter');
+
+    // Remember the active search/filters for this browser session so they survive
+    // navigating away from and back to this page.
+    function persistFilters() {
+        sessionStorage.setItem(FILTERS_KEY, JSON.stringify({
+            search: searchInput.value,
+            status: statusSelect.value,
+            region: regionSelect.value,
+        }));
+    }
+
+    statusSelect.addEventListener('change', () => { persistFilters(); applyFilters(); });
+    regionSelect.addEventListener('change', () => { persistFilters(); applyFilters(); });
+    searchInput.addEventListener('input', () => { persistFilters(); applyFilters(); });
+
+    let saved = {};
+    try {
+        saved = JSON.parse(sessionStorage.getItem(FILTERS_KEY)) || {};
+    } catch (e) {
+        saved = {};
+    }
+    if (saved.search) {
+        searchInput.value = saved.search;
+    }
+    if (saved.status) {
+        statusSelect.value = saved.status;
+    }
+    if (saved.region) {
+        regionSelect.value = saved.region;
+    }
+
+    // An explicit ?filter= in the URL (e.g. a dashboard link) wins over the
+    // remembered status.
     const f = new URLSearchParams(window.location.search).get('filter');
     if (f === 'running' || f === 'stopped') {
-        document.getElementById('projectFilter').value = f;
+        statusSelect.value = f;
     }
     applyFilters();
+})();
+
+// Remember which project panels are expanded so they stay open when navigating
+// away and back. Navigation is htmx-based, so this script re-runs each visit.
+(function () {
+    const OPEN_KEY = 'servers.openProjects';
+
+    function readOpen() {
+        try {
+            return new Set(JSON.parse(sessionStorage.getItem(OPEN_KEY)) || []);
+        } catch (e) {
+            return new Set();
+        }
+    }
+
+    // Reopen panels saved from a previous visit (instant, no transition).
+    readOpen().forEach(id => {
+        const panel = document.getElementById(id);
+        if (!panel) {
+            return;
+        }
+        panel.classList.add('show');
+        const trigger = document.querySelector('[data-bs-target="#' + id + '"]');
+        if (trigger) {
+            trigger.classList.remove('collapsed');
+            trigger.setAttribute('aria-expanded', 'true');
+        }
+    });
+
+    // Bind the toggle tracker once per session (window survives htmx navigation).
+    if (!window._serversOpenTracker) {
+        window._serversOpenTracker = true;
+        const update = (id, isOpen) => {
+            const set = readOpen();
+            if (isOpen) {
+                set.add(id);
+            } else {
+                set.delete(id);
+            }
+            sessionStorage.setItem(OPEN_KEY, JSON.stringify([...set]));
+        };
+        document.addEventListener('shown.bs.collapse', e => {
+            if (e.target.id.startsWith('project-')) {
+                update(e.target.id, true);
+            }
+        });
+        document.addEventListener('hidden.bs.collapse', e => {
+            if (e.target.id.startsWith('project-')) {
+                update(e.target.id, false);
+            }
+        });
+    }
 })();
 
 function setFormLoading(form, loading) {
@@ -307,13 +467,14 @@ function prepareDeleteModal(formId, projectName) {
     htmx.process(btn);
 }
 
-function prepareEditModal(projectId, projectName) {
+function prepareEditModal(projectId, projectName, regionId) {
     const editForm = document.getElementById('editProjectForm');
     editForm.action = '/projects/' + projectId;
     editForm.setAttribute('hx-put', '/projects/' + projectId);
     htmx.process(editForm);
     document.getElementById('edit-project-id').value  = projectId;
     document.getElementById('edit-project-name').value = projectName;
+    document.getElementById('edit-project-region').value = regionId;
     document.getElementById('edit-project-credential-id').value    = '';
     document.getElementById('edit-project-credential-secret').value = '';
     document.querySelector('#editProjectModal .alert-danger')?.remove();

@@ -39,6 +39,7 @@ class InventoryService implements InventoryServiceInterface
             try {
 
                 $auth = $this->client->authenticate(
+                    $project->region->host_url,
                     $project->app_credential_id,
                     $project->app_credential_secret,
                 );
@@ -98,7 +99,7 @@ class InventoryService implements InventoryServiceInterface
 
     public function runForProject(int $projectId, bool $triggeredAutomatically = false): void
     {
-        $project = Project::findOrFail($projectId);
+        $project = Project::with('region')->findOrFail($projectId);
 
         $run = InventoryRun::create([
             'start_time' => now(),
@@ -113,6 +114,7 @@ class InventoryService implements InventoryServiceInterface
 
         try {
             $auth = $this->client->authenticate(
+                $project->region->host_url,
                 $project->app_credential_id,
                 $project->app_credential_secret,
             );

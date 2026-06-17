@@ -105,6 +105,8 @@ class ServerActionController extends Controller
                     }
                 }
 
+                usort($events, fn ($a, $b) => $a['time'] <=> $b['time']);
+
                 return [
                     'id' => $serverId,
                     'server_name' => $group->first()->server?->name ?? '—',

@@ -119,13 +119,20 @@ class DashboardController extends Controller
         return $response;
     }
 
+    /**
+     * Freshly recomputed "next events" list — polled by the dashboard so it
+     * stays accurate as time passes / scheduled actions fire.
+     */
+    public function nextEvents(): View
+    {
+        return view('partials.dashboard-next-events', ['nextEvents' => $this->calculateNextEvents()]);
+    }
+
     /** @return array{savings: float, hours: float, avgRate: float} */
     private function calculateMonthlySavings(\Illuminate\Support\Collection $projects): array
     {
         $totalSavings = 0.0;
         $totalHours = 0.0;
-        $rateSum = 0.0;
-        $rateCount = 0;
 
         foreach ($projects->flatMap(fn ($p) => $p->servers) as $server) {
             if ($server->actions->isEmpty() || ! $server->schedule_active || ! $server->flavor) {
@@ -134,12 +141,11 @@ class DashboardController extends Controller
 
             $rate = FlavorParser::hourlyCost($server->flavor);
             $stoppedPerWeek = $this->weeklyStoppedHours($server->actions);
-            $monthlyHours = $stoppedPerWeek * 4;
+            // A month averages 365.25/12 days ≈ 4.345 weeks, not a flat 4.
+            $monthlyHours = $stoppedPerWeek * (365.25 / 12 / 7);
 
             $totalSavings += $monthlyHours * $rate;
             $totalHours += $monthlyHours;
-            $rateSum += $rate;
-            $rateCount++;
         }
 
         return [
@@ -161,41 +167,49 @@ class DashboardController extends Controller
             Weekday::SUNDAY->name => 8640,
         ];
 
-        $starts = [];
-        $stops = [];
+        $weekMinutes = 7 * 24 * 60;
+
+        /** @var list<array{minute: int, type: ActionType}> $events */
+        $events = [];
 
         foreach ($actions as $action) {
             [$h, $m] = explode(':', $action->time);
             $timeMin = (int) $h * 60 + (int) $m;
 
             foreach (Weekday::unpack($action->weekday) as $day) {
-                $abs = $dayOffset[$day->name] + $timeMin;
-                if ($action->type === ActionType::START) {
-                    $starts[] = $abs;
-                } else {
-                    $stops[] = $abs;
-                }
+                $events[] = [
+                    'minute' => $dayOffset[$day->name] + $timeMin,
+                    'type' => $action->type,
+                ];
             }
         }
 
-        if (empty($starts) || empty($stops)) {
+        if (empty($events)) {
             return 0.0;
         }
 
-        sort($starts);
-        sort($stops);
+        usort($events, fn (array $a, array $b): int => $a['minute'] <=> $b['minute']);
 
-        $runningMinutes = 0;
-        foreach ($starts as $start) {
-            foreach ($stops as $stop) {
-                if ($stop > $start) {
-                    $runningMinutes += $stop - $start;
-                    break;
-                }
-            }
+        // A lone event never toggles back: STOP means off all week, START means on.
+        if (count($events) === 1) {
+            return $events[0]['type'] === ActionType::STOP ? $weekMinutes / 60 : 0.0;
         }
 
-        return max(0.0, 168.0 - ($runningMinutes / 60));
+        // Sweep the week as a circular timeline (Sunday wraps to Monday); each
+        // segment that begins with a STOP is downtime.
+        $stoppedMinutes = 0;
+        $count = count($events);
+
+        foreach ($events as $i => $event) {
+            if ($event['type'] !== ActionType::STOP) {
+                continue;
+            }
+
+            $next = $events[($i + 1) % $count]['minute'];
+            $stoppedMinutes += ($next - $event['minute'] + $weekMinutes) % $weekMinutes;
+        }
+
+        return $stoppedMinutes / 60;
     }
 
     private function calculateNextEvents(int $limit = 7): array

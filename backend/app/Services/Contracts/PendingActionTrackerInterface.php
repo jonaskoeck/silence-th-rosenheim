@@ -20,4 +20,10 @@ interface PendingActionTrackerInterface
      * @return array<int, int> IDs of servers that currently have an active expectation.
      */
     public function pendingServerIds(): array;
+
+    /**
+     * @return array<int, string> Map server_id => expected status ('ACTIVE'|'SHUTOFF')
+     *                            for servers that currently have an active expectation.
+     */
+    public function pendingExpectations(): array;
 }

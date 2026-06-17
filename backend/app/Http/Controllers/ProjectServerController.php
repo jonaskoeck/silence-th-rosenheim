@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\Server;
 use App\Services\Contracts\PendingActionTrackerInterface;
 use App\Services\Contracts\ProjectServiceInterface;
+use App\Services\Contracts\RegionServiceInterface;
 use App\Services\Contracts\ServerControlServiceInterface;
 use App\Services\Contracts\ServerStatusServiceInterface;
 use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
@@ -22,11 +23,15 @@ use Illuminate\Support\Collection;
 
 class ProjectServerController extends Controller
 {
+    /** Projects per status-loading chunk on the servers page. */
+    private const STATUS_CHUNK_SIZE = 10;
+
     public function __construct(
         private ProjectServiceInterface $projects,
         private ServerControlServiceInterface $control,
         private ServerStatusServiceInterface $serverStatus,
         private PendingActionTrackerInterface $pendingActions,
+        private RegionServiceInterface $regions,
     ) {}
 
     public function index(Request $request): View|Response
@@ -34,6 +39,9 @@ class ProjectServerController extends Controller
         $projects = $this->projects->getAll()->load('servers')->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
+            'region_id' => $p->region_id,
+            'region_code' => $p->region->code,
+            'region_host_url' => $p->region->host_url,
             'servers' => $p->servers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
@@ -42,7 +50,9 @@ class ProjectServerController extends Controller
             ])->all(),
         ])->all();
 
-        $view = view('servers', compact('projects'));
+        $regions = $this->regions->getAll();
+
+        $view = view('servers', compact('projects', 'regions'));
 
         if ($request->header('HX-Request')) {
             return response($view);
@@ -51,14 +61,26 @@ class ProjectServerController extends Controller
         return $view;
     }
 
-    public function statusAll(): Response
+    public function statusAll(Request $request): Response
     {
-        $projectModels = $this->projects->getAll()->load('servers');
-        $statuses = $this->serverStatus->statusesForProjects($projectModels);
-        $projects = $this->mapProjects($projectModels, $statuses);
+        // Load statuses one chunk of projects at a time. Each response carries the
+        // OOB badge updates for its chunk plus a trigger for the next chunk, so the
+        // badges fill in progressively instead of all at once after a long wait.
+        $allProjects = $this->projects->getAll()->load('servers')->sortBy('id')->values();
+
+        $offset = max(0, $request->integer('offset'));
+        $chunk = $allProjects->slice($offset, self::STATUS_CHUNK_SIZE)->values();
+
+        $statuses = $this->serverStatus->statusesForProjects($chunk);
+        $projects = $this->mapProjects($chunk, $statuses);
+
+        $nextOffset = $offset + self::STATUS_CHUNK_SIZE;
+        $nextStatusUrl = $nextOffset < $allProjects->count()
+            ? route('servers.statuses', ['offset' => $nextOffset])
+            : null;
 
         return $this->withStatusFailureToast(
-            response(view('partials.projects-status-oob', compact('projects'))),
+            response(view('partials.projects-status-oob', compact('projects', 'nextStatusUrl'))),
             $statuses,
         );
     }
@@ -122,10 +144,10 @@ class ProjectServerController extends Controller
                 'serverId' => $server->id,
                 'rawStatus' => 'SHUTOFF',
                 'expecting' => 'ACTIVE',
-            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wurde gestartet.", 'type' => 'success']]));
+            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wird gestartet…", 'type' => 'success']]));
         }
 
-        return back()->with('status', "Server \"{$server->name}\" wurde gestartet.");
+        return back()->with('status', "Server \"{$server->name}\" wird gestartet…");
     }
 
     public function stop(Request $request, Server $server): RedirectResponse|View|Response
@@ -150,10 +172,10 @@ class ProjectServerController extends Controller
                 'serverId' => $server->id,
                 'rawStatus' => 'ACTIVE',
                 'expecting' => 'SHUTOFF',
-            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wurde gestoppt.", 'type' => 'success']]));
+            ]))->header('HX-Trigger', json_encode(['toast' => ['message' => "Server \"{$server->name}\" wird gestoppt…", 'type' => 'success']]));
         }
 
-        return back()->with('status', "Server \"{$server->name}\" wurde gestoppt.");
+        return back()->with('status', "Server \"{$server->name}\" wird gestoppt…");
     }
 
     public function status(Request $request, Server $server): View
@@ -188,6 +210,9 @@ class ProjectServerController extends Controller
         return $projects->map(fn ($p) => [
             'id' => $p->id,
             'name' => $p->name,
+            'region_id' => $p->region_id,
+            'region_code' => $p->region->code,
+            'region_host_url' => $p->region->host_url,
             'servers' => $p->servers->map(fn ($s) => [
                 'id' => $s->id,
                 'name' => $s->name,
