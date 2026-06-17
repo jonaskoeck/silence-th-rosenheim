@@ -81,10 +81,20 @@ deploy-dev:
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
     - ssh-keyscan axm-sep-silence-01.th-rosenheim.de >> ~/.ssh/known_hosts
   script:
+    # Die .env-Dateien liegen bewusst NICHT im Repo (gitignored). Sie werden vor
+    # dem Reset gesichert und danach zurueckgespielt, damit ein `git reset --hard`
+    # /`checkout` sie nicht loescht (z. B. wenn der Server-Checkout versehentlich
+    # auf einem Branch steht, der die .env tracked). `checkout -f -B develop`
+    # setzt den Checkout zugleich wieder sauber auf develop.
     - ssh student@axm-sep-silence-01.th-rosenheim.de "
         cd /home/student/silence &&
+        mkdir -p ../silence-env-backup &&
+        ( cp -f .env ../silence-env-backup/root.env 2>/dev/null || true ) &&
+        ( cp -f backend/.env ../silence-env-backup/backend.env 2>/dev/null || true ) &&
         git fetch origin &&
-        git reset --hard origin/develop &&
+        git checkout -f -B develop origin/develop &&
+        ( cp -f ../silence-env-backup/root.env .env 2>/dev/null || true ) &&
+        ( cp -f ../silence-env-backup/backend.env backend/.env 2>/dev/null || true ) &&
         docker compose up --build -d --remove-orphans
       "
   environment:
