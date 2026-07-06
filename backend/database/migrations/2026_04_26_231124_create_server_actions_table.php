@@ -18,6 +18,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('weekday');
             $table->string('time', 5);
             $table->string('type');
+            $table->dateTime('last_triggered_at')->nullable();
             $table->timestamps();
 
             $table->unique(['server_id', 'time', 'type']);

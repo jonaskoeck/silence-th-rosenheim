@@ -12,6 +12,11 @@ return new class extends Migration
     {
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
+            // A project always belongs to exactly one region; deleting a region with
+            // projects is blocked rather than cascading.
+            $table->foreignId('region_id')
+                ->constrained('regions')
+                ->restrictOnDelete();
             $table->string('name')->nullable();
             $table->string('open_stack_project_id')->unique();
             // Encrypted via Laravel's `encrypted` cast — ciphertext exceeds varchar bounds, so TEXT.
