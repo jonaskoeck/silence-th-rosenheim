@@ -99,6 +99,7 @@ services:
       - .env
     environment:
       DB_HOST: database
+      RUN_MIGRATIONS: "true"
     # Gebaute Vite-Assets aus dem Image in den Host-Mount spiegeln (siehe
     # docker-entrypoint.sh), damit der Apache-Container sie ausliefern kann.
     volumes:
