@@ -19,6 +19,9 @@ return new class extends Migration
             $table->string('open_stack_server_id')->index();
             $table->string('name');
             $table->string('label');
+            $table->string('flavor')->nullable();
+            $table->boolean('schedule_active')->default(true);
+            $table->string('schedule_name')->nullable();
             // keep server records when their discovery run is purged.
             $table->foreignId('discovered_by_run_id')
                 ->nullable()

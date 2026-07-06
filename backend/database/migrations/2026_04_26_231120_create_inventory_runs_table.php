@@ -17,6 +17,7 @@ return new class extends Migration
             $table->boolean('triggered_automatically')->default(false);
             $table->boolean('had_errors')->default(false);
             $table->boolean('found_new_servers')->default(false);
+            $table->json('deleted_servers')->nullable();
             $table->timestamps();
         });
     }
