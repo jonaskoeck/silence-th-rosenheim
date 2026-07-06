@@ -1,0 +1,147 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests;
+
+use App\Models\Project;
+use App\Models\Region;
+use App\Services\Contracts\OpenStackClientInterface;
+use App\Services\OpenStack\Exceptions\InvalidOpenStackCredentialsException;
+use App\Services\OpenStack\Exceptions\OpenStackUnreachableException;
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\ValidationException;
+
+class UpdateProjectRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /**
+     * @return array<string, ValidationRule|array<mixed>|string>
+     */
+    public function rules(): array
+    {
+        return [
+            'name' => ['nullable', 'string', 'max:255'],
+            'region_id' => ['nullable', 'integer', 'exists:regions,id'],
+            'app_credential_id' => ['nullable', 'string', 'max:255'],
+            'app_credential_secret' => ['nullable', 'string'],
+        ];
+    }
+
+    protected function passedValidation(): void
+    {
+        /** @var Project $project */
+        $project = $this->route('project');
+
+        try {
+            $this->verifyCredentials($project);
+        } catch (ValidationException $e) {
+            session()->flash('edit_project_id', $project->id);
+            throw $e;
+        }
+    }
+
+    private function verifyCredentials(Project $project): void
+    {
+        $submittedId = $this->validated('app_credential_id');
+        $submittedSecret = $this->validated('app_credential_secret');
+        $submittedRegionId = $this->validated('region_id');
+
+        $regionChanged = $submittedRegionId !== null && (int) $submittedRegionId !== $project->region_id;
+
+        // Weder Credentials noch Region geändert → nur Name o. Ä., keine Auth nötig
+        if (! $submittedId && ! $submittedSecret && ! $regionChanged) {
+            return;
+        }
+
+        // Fehlende Seite aus der DB ergänzen
+        $credentialId = $submittedId ?: $project->app_credential_id;
+        $credentialSecret = $submittedSecret ?: $project->app_credential_secret;
+
+        // Credentials unverändert UND Region unverändert → keine Auth nötig
+        if (! $regionChanged
+            && $credentialId === $project->app_credential_id
+            && $credentialSecret === $project->app_credential_secret) {
+            return;
+        }
+
+        $region = $submittedRegionId !== null
+            ? Region::findOrFail((int) $submittedRegionId)
+            : $project->region;
+
+        try {
+            $result = app(OpenStackClientInterface::class)->authenticate(
+                $region->host_url,
+                $credentialId,
+                $credentialSecret,
+            );
+        } catch (OpenStackUnreachableException) {
+            throw ValidationException::withMessages([
+                'region_id' => 'Die gewählte Region ist nicht erreichbar.',
+            ]);
+        } catch (InvalidOpenStackCredentialsException) {
+            throw ValidationException::withMessages([
+                'app_credential_secret' => 'Ungültige OpenStack-Zugangsdaten.',
+            ]);
+        }
+
+        if ($result->projectId !== $project->open_stack_project_id) {
+            throw ValidationException::withMessages([
+                'app_credential_id' => 'Diese Zugangsdaten gehören zu einem anderen OpenStack-Projekt.',
+            ]);
+        }
+    }
+
+    /**
+     * Felder für das Update zusammenstellen.
+     * Wenn nur ein Credential angegeben wurde, wird das andere aus der DB ergänzt,
+     * damit immer ein konsistentes Paar gespeichert wird.
+     *
+     * @return array<string, mixed>
+     */
+    public function projectAttributes(): array
+    {
+        /** @var Project $project */
+        $project = $this->route('project');
+
+        $attrs = array_filter(
+            $this->validated(),
+            fn ($value) => ! is_null($value) && $value !== '',
+        );
+
+        // Wenn nur eines der Credentials angegeben → das andere aus DB ergänzen
+        $hasId = ! empty($attrs['app_credential_id']);
+        $hasSecret = ! empty($attrs['app_credential_secret']);
+
+        if ($hasId && ! $hasSecret) {
+            $attrs['app_credential_secret'] = $project->app_credential_secret;
+        } elseif ($hasSecret && ! $hasId) {
+            $attrs['app_credential_id'] = $project->app_credential_id;
+        }
+
+        return $attrs;
+    }
+
+    protected function failedValidation(Validator $validator): void
+    {
+        if ($this->header('HX-Request')) {
+            throw new HttpResponseException(
+                response()->noContent(422)->header(
+                    'HX-Trigger',
+                    json_encode(['toast' => ['message' => $validator->errors()->first(), 'type' => 'danger']])
+                )
+            );
+        }
+        /** @var Project $project */
+        $project = $this->route('project');
+        session()->flash('edit_project_id', $project->id);
+        parent::failedValidation($validator);
+    }
+}

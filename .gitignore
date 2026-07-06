@@ -1,0 +1,16 @@
+# Docker
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editors
+.vscode/
+.zed/
+.cursor/
+
+# Logs
+*.log
