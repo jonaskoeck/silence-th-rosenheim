@@ -1,5 +1,9 @@
 # silence!
 
+> **Portfolio-Kopie.** Dies ist eine mit ausdrücklicher Zustimmung des betreuenden Professors auf meinen privaten GitHub-Account gespiegelte Kopie eines Teamprojekts an der Technischen Hochschule Rosenheim. Das Original-Repository liegt im TH-internen GitLab und ist nicht öffentlich zugänglich.
+>
+> Meine persönlichen Beiträge sind in der Sektion [**Meine Beiträge**](#meine-beiträge-jonas-köck) am Ende dieser README gelistet. Für einen chronologischen Überblick: `git log --author="Jonas Köck"` bzw. der [Contributors](https://github.com/jonaskoeck/silence-th-rosenheim/graphs/contributors)-Tab auf GitHub.
+
 ## Projektübersicht
 
 Dieses Projekt entsteht im Rahmen der Lehrveranstaltung _Software Engineering Praxis_ (SoSe 2026) an der Technischen Hochschule Rosenheim in Zusammenarbeit mit dem Rechenzentrum der TH.
@@ -30,15 +34,9 @@ Entwicklung einer Webanwendung zur automatisierten Zeitplansteuerung und Inventa
 | Infrastruktur       | Docker & Docker Compose      |
 | Authentifizierung   | Shibboleth SSO               |
 
-### Wiki Übersicht
+### Wiki
 
-- [Home](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home)
-- [Entwicklerteam](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Entwicklerteam)
-- [Projekt](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Projekt)
-- [Anforderungen](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Anforderungen)
-- [Architektur](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Architektur)
-- [Entwicklung](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Entwicklung)
-- [Meetings und Protokolle](https://git-ce.th-rosenheim.de/sep-wif-26/silence/-/wikis/Home/Meetings-und-Protokolle)
+Ein ausführliches Wiki (Anforderungen, Architektur, Entwicklungs-Doku, Meeting-Protokolle) wurde begleitend im TH-internen GitLab gepflegt und ist von außen nicht erreichbar. Auf Nachfrage kann ich einzelne Kapitel als PDF-Export bereitstellen.
 
 <!-- wiki-end -->
 
@@ -121,3 +119,25 @@ Kein manuelles `npm install` / `composer install` nötig – der mehrstufige `ba
 | Alexander Dingiria | Product Owner | alexander.dingiria@stud.th-rosenheim.de |
 | Jonas Köck | Qualitätsbeauftragter | jonas.koeck@stud.th-rosenheim.de |
 | David Costa | Usability Engineer | david.costa@stud.th-rosenheim.de |
+
+## Meine Beiträge (Jonas Köck)
+
+Neben der Rolle als Qualitätsbeauftragter (Test-Reviews, Coverage-Kontrolle) habe ich innerhalb des Teams folgende Features eigenständig konzipiert und implementiert:
+
+### Authentifizierung & Zugriffsschutz
+
+- Vollständige Shibboleth-SSO-Integration nach den User Stories US-E6-1 (SSO-Login) und US-E6-2 (Zugriffskontrolle)
+- Eigene Laravel-Middleware, die die vom SP gesetzten SAML-Header ausliest (inkl. `REDIRECT_`-Prefix-Handling auf Empfehlung des Rechenzentrums), die geforderten Entitlements gegen die Föderationskonfiguration prüft und die Benutzerdaten in der Session ablegt
+- Simulationsmodus (`SHIB_SIMULATE=true`) für lokale Entwicklung ohne Shibboleth-SP, damit alle Teammitglieder ohne SAML-Setup entwickeln konnten
+- 8 Feature-Tests, die Redirect-Verhalten, Entitlement-Enforcement, Session-Persistenz und Logout abdecken
+
+Kernstellen: [`ShibbolethAuth.php`](backend/app/Http/Middleware/ShibbolethAuth.php), [`config/shibboleth.php`](backend/config/shibboleth.php), [`ShibbolethAuthTest.php`](backend/tests/Feature/ShibbolethAuthTest.php)
+
+### Barrierefreiheit & UI
+
+- **Dark Mode** mit persistenter `localStorage`-Speicherung, Kontrast-optimierten Farbwerten und Anpassungen für Formulare, Modals, Toasts, Tabellen und HTMX-Partials
+- **Farbblindenmodus** (Rot-Grün-Schwäche / Deuteranopie): Farbblind-sichere Alternativpalette (Blau/Orange statt Rot/Grün) über Badges, Buttons, Status-Dots, Toggle-Switches und Zeitplan-Kalender – auch für per JavaScript erzeugte, dynamische DOM-Knoten
+- **Konsistente Server-Label-Farbgebung** über Produktiv/Test/Entwicklung/Unkategorisiert – in beiden Modi klar unterscheidbar
+- **Tooltip-Ausstattung** aller relevanten Icon-Buttons inklusive automatischer Neuinitialisierung nach HTMX-Content-Swaps
+
+Kernstellen: [`custom.css`](backend/public/assets/css/custom.css), [`layouts/app.blade.php`](backend/resources/views/layouts/app.blade.php), [`app.js`](backend/resources/js/app.js)
